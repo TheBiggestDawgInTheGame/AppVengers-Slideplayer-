@@ -1,0 +1,237 @@
+/* ===========================
+   GLOBAL RESET
+=========================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ===========================
+   BODY & BACKGROUND
+=========================== */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ===========================
+   CONTAINER
+=========================== */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+/* ===========================
+   FLOATING BADGES
+=========================== */
+.floating-badge {
+  position: absolute;
+  font-size: 60px;
+  opacity: 0.15;
+  animation: float 6s ease-in-out infinite;
+  top: 15%;
+  left: 5%;
+}
+
+.badge2 {
+  top: 60%;
+  right: 8%;
+  animation-delay: 1s;
+  font-size: 50px;
+}
+
+.badge3 {
+  bottom: 20%;
+  left: 10%;
+  animation-delay: 2s;
+  font-size: 45px;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* ===========================
+   LOGIN BOX
+=========================== */
+.login-box {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 50px 40px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+  position: relative;
+  z-index: 1; /* ensures badges stay behind the box */
+}
+
+/* Header inside login box */
+.header h1 {
+  font-size: 42px;
+  color: #667eea;
+  margin-bottom: 10px;
+}
+
+.header p {
+  font-size: 16px;
+  color: #764ba2;
+  margin-bottom: 30px;
+}
+
+/* ===========================
+   FORM STYLING
+=========================== */
+.form-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  display: block;
+}
+
+/* ===========================
+   BEAUTIFUL INPUT FIELDS
+=========================== */
+.form-group input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px; /* smoother corners */
+  border: 2px solid #e0e0e0; /* soft border */
+  background: #f8f9ff; /* subtle background */
+  font-size: 15px;
+  transition: all 0.3s ease; /* smooth transition */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* soft shadow */
+}
+
+/* When input is focused (clicked) */
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea; /* highlight border */
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3); /* glowing effect */
+  background: #ffffff; /* lighter background */
+}
+
+/* Placeholder styling */
+.form-group input::placeholder {
+  color: #b0b0b0;
+  font-style: italic;
+  letter-spacing: 0.5px;
+}
+/* Options row */
+.options {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  font-size: 14px;
+}
+
+.options input {
+  margin-right: 5px;
+}
+
+/* Button */
+button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
+}
+
+/* ===========================
+   FUN FACT SECTION
+=========================== */
+.fun-fact {
+  background: #667eea15;
+  padding: 12px;
+  margin-top: 20px;
+  border-left: 4px solid #667eea;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #555;
+  text-align: left;
+}
+
+/* ===========================
+   SIGNUP LINK
+=========================== */
+.signup-link {
+  margin-top: 15px;
+  font-size: 14px;
+  color: #666;
+}
+
+.signup-link a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.signup-link a:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+/* ===========================
+   RESPONSIVE DESIGN
+=========================== */
+@media (max-width: 600px) {
+  .login-box {
+    padding: 35px 25px;
+  }
+
+  .header h1 {
+    font-size: 32px;
+  }
+
+  .header p {
+    font-size: 14px;
+  }
+
+  .options {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .fun-fact {
+    font-size: 12px;
+  }
+
+  .floating-badge {
+    display: none;
+  }
+}
