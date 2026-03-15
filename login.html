@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SidePlay - Login</title>
-    <link rel="stylesheet" href="home.css" />
+    <title>SlidePlay - Login</title>
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <!-- Main container -->
@@ -18,12 +18,21 @@
 
         <!-- Header -->
         <div class="header">
-          <h1>SidePlay 🎮</h1>
+          <h1>SlidePlay 🎮</h1>
           <p>Level Up Your Learning Game</p>
         </div>
 
         <!-- Login Form -->
         <form class="login-form">
+          <div class="form-group">
+            <label>Login As</label>
+            <select required>
+              <option value="">Select Role</option>
+              <option value="student">Student</option>
+              <option value="lecturer">Lecturer</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
           <div class="form-group">
             <label>👤 Username</label>
             <input type="text" placeholder="Enter your username" required />
@@ -51,7 +60,7 @@
 
         <!-- Sign up link -->
         <p class="signup-link">
-          Don't have an account? <a href="#">Sign up here</a>!
+          Don't have an account? <a href="SignUp.html">Sign up here</a>!
         </p>
       </div>
       <!-- login-box end -->
