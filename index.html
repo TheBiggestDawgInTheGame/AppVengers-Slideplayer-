@@ -1,34 +1,88 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SlidePlay</title>
-    <link rel="stylesheet" href="style.css" />
-    
-  </head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlidePlayer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="page-shell">
+        
+        <nav class="navigation">
+            <div class="nav-header">
+                <div class="logo-square">
+                    <i class="fa-solid fa-gamepad"></i>
+                </div>
+                <div class="logo-text-wrapper">
+                    <span class="logo-name">SlidePlayer</span>
+                    <span class="logo-sub">NEON MONOLITH V1.0</span>
+                </div>
+            </div>
 
-  <body>
-    <nav class="navbar">
-      <h2>SlidePlay 🎮</h2>
+            <ul class="nav-links">
+                <li class="active"><a href="#"><i class="fa-solid fa-gauge"></i> DASHBOARD</a></li>
+                <li><a href="#"><i class="fa-solid fa-layer-group"></i> LIBRARY</a></li>
+                <li><a href="#"><i class="fa-solid fa-bolt"></i> QUESTS</a></li>
+                <li><a href="#"><i class="fa-solid fa-chart-pie"></i> ANALYTICS</a></li>
+            </ul>
 
-      <div class="nav-buttons">
-        <a href="login.html">Login</a>
-        <a href="SignUp.html">Sign Up</a>
-      </div>
-    </nav>
+            <div class="nav-footer">
+                <div class="user-pill">
+                    <div class="user-meta">
+                        <span class="user-display-name">Kaelen Vance</span>
+                        <span class="user-status">Novice Hacker</span>
+                    </div>
+                    <div class="user-icon">
+                        <i class="fa-solid fa-user-ninja"></i>
+                    </div>
+                </div>
+            </div>
+        </nav>
 
-    <section class="hero">
-      <h1>Turn Studying Into A Game</h1>
+        <div class="content-area">
+            <section class="top-header">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="SEARCH QUESTS...">
+                </div>
 
-      <p>
-        SlidePlay helps students learn through quizzes, levels, and interactive
-        study tools.
-      </p>
+                <div class="right-items">
+                    <button class="icon-btn">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="notification-dot"></span>
+                    </button>
+                    
+                    <button class="icon-btn">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
 
-      <a href="login.html" class="start-btn">Start Learning 🚀</a>
-    </section>
+                    <div class="divider"></div>
 
-    <script src="script.js"></script>
-  </body>
+                    <div class="top-user">
+                        <div class="user-info">
+                            <span class="u-name">KAELEN VANCE</span>
+                            <span class="u-status">NOVICE HACKER</span>
+                        </div>
+                        <img src="https://via.placeholder.com/40" class="top-avatar">
+                    </div>
+                </div>
+            </section>
+
+            <section class="hero">
+                <div class="hero-copy">
+                    <span class="eyebrow">SlidePlayer</span>
+                    <h1>Clean, modern UI inspired by your prototype</h1>
+                    <p>Background and color scheme now use a polished dark gradient with bright blue accents.</p>
+                    <div class="hero-actions">
+                        <a class="btn primary" href="#">Get started</a>
+                        <a class="btn secondary" href="#">Learn more</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+    </main>
+</body>
 </html>
