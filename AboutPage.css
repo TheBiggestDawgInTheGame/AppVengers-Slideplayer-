@@ -1,0 +1,84 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to bottom, #0d001a, #1a0033);
+  color: #ffffff;
+}
+
+.about-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.hero {
+  background: linear-gradient(135deg, #2d1b69, #4b0082);
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+  padding: 36px;
+  margin-bottom: 28px;
+}
+
+.content article {
+    background: linear-gradient(135deg, #1a0033, #2d1b69);
+    border-radius: 12px;
+    padding: 26px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.hero p {
+  margin: 0;
+  max-width: 720px;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: #e0e0e0;
+}
+
+.content article {
+    background: linear-gradient(135deg, #1a0033, #2d1b69);
+    border-radius: 12px;
+    padding: 26px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.content h2 {
+    margin-top: 0;
+    color: #ffffff;
+}
+
+/* Footer Styling */
+.site-footer {
+  background: linear-gradient(135deg, #1a0033, #2d1b69);
+  border-top: 1px solid rgba(255, 78, 205, 0.2);
+  padding: 20px;
+  text-align: center;
+  margin-top: 40px;
+}
+
+.site-footer p {
+  color: #ccc;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.content p,
+.content li {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #e0e0e0;
+
+.content li {
+  margin-bottom: 10px;
+}
+
+@media (max-width: 620px) {
+  .about-page {
+    padding: 24px 16px;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+}
