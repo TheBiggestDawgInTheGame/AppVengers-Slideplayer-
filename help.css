@@ -129,7 +129,7 @@ body {
 }
 
 .help-hero h2 {
-  color: #8a2be2;
+  color: #00f7ff;
   margin-bottom: 20px;
 }
 
@@ -141,7 +141,7 @@ body {
 }
 
 .how-it-works h2 {
-  color: #8a2be2;
+  color: #00f7ff;
   margin-bottom: 20px;
 }
 
@@ -274,4 +274,11 @@ body {
 }
 /* RESPONSIVE (always last) */
 @media (max-width: 768px) {
+}
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 20px;
+  background: #141428;
+  color: #888;
 }
