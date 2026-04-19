@@ -1,386 +1,329 @@
+/* BASE */
+body {
+  background: #0f0f1a;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+/* NAVBAR */
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* ===========================
-   BODY & BACKGROUND
-=========================== */
-body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  overflow-x: hidden;
-  position: relative;
-}
-
-/* ===========================
-   CONTAINER
-=========================== */
-.container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  position: relative;
-}
-
-/* ===========================
-   FLOATING BADGES
-=========================== */
-.floating-badge {
-  position: absolute;
-  font-size: 60px;
-  opacity: 0.15;
-  animation: float 6s ease-in-out infinite;
-  top: 15%;
-  left: 5%;
-}
-
-.badge2 {
-  top: 60%;
-  right: 8%;
-  animation-delay: 1s;
-  font-size: 50px;
-}
-
-.badge3 {
-  bottom: 20%;
-  left: 10%;
-  animation-delay: 2s;
-  font-size: 45px;
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-/* ===========================
-   LOGIN BOX
-=========================== */
-.login-box {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  padding: 50px 40px;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  width: 100%;
-  max-width: 450px;
-  text-align: center;
-  position: relative;
-  z-index: 1; /* ensures badges stay behind the box */
-}
-
-/* Header inside login box */
-.header h1 {
-  font-size: 42px;
-  color: #667eea;
-  margin-bottom: 10px;
-}
-
-.header p {
-  font-size: 16px;
-  color: #764ba2;
-  margin-bottom: 30px;
-}
-
-/* ===========================
-   FORM STYLING
-=========================== */
-.form-group {
-  margin-bottom: 20px;
-  text-align: left;
-}
-
-.form-group label {
-  font-weight: 600;
-  margin-bottom: 5px;
-  display: block;
-}
-
-/* ===========================
-    INPUT FIELDS
-=========================== */
-.form-group input {
-  width: 100%;
-  padding: 14px 16px;
-  border-radius: 12px; /* smoother corners */
-  border: 2px solid #e0e0e0; /* soft border */
-  background: #f8f9ff; /* subtle background */
-  font-size: 15px;
-  transition: all 0.3s ease; /* smooth transition */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* soft shadow */
-}
-
-/* When input is focused (clicked) */
-.form-group input:focus {
-  outline: none;
-  border-color: #667eea; /* highlight border */
-  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3); /* glowing effect */
-  background: #ffffff; /* lighter background */
-}
-
-/* Placeholder styling */
-.form-group input::placeholder {
-  color: #b0b0b0;
-  font-style: italic;
-  letter-spacing: 0.5px;
-}
-/* Options row */
-.options {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 25px;
-  font-size: 14px;
-}
-
-.options input {
-  margin-right: 5px;
-}
-
-/* Button */
-button {
-  width: 100%;
-  padding: 15px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
-}
-
-/* ===========================
-   FUN FACT SECTION
-=========================== */
-.fun-fact {
-  background: #667eea15;
-  padding: 12px;
-  margin-top: 20px;
-  border-left: 4px solid #667eea;
-  border-radius: 10px;
-  font-size: 13px;
-  color: #555;
-  text-align: left;
-}
-
-/* ===========================
-   SIGNUP LINK
-=========================== */
-.signup-link {
-  margin-top: 15px;
-  font-size: 14px;
-  color: #666;
-}
-
-.signup-link a {
-  color: #667eea;
-  text-decoration: none;
-  font-weight: 700;
-}
-
-.signup-link a:hover {
-  color: #764ba2;
-  text-decoration: underline;
-}
-
-/* ===========================
-   RESPONSIVE DESIGN
-=========================== */
-@media (max-width: 600px) {
-  .login-box {
-    padding: 35px 25px;
-  }
-
-  .header h1 {
-    font-size: 32px;
-  }
-
-  .header p {
-    font-size: 14px;
-  }
-
-  .options {
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-  }
-
-  .fun-fact {
-    font-size: 12px;
-  }
-
-  .floating-badge {
-    display: none;
-  }
-}
-
-/* ===========================
-   NAVIGATION BAR
-=========================== */
+/* NAVBAR */
 .navbar {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  padding: 20px 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  padding: 15px 40px;
+  background: #09000e;
+
+  border-bottom: 1px solid rgba(0, 247, 255, 0.2);
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: 70px;
+  z-index: 1000;
+}
+
+/* NAV LINKS */
+.nav-links {
+  display: flex;
+  gap: 25px;
+  align-items: center;
+}
+
+.nav-links a {
   color: white;
-}
-
-.navbar h2 {
-  font-size: 24px;
-}
-
-.nav-buttons a {
   text-decoration: none;
-  margin-left: 15px;
-  padding: 10px 18px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  font-weight: 600;
+  font-weight: 500;
   transition: 0.3s;
 }
 
-.nav-buttons a:hover {
-  background: rgba(255, 255, 255, 0.4);
+.nav-links a:hover {
+  color: #00f7ff;
 }
 
-/* ===========================
-   HERO SECTION (MAIN PAGE)
-=========================== */
+/* ACTIVE PAGE */
+.nav-links a.active {
+  color: #00f7ff;
+  border-bottom: 2px solid #00f7ff;
+  padding-bottom: 3px;
+}
 
-.hero {
-  text-align: center;
+/* AUTH BUTTON */
+.auth {
+  display: flex;
+  align-items: center;
+}
+
+.signup-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #ff4ecd, #8a2be2, #00c6ff);
   color: white;
-  max-width: 700px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: 0.3s ease;
+}
+
+.signup-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0, 198, 255, 0.4);
+}
+
+/* PREVENT CONTENT GOING UNDER NAVBAR */
+body {
+  padding-top: 80px;
+}
+
+/* subtle floating effect */
+@keyframes floatText {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+.menu-toggle {
+  display: none;
+  font-size: 1.5rem;
+  color: white;
+  cursor: pointer;
+}
+.logo {
+  font-size: 1.6rem;
+  font-weight: 800;
+
+  background: linear-gradient(90deg, #ff4ecd, #8a2be2, #00c6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  letter-spacing: 1px;
+
+  text-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
+}
+
+/* HERO TITLE */
+.hero-title {
+  font-family: "Baloo 2", cursive;
+  font-size: 3.2rem;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.2;
+
+  background: linear-gradient(90deg, #ff4ecd, #8a2be2, #00c6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  text-shadow: 0 0 25px rgba(138, 43, 226, 0.4);
+
+  letter-spacing: 1px;
+  animation: floatText 3s ease-in-out infinite;
+}
+
+/* MENU TOGGLE */
+.menu-toggle {
+  display: none;
+  font-size: 1.5rem;
+  color: white;
+  cursor: pointer;
+}
+
+/* HERO SECTION */
+.hero {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  transform: translateY(20px);
 }
 
 .hero h1 {
-  font-size: 55px;
+  font-size: 3rem;
   margin-bottom: 20px;
 }
 
 .hero p {
-  font-size: 18px;
+  max-width: 500px;
   margin-bottom: 30px;
-  line-height: 1.6;
+  color: #bbb;
+  line-height: 1.5;
 }
 
+/* BUTTON */
 .start-btn {
-  display: inline-block;
-  padding: 15px 30px;
-  background: white;
-  color: #667eea;
-  font-weight: bold;
-  border-radius: 10px;
+  background: linear-gradient(45deg, #00f7ff, #007bff);
+  padding: 14px 30px;
+  border-radius: 30px;
   text-decoration: none;
-  transition: 0.3s;
+  color: white;
+  font-weight: bold;
+  transition: 0.3s ease;
+  display: inline-flex;
+  gap: 10px;
+  align-self: center;
+}
+
+.start-btn i {
+  font-size: 18px;
+
+  background: linear-gradient(90deg, #ff4ecd, #8a2be2, #00c6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  filter: drop-shadow(0 0 6px rgba(138, 43, 226, 0.4));
 }
 
 .start-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  transform: scale(1.1);
+  transition: 0.3s ease;
 }
 
-/* ===========================
-   SIGNUP BOX
-=========================== */
+/* FEATURES */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  padding: 100px 50px;
+  gap: 25px;
+  background: #09000e;
+}
 
-.signup-box {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  padding: 50px 40px;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  width: 100%;
-  max-width: 450px;
+.features-header {
   text-align: center;
+  grid-column: 1 / -1;
+  margin-bottom: 30px;
 }
 
-.signup-box h1 {
-  color: #667eea;
-  margin-bottom: 25px;
+.features-header h2 {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  color: #00f7ff;
 }
-/* ===========================
-   SIGN UP BOX
-=========================== */
 
-.signup-box {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  padding: 50px 40px;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  width: 100%;
-  max-width: 450px;
+.features-header p {
+  max-width: 600px;
+  margin: 0 auto;
+  color: #bbb;
+  line-height: 1.6;
+}
+
+/* CARD */
+.card {
+  background: #1c1c2e;
+  padding: 25px;
+  border-radius: 15px;
+  transition: 0.3s;
+  border: 1px solid transparent;
+}
+
+.card i {
+  font-size: 30px;
+  margin-bottom: 10px;
+
+  background: linear-gradient(90deg, #ff4ecd, #8a2be2, #00c6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.card:hover {
+  transform: translateY(-10px);
+  border: 1px solid #00f7ff;
+  box-shadow: 0 0 15px rgba(0, 247, 255, 0.3);
+}
+
+.card h3 {
+  margin-bottom: 12px;
+  color: #00f7ff;
+}
+
+.card p {
+  color: #bbb;
+  line-height: 1.5;
+}
+
+/* FOOTER */
+footer {
   text-align: center;
-  position: relative;
+  padding: 20px;
+  background: #141428;
+  color: #888;
 }
 
-/* Signup title */
-
-.signup-box h1 {
-  font-size: 38px;
-  color: #667eea;
-  margin-bottom: 25px;
+/* SPACING FIX (IMPORTANT) */
+.hero {
+  padding-top: 80px;
 }
 
-/* Form spacing */
-
-.signup-form .form-group {
-  margin-bottom: 18px;
+.features {
+  padding-top: 120px;
 }
 
-/* Signup button */
-
-.signup-form button {
-  margin-top: 10px;
-}
-
-/* Login link under signup */
-
-.login-link {
-  margin-top: 18px;
-  font-size: 14px;
-  color: #666;
-}
-
-.login-link a {
-  color: #667eea;
-  text-decoration: none;
-  font-weight: 700;
-}
-
-.login-link a:hover {
-  color: #764ba2;
-  text-decoration: underline;
-}
-.form-group select {
+/* PARTICLES */
+#particles {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  padding: 14px;
-  border-radius: 12px;
-  border: 2px solid #e0e0e0;
-  background: #f8f9ff;
-  font-size: 15px;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #ff4ecd, #8a2be2, #00c6ff);
+  opacity: 0.6;
+  animation: floatUp linear infinite;
+}
+
+@keyframes floatUp {
+  from {
+    transform: translateY(100vh) scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(-10vh) scale(1);
+    opacity: 1;
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .navbar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px 20px;
+  }
+
+  .navbar nav {
+    margin-top: 10px;
+  }
+
+  .navbar nav a {
+    margin: 0 10px;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .features {
+    padding: 80px 20px;
+  }
 }

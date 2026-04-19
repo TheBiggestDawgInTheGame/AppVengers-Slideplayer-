@@ -4,38 +4,103 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SlidePlay - Sign Up</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="signup.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
   </head>
 
-  <body>
-    <div class="container">
-      <div class="signup-box">
-        <h1>Create Your Account 🎮</h1>
+  <body class="auth-page">
+    <div id="particles"></div>
+    <div class="signup-box">
+      <div class="signup-header">
+        <h2>Create Account</h2>
+      </div>
 
-        <form class="signup-form">
-          <div class="form-group">
-            <label>Username</label>
-            <input type="text" placeholder="Enter username" />
-          </div>
+      <form id="signupForm" class="signup-form">
+        <div class="input-box">
+          <i class="fa-solid fa-user"></i>
+          <input
+            type="text"
+            id="username"
+            class="input-field"
+            placeholder="Enter username"
+            required
+          />
+        </div>
 
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" placeholder="Enter email" />
-          </div>
+        <div class="input-box">
+          <i class="fa-solid fa-envelope"></i>
+          <input
+            type="email"
+            id="email"
+            class="input-field"
+            placeholder="Enter email"
+            required
+          />
+        </div>
 
-          <div class="form-group">
-            <label>Password</label>
-            <input type="password" placeholder="Create password" />
-          </div>
+        <div class="input-box">
+          <i class="fa-solid fa-lock"></i>
+          <input
+            type="password"
+            id="password"
+            class="input-field"
+            placeholder="Create password"
+            required
+          />
+        </div>
 
-          <button type="submit">CREATE ACCOUNT 🚀</button>
-        </form>
+        <div class="input-box">
+          <i class="fa-solid fa-lock"></i>
+          <input
+            type="password"
+            id="confirmPassword"
+            class="input-field"
+            placeholder="Confirm password"
+            required
+          />
+        </div>
 
-        <p class="login-link">
-          Already have an account?
-          <a href="login.html">Login</a>
-        </p>
+        <button class="signup-btn" type="submit">Create Account</button>
+      </form>
+
+      <div class="login-link">
+        <p>Already have an account? <a href="login.html">Login</a></p>
       </div>
     </div>
+
+    <script>
+      const container = document.getElementById("particles");
+
+      function createParticle() {
+        const particle = document.createElement("div");
+        particle.classList.add("particle");
+
+        // random position
+        particle.style.left = Math.random() * 100 + "vw";
+
+        // random size
+        const size = Math.random() * 6 + 2;
+        particle.style.width = size + "px";
+        particle.style.height = size + "px";
+
+        // random speed
+        const duration = Math.random() * 5 + 5;
+        particle.style.animationDuration = duration + "s";
+
+        container.appendChild(particle);
+
+        // remove after animation
+        setTimeout(() => {
+          particle.remove();
+        }, duration * 1000);
+      }
+
+      // generate particles continuously
+      setInterval(createParticle, 150);
+    </script>
+    <script src="signup.js"></script>
   </body>
 </html>

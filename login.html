@@ -3,68 +3,100 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SlidePlay - Login</title>
-    <link rel="stylesheet" href="style.css" />
+    <title>Login | SlidePlay</title>
+    <link rel="stylesheet" href="login.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
   </head>
-  <body>
-    <!-- Main container -->
-    <div class="container">
-      <!-- Login Box -->
-      <div class="login-box">
-        <!-- Floating decorative badges INSIDE the login box -->
-        <div class="floating-badge">📈</div>
-        <div class="floating-badge badge2">🎯</div>
-        <div class="floating-badge badge3">⭐</div>
 
-        <!-- Header -->
-        <div class="header">
-          <h1>SlidePlay 🎮</h1>
-          <p>Level Up Your Learning Game</p>
+  <body class="auth-page">
+    <div id="particles"></div>
+    <div class="login-box">
+      <div class="login-header">
+        <h2>Welcome Back to SlidePlay</h2>
+      </div>
+
+      <form id="loginForm">
+        <div class="input-box">
+          <i class="fa-solid fa-envelope"></i>
+          <input
+            type="email"
+            id="email"
+            class="input-field"
+            placeholder="Enter your email"
+            autocomplete="off"
+            required
+          />
         </div>
 
-        <!-- Login Form -->
-        <form class="login-form">
-          <div class="form-group">
-            <label>Login As</label>
-            <select required>
-              <option value="">Select Role</option>
-              <option value="student">Student</option>
-              <option value="lecturer">Lecturer</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>👤 Username</label>
-            <input type="text" placeholder="Enter your username" required />
-          </div>
-          <div class="form-group">
-            <label>🔐 Password</label>
-            <input type="password" placeholder="Enter your password" required />
-          </div>
-
-          <div class="options">
-            <label><input type="checkbox" /> Remember Me</label>
-            <a href="#">Forgot Password?</a>
-          </div>
-
-          <button type="submit">START YOUR QUEST 🚀</button>
-        </form>
-
-        <!-- Fun Fact Section -->
-        <div class="fun-fact">
-          <p>
-            <strong>Did you know? 💡</strong> Students using gamified platforms
-            show 35% higher engagement!
-          </p>
+        <div class="input-box">
+          <i class="fa-solid fa-lock"></i>
+          <input
+            type="password"
+            id="password"
+            class="input-field"
+            placeholder="Enter your password"
+            autocomplete="off"
+            required
+          />
         </div>
 
-        <!-- Sign up link -->
-        <p class="signup-link">
-          Don't have an account? <a href="SignUp.html">Sign up here</a>!
+        <div class="forgot">
+          <section>
+            <input type="checkbox" id="check" />
+            <label for="check">Remember me</label>
+          </section>
+
+          <section>
+            <a href="#">Forgot password?</a>
+          </section>
+        </div>
+
+        <div class="input-submit">
+          <button class="submit-btn" type="submit">Sign In</button>
+        </div>
+      </form>
+
+      <div class="sign-up-link">
+        <p>
+          Don't have an account?
+          <a href="signup.html">Sign Up</a>
         </p>
       </div>
-      <!-- login-box end -->
     </div>
-    <!-- container end -->
+
+    <script>
+      const container = document.getElementById("particles");
+
+      function createParticle() {
+        const particle = document.createElement("div");
+        particle.classList.add("particle");
+
+        // random position
+        particle.style.left = Math.random() * 100 + "vw";
+
+        // random size
+        const size = Math.random() * 6 + 2;
+        particle.style.width = size + "px";
+        particle.style.height = size + "px";
+
+        // random speed
+        const duration = Math.random() * 5 + 5;
+        particle.style.animationDuration = duration + "s";
+
+        container.appendChild(particle);
+
+        // remove after animation
+        setTimeout(() => {
+          particle.remove();
+        }, duration * 1000);
+      }
+
+      // generate particles continuously
+      setInterval(createParticle, 150);
+    </script>
+    <script src="login.js"></script>
   </body>
 </html>
