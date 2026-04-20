@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analytics Dashboard</title>
+    <link rel="stylesheet" href="AnalyticsPage.css" />
+  </head>
+  <body>
+    <main class="analytics-dashboard">
+      <header class="dashboard-header">
+        <h1 class="logo">Analytics Dashboard</h1>
+        <p>Track performance, achievements, and rankings</p>
+      </header>
+
+      <section class="performance-insights">
+        <h2>Performance Insights</h2>
+        <div class="charts-container">
+          <div class="chart">
+            <h3>Weekly Activity</h3>
+            <div class="bar-chart">
+              <div class="bar-item">
+                <div class="bar" style="height: 65%"></div>
+                <label>Mon</label>
+              </div>
+              <div class="bar-item">
+                <div class="bar" style="height: 85%"></div>
+                <label>Tue</label>
+              </div>
+              <div class="bar-item">
+                <div class="bar" style="height: 72%"></div>
+                <label>Wed</label>
+              </div>
+              <div class="bar-item">
+                <div class="bar" style="height: 90%"></div>
+                <label>Thu</label>
+              </div>
+              <div class="bar-item">
+                <div class="bar" style="height: 78%"></div>
+                <label>Fri</label>
+              </div>
+              <div class="bar-item">
+                <div class="bar" style="height: 55%"></div>
+                <label>Sat</label>
+              </div>
+              <div class="bar-item">
+                <div class="bar" style="height: 48%"></div>
+                <label>Sun</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart stats">
+            <div class="stat-box">
+              <h3>Total Sessions</h3>
+              <p class="stat-value">325</p>
+            </div>
+            <button class="signup-btn" id="reportBtn">View Full Report</button>
+          </div>
+        </div>
+      </section>
+
+      <div id="fullReportSection" class="hidden">
+        <section class="performance-insights">
+          <h2>Additional Statistics</h2>
+          <div class="charts-container">
+            <div class="stat-box">
+              <h3>Avg. Session Time</h3>
+              <p class="stat-value">12m 45s</p>
+            </div>
+            <div class="stat-box">
+              <h3>Completion Rate</h3>
+              <p class="stat-value">87%</p>
+            </div>
+            <div class="stat-box">
+              <h3>Weekly Engagement</h3>
+              <p class="stat-value">92%</p>
+            </div>
+            <div class="stat-box">
+              <h3>Active Users</h3>
+              <p class="stat-value">1.2K</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="rewards-milestones">
+          <h2>Progress Tracking</h2>
+          <div class="progress-section">
+            <h3>Current Level Progress</h3>
+            <div class="progress-item">
+              <label>Level 5: Expert</label>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: 65%"></div>
+              </div>
+              <span class="progress-text">6,500 / 10,000 XP</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="leaderboard">
+        <h2>Leaderboard</h2>
+        <div class="leaderboard-table">
+          <div class="leaderboard-header">
+            <div class="rank">Rank</div>
+            <div class="user-info">User</div>
+            <div class="score">Points</div>
+            <div class="streak">Streak</div>
+          </div>
+
+          <div class="leaderboard-entry rank-1">
+            <div class="rank">1</div>
+            <div class="user-info">
+              <span class="avatar">👨</span>
+              <span>Alex Johnson</span>
+            </div>
+            <div class="score">4,850</div>
+            <div class="streak">28 days 🔥</div>
+          </div>
+
+          <div class="leaderboard-entry rank-2">
+            <div class="rank">2</div>
+            <div class="user-info">
+              <span class="avatar">👩</span>
+              <span>Sarah Chen</span>
+            </div>
+            <div class="score">4,620</div>
+            <div class="streak">24 days 🔥</div>
+          </div>
+
+          <div class="leaderboard-entry rank-3">
+            <div class="rank">3</div>
+            <div class="user-info">
+              <span class="avatar">👨</span>
+              <span>Michael Brown</span>
+            </div>
+            <div class="score">4,320</div>
+            <div class="streak">18 days 🔥</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="badges">
+        <h2>Earn Badges</h2>
+        <div class="badges-container">
+          <div class="badge earned">
+            <div class="badge-icon">🏆</div>
+            <h4>First Steps</h4>
+            <p>Complete your first session</p>
+          </div>
+          <div class="badge earned">
+            <div class="badge-icon">🔥</div>
+            <h4>7-Day Streak</h4>
+            <p>Maintain 7 days in a row</p>
+          </div>
+          <div class="badge earned">
+            <div class="badge-icon">⭐</div>
+            <h4>Rising Star</h4>
+            <p>Reach top 10 leaderboard</p>
+          </div>
+          <div class="badge earned">
+            <div class="badge-icon">💎</div>
+            <h4>Premium Member</h4>
+            <p>Unlock premium features</p>
+          </div>
+          <div class="badge locked">
+            <div class="badge-icon">👑</div>
+            <h4>Legendary</h4>
+            <p>Reach 10,000 points</p>
+          </div>
+          <div class="badge locked">
+            <div class="badge-icon">🚀</div>
+            <h4>Speed Racer</h4>
+            <p>Complete 100 sessions</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+      document
+        .getElementById("reportBtn")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+          const reportSection = document.getElementById("fullReportSection");
+          reportSection.classList.toggle("hidden");
+          this.textContent = reportSection.classList.contains("hidden")
+            ? "View Full Report"
+            : "Hide Full Report";
+        });
+    </script>
+  </body>
+</html>

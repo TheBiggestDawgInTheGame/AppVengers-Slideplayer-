@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlidePlayer | Analysis</title>
+    <link rel="stylesheet" href="analysis.css">
+</head>
+<body>
+
+    <div class="loader-wrapper">
+        <div class="progress-circle" id="progressCircle">
+            <div class="circle-inner">
+                <span id="percent-number">0%</span>
+            </div>
+        </div>
+
+        <div class="status-container">
+            <h2 id="status-text" class="pulse">PROCESSING</h2>
+            <p class="status-sub">SYSTEM ANALYSIS IN PROGRESS</p>
+            <button id="continue-btn" class="continue-button" onclick="handleContinue()">
+            CONTINUE <i class="fa-solid fa-arrow-right"></i>
+        </button>
+        </div>
+    </div>
+
+    <!-- <footer>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+    </footer> -->
+
+    <script src="analysis.js"></script>
+</body>
+</html>

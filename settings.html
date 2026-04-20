@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlidePlayer | Settings</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body class="dark-mode"> <div class="settings-container">
+        <header class="settings-header">
+            <h1>SYSTEM PREFERENCES</h1>
+            <p>CONFIGURING NEON MONOLITH V1.0</p>
+        </header>
+
+        <div class="settings-list">
+            <div class="setting-row">
+                <div class="info">
+                    <i class="fa-solid fa-circle-half-stroke"></i>
+                    <div>
+                        <h3>Visual Interface</h3>
+                        <p>Switch between Light and Dark core themes.</p>
+                    </div>
+                </div>
+                <div class="control">
+                    <button id="theme-toggle" onclick="toggleTheme()">DARK MODE</button>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="info">
+                    <i class="fa-solid fa-volume-high"></i>
+                    <div>
+                        <h3>SFX Volume</h3>
+                        <p>Adjust the volume of achievement and UI sounds.</p>
+                    </div>
+                </div>
+                <div class="control">
+                    <input type="range" min="0" max="100" value="75">
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="info">
+                    <i class="fa-solid fa-bell"></i>
+                    <div>
+                        <h3>Quest Alerts</h3>
+                        <p>Receive desktop notifications for new challenges.</p>
+                    </div>
+                </div>
+                <div class="control">
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="info">
+                    <i class="fa-solid fa-eye-slash"></i>
+                    <div>
+                        <h3>Ghost Mode</h3>
+                        <p>Hide your activity from the global leaderboard.</p>
+                    </div>
+                </div>
+                <div class="control">
+                    <label class="switch">
+                        <input type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="info">
+                    <i class="fa-solid fa-wind"></i>
+                    <div>
+                        <h3>UI Motion</h3>
+                        <p>Reduce animations for better system performance.</p>
+                    </div>
+                </div>
+                <div class="control">
+                    <select>
+                        <option>Full Bloom</option>
+                        <option>Optimized</option>
+                        <option>Static</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="info">
+                    <i class="fa-solid fa-language"></i>
+                    <div>
+                        <h3>Input Language</h3>
+                        <p>Select your primary learning language.</p>
+                    </div>
+                </div>
+                <div class="control">
+                    <select>
+                        <option>English (US)</option>
+                        <option>Japanese</option>
+                        <option>French</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="info">
+                    <i class="fa-solid fa-skull"></i>
+                    <div>
+                        <h3>Challenge Tier</h3>
+                        <p>Set the baseline difficulty for generated quests.</p>
+                    </div>
+                </div>
+                <div class="control">
+                    <select>
+                        <option>Novice</option>
+                        <option>Hacker</option>
+                        <option>Elite</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="info">
+                    <i class="fa-solid fa-user-group"></i>
+                    <div>
+                        <h3>Public Profile</h3>
+                        <p>Allow other players to view your achievements.</p>
+                    </div>
+                </div>
+                <div class="control">
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="info">
+                    <i class="fa-solid fa-rotate"></i>
+                    <div>
+                        <h3>Cloud Backup</h3>
+                        <p>Automatically sync progress to the central server.</p>
+                    </div>
+                </div>
+                <div class="control">
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div class="info">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <div>
+                        <h3>Two-Factor Auth</h3>
+                        <p>Add an extra layer of security to your hacker ID.</p>
+                    </div>
+                </div>
+                <div class="control">
+                    <button class="secondary-btn">ENABLE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+    </footer>
+
+    <script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!doctype html>
+<!-- Upload Page - reused Analytics page format for consistent styling -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload & Generate Quizzes</title>
+    <link rel="stylesheet" href="AnalyticsPage.css" />
+  </head>
+  <body>
+    <main class="analytics-dashboard">
+      <header class="dashboard-header">
+        <h1 class="logo">Upload & Generate Quizzes</h1>
+        <p>Upload slides or scan notes to create interactive quizzes</p>
+      </header>
+
+      <section class="performance-insights">
+        <h2>Upload Options</h2>
+        <div class="charts-container">
+          <div class="chart">
+            <h3>Digital Slides</h3>
+            <input
+              type="file"
+              id="slides-input"
+              multiple
+              accept=".pdf,.pptx,.png,.jpg,.jpeg"
+              hidden
+            />
+            <button
+              class="signup-btn"
+              onclick="document.getElementById('slides-input').click()"
+            >
+              Browse Files
+            </button>
+            <p class="file-info">PDF, PPTX, PNG, JPG (Max 50MB)</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="badges">
+        <h2>Generate Quiz</h2>
+        <button class="signup-btn" onclick="generateQuiz()">AI Generation</button>
+      </section>
+
+      <!-- Quiz settings section - hidden by default, toggles with button -->
+      <div id="fullReportSection" class="hidden">
+        <section class="performance-insights">
+          <h2>Quiz Generation Settings</h2>
+          <div class="charts-container">
+            <div class="stat-box">
+              <h3>Questions</h3>
+              <p class="stat-value" id="question-count-display">10</p>
+            </div>
+            <div class="stat-box">
+              <h3>Difficulty</h3>
+              <p class="stat-value" id="difficulty-display">Medium</p>
+            </div>
+            <div class="stat-box">
+              <h3>Time Limit</h3>
+              <p class="stat-value" id="time-limit-display">30m</p>
+            </div>
+            <div class="stat-box">
+              <h3>Question Type</h3>
+              <p class="stat-value" id="question-type-display">Mixed</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="rewards-milestones">
+          <h2>Processing Progress</h2>
+          <div class="progress-section">
+            <h3>Analysis Progress</h3>
+            <div class="progress-item">
+              <label>Content Analysis</label>
+              <div class="progress-bar">
+                <div
+                  class="progress-fill"
+                  id="progress-fill"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <span class="progress-text" id="progress-text"
+                >Ready to process</span
+              >
+            </div>
+          </div>
+        </section>
+
+        <section class="badges">
+          <h2>Generate Quiz</h2>
+          <button class="signup-btn" onclick="generateQuiz()">AI Generation</button>
+        </section>
+      </div>
+
+      <!-- Recent uploads table - shows uploaded files -->
+      <section class="leaderboard">
+        <h2>Recent Uploads</h2>
+        <div class="leaderboard-table">
+          <div class="leaderboard-header">
+            <div class="rank">Type</div>
+            <div class="user-info">File Name</div>
+            <div class="score">Size</div>
+            <div class="streak">Status</div>
+          </div>
+
+          <div
+            class="leaderboard-entry"
+            id="file-entry-template"
+            style="display: none"
+          >
+            <!-- Template for file entries -->
+            <div class="rank">📄</div>
+            <div class="user-info">
+              <span class="avatar">📁</span>
+              <span class="file-name">filename.pdf</span>
+            </div>
+            <div class="score file-size">2.5MB</div>
+            <div class="streak file-status">Ready</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="badges">
+        <h2>Upload Features</h2>
+        <div class="badges-container">
+          <div class="badge earned">
+            <div class="badge-icon">📊</div>
+            <h4>Slide Support</h4>
+            <p>PDF, PowerPoint, Images</p>
+          </div>
+          <div class="badge earned">
+            <div class="badge-icon">📷</div>
+            <h4>Camera Scan</h4>
+            <p>Scan handwritten notes</p>
+          </div>
+          <div class="badge earned">
+            <div class="badge-icon">⚙️</div>
+            <h4>Smart Settings</h4>
+            <p>Customizable quiz options</p>
+          </div>
+          <div class="badge earned">
+            <div class="badge-icon">🚀</div>
+            <h4>AI Generation</h4>
+            <p>Automatic quiz creation</p>
+          </div>
+          <div class="badge earned">
+            <div class="badge-icon">📈</div>
+            <h4>Progress Tracking</h4>
+            <p>Real-time processing status</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 SlidePlay. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+      // Toggle quiz settings visibility
+      document
+        .getElementById("settingsBtn")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+          const reportSection = document.getElementById("fullReportSection");
+          reportSection.classList.toggle("hidden");
+          this.textContent = reportSection.classList.contains("hidden")
+            ? "Quiz Settings"
+            : "Hide Settings";
+        });
+
+      // Handle file uploads and display in table
+      const slidesInput = document.getElementById("slides-input");
+
+      slidesInput.addEventListener("change", function (e) {
+        const files = e.target.files;
+
+        const template = document.getElementById("file-entry-template");
+        const leaderboardTable = document.querySelector(".leaderboard-table");
+
+        // Clear existing entries
+        const existingEntries = leaderboardTable.querySelectorAll(
+          ".leaderboard-entry:not(#file-entry-template)",
+        );
+        existingEntries.forEach((entry) => entry.remove());
+
+        Array.from(files).forEach((file, index) => {
+          const entry = template.cloneNode(true);
+          entry.id = "";
+          entry.style.display = "grid";
+
+          entry.querySelector(".file-name").textContent = file.name;
+          entry.querySelector(".file-size").textContent =
+            (file.size / 1024 / 1024).toFixed(1) + "MB";
+          entry.querySelector(".file-status").textContent = "Ready";
+
+          leaderboardTable.appendChild(entry);
+        });
+      });
+
+      // Quiz generation with progress animation
+      function generateQuiz() {
+        const progressFill = document.getElementById("progress-fill");
+        const progressText = document.getElementById("progress-text");
+
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 10;
+          progressFill.style.width = progress + "%";
+          progressText.textContent = `Processing... ${progress}%`;
+
+          if (progress >= 100) {
+            clearInterval(interval);
+            progressText.textContent = "Complete! Quiz generated.";
+            setTimeout(() => {
+              // Get the format from URL params
+              const urlParams = new URLSearchParams(window.location.search);
+              const format = urlParams.get('format') || 'default';
+              // Redirect to analysis page
+              window.location.href = `Analysis.html?format=${format}`;
+            }, 500);
+          }
+        }, 300);
+      }
+    </script>
+  </body>
+</html>
