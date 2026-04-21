@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slide Upload</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-glow"></div>
+  <div class="study-float-bg" aria-hidden="true">
+    <span class="float-item note"></span>
+    <span class="float-item ring"></span>
+    <span class="float-item chip"></span>
+    <span class="float-item note"></span>
+    <span class="float-item ring"></span>
+    <span class="float-item chip"></span>
+    <span class="float-item note"></span>
+    <span class="float-item ring"></span>
+    <span class="float-item chip"></span>
+    <span class="float-item note"></span>
+    <span class="float-item ring"></span>
+    <span class="float-item chip"></span>
+  </div>
+
+  <header class="topbar">
+    <h1 class="brand"><span>Slide</span>Play</h1>
+    <div class="topbar-actions">
+      <button type="button" class="pill">About</button>
+      <button type="button" class="pill">Guest</button>
+    </div>
+  </header>
+
+  <main class="hero">
+    <p class="hero-kicker">Upload Slides.</p>
+    <h2>Play to <span>master</span> them.</h2>
+    <p class="hero-copy">Drop your notes, chapters or slides and turn them into game-ready quizzes.</p>
+
+    <section class="upload-card" aria-label="Upload slides">
+      <label class="visually-hidden" for="fileInput">Upload slide files</label>
+      <input id="fileInput" type="file" class="visually-hidden" multiple accept=".pdf,.ppt,.pptx,.txt,.md,.doc,.docx">
+
+      <div id="dropZone" class="drop-zone" aria-label="Drop slides here">
+        <div class="folder" aria-hidden="true"></div>
+        <h3>Drop slides here</h3>
+        <p>PDF, PPTX, TXT, MD or DOCX</p>
+
+        <div class="format-row">
+          <span>PDF</span>
+          <span>PPTX</span>
+          <span>TXT</span>
+          <span>MD</span>
+          <span>DOCX</span>
+        </div>
+
+        <button id="browseBtn" type="button" class="browse-btn">Browse Files</button>
+      </div>
+
+      <div class="actions-row">
+        <button id="uploadBtn" type="button" class="upload-btn" disabled>Upload Slides</button>
+        <button id="playQuizBtn" type="button" class="play-btn" disabled>Choose Game</button>
+        <label class="demo-select-wrap" for="demoTopicSelect">
+          <span>Demo topic</span>
+          <select id="demoTopicSelect" class="demo-topic-select">
+            <option value="data-modeling-demo-v1">Data Modeling and ERD</option>
+            <option value="biology-cells-demo-v1">Biology: Cells and Genetics</option>
+            <option value="world-history-demo-v1">World History: Industrial Revolution</option>
+          </select>
+        </label>
+        <button id="demoBtn" type="button" class="demo-btn">Try Demo Topic</button>
+        <span class="endpoint-hint">Upload API: /api/upload</span>
+      </div>
+
+      <div id="feedback" class="feedback" aria-live="polite"></div>
+      <ul id="fileList" class="file-list" aria-label="Selected files"></ul>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

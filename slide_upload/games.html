@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Game Format</title>
+  <link rel="stylesheet" href="games.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <a class="brand" href="index.html"><span>Slide</span>Play</a>
+    <div class="topbar-actions">
+      <a class="pill" href="index.html">Upload More</a>
+      <button type="button" class="pill active-pill">Guest</button>
+    </div>
+  </header>
+
+  <main class="games-shell">
+
+    <div class="page-header">
+      <h1>Select <span>Game Format</span></h1>
+      <p>Choose the architectural blueprint for your next session. Each format dictates
+        the physics engine and interaction model of the playfield.</p>
+    </div>
+
+    <!-- hidden data nodes kept for games.js -->
+    <span id="summaryTitle" hidden></span>
+    <span id="fileCount" hidden>0</span>
+    <span id="questionCount" hidden>0</span>
+
+    <section class="games-grid" aria-label="Game choices">
+
+      <!-- Row 1 -->
+      <a class="game-card selected" href="../pacman_game/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">🍕</span>
+          <div class="card-badges">
+            <span class="badge badge-selected">SELECTED</span>
+            <span class="badge badge-cat">ARCADE</span>
+          </div>
+        </div>
+        <h3>Pac-Man</h3>
+        <p>Navigate neon corridors and consume data points while evading system hunters.</p>
+        <div class="card-bar"></div>
+      </a>
+
+      <a class="game-card" href="../snake_game/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">🐍</span>
+          <span class="badge badge-cat">ARCADE</span>
+        </div>
+        <h3>Snake</h3>
+        <p>Continuous growth mechanics within a constrained kinetic boundary.</p>
+      </a>
+
+      <a class="game-card" href="../scramble_game/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="abc-icon">abc</span>
+          <span class="badge badge-cat">LOGIC</span>
+        </div>
+        <h3>Word Scramble</h3>
+        <p>Lexical reorganization against a decaying temporal threshold.</p>
+      </a>
+
+      <a class="game-card" href="../quiz_game/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">🏆</span>
+          <span class="badge badge-cat">QUIZ</span>
+        </div>
+        <h3>Millionaire Quiz</h3>
+        <p>Climb the question ladder with lifelines. One wrong answer and you're out.</p>
+      </a>
+
+      <!-- Row 2 -->
+      <a class="game-card" href="../speed_typing_game/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">⌨️</span>
+          <span class="badge badge-cat">TYPING</span>
+        </div>
+        <h3>Speed Typing</h3>
+        <p>Race against the clock to type out slide terms before your time runs out.</p>
+      </a>
+
+      <a class="game-card coming-soon" href="#" aria-disabled="true">
+        <div class="card-top">
+          <span class="game-emoji">🧩</span>
+          <span class="badge badge-cat">LOGIC</span>
+        </div>
+        <h3>Tetris</h3>
+        <p>Spatial geometry management under accelerating velocity.</p>
+        <span class="soon-label">Coming Soon</span>
+      </a>
+
+      <a class="game-card coming-soon" href="#" aria-disabled="true">
+        <div class="card-top">
+          <span class="game-emoji">🏓</span>
+          <span class="badge badge-cat badge-physics">PHYSICS</span>
+        </div>
+        <h3>Pong</h3>
+        <p>Pure binary competition using vector-based reflection logic.</p>
+        <span class="soon-label">Coming Soon</span>
+      </a>
+
+      <a class="game-card coming-soon" href="#" aria-disabled="true">
+        <div class="card-top">
+          <span class="game-emoji">🚀</span>
+          <span class="badge badge-cat">ARCADE</span>
+        </div>
+        <h3>Invaders</h3>
+        <p>Defensive rhythmic targeting against descending formations.</p>
+        <span class="soon-label">Coming Soon</span>
+      </a>
+
+    </section>
+  </main>
+
+  <script src="games.js"></script>
+</body>
+</html>

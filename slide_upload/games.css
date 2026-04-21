@@ -1,0 +1,277 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg:        #0d1017;
+  --card-bg:   #13172100;
+  --card-solid: #161b27;
+  --text:      #eef1ff;
+  --text-soft: #6e7fa0;
+  --cyan:      #00ddb4;
+  --cyan-glow: rgba(0, 221, 180, 0.22);
+  --pink:      #ff2f9c;
+  --line:      rgba(255, 255, 255, 0.07);
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 32px 44px;
+}
+
+/* ── Topbar ─────────────────────────────────── */
+.topbar {
+  max-width: 1360px;
+  margin: 0 auto 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand {
+  text-decoration: none;
+  color: var(--text);
+  font-size: clamp(24px, 3.2vw, 36px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.brand span {
+  color: var(--pink);
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.pill {
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #cdd4ef;
+  padding: 9px 18px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.active-pill {
+  background: rgba(118, 78, 255, 0.2);
+  border-color: rgba(118, 78, 255, 0.4);
+}
+
+/* ── Shell ───────────────────────────────────── */
+.games-shell {
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+/* ── Page header ─────────────────────────────── */
+.page-header {
+  margin-bottom: 40px;
+}
+
+.page-header h1 {
+  margin: 0 0 14px;
+  font-size: clamp(32px, 4.5vw, 58px);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+.page-header h1 span {
+  color: var(--pink);
+}
+
+.page-header p {
+  margin: 0;
+  max-width: 680px;
+  color: var(--text-soft);
+  font-size: clamp(14px, 1.6vw, 17px);
+  line-height: 1.65;
+}
+
+/* ── Grid ────────────────────────────────────── */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* ── Cards ───────────────────────────────────── */
+.game-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-solid);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 22px 22px 20px;
+  text-decoration: none;
+  color: var(--text);
+  min-height: 280px;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.game-card:not(.coming-soon):not(.selected):hover {
+  background: #1c2235;
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-3px);
+}
+
+/* selected state */
+.game-card.selected {
+  border: 2px solid var(--cyan);
+  box-shadow:
+    0 0 0 1px rgba(0, 221, 180, 0.35),
+    0 8px 36px var(--cyan-glow),
+    inset 0 1px 0 rgba(0, 221, 180, 0.12);
+  background: #111c21;
+}
+
+/* coming soon */
+.game-card.coming-soon {
+  opacity: 0.55;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ── Card top row ────────────────────────────── */
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 26px;
+}
+
+.game-emoji {
+  font-size: 34px;
+  line-height: 1;
+}
+
+/* abc icon – styled like a system app icon */
+.abc-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #4a5a8a, #293356);
+  color: #c8d2f5;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+/* ── Badges ──────────────────────────────────── */
+.card-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badge-selected {
+  background: rgba(0, 221, 180, 0.16);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 221, 180, 0.38);
+}
+
+.badge-cat {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.badge-physics {
+  background: rgba(0, 221, 180, 0.1);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 221, 180, 0.28);
+}
+
+/* ── Card body ───────────────────────────────── */
+.game-card h3 {
+  margin: 0 0 10px;
+  font-size: clamp(20px, 2vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.game-card p {
+  margin: 0;
+  flex: 1;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+/* ── Selected bar ────────────────────────────── */
+.card-bar {
+  margin-top: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cyan) 60%, rgba(0, 221, 180, 0.12) 60%);
+}
+
+/* ── Coming soon label ───────────────────────── */
+.soon-label {
+  margin-top: 14px;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 1100px) {
+  .games-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 16px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 32px;
+  }
+
+  .games-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-card.coming-soon {
+    display: none;
+  }
+}

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classic Snake Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="game-header">
+            <h1>Classic Snake</h1>
+            <div class="stats">
+                <div class="stat">Score: <span id="score">0</span></div>
+                <div class="stat">Best: <span id="bestScore">0</span></div>
+            </div>
+        </header>
+
+        <main class="game-panel">
+            <canvas id="gameCanvas" width="420" height="420" aria-label="Snake game board"></canvas>
+            <div id="status" class="status">Press Start to play</div>
+            <section class="study-card" aria-live="polite">
+                <div class="study-label">Slide Prompt</div>
+                <div id="studyPrompt" class="study-prompt">Launch from the upload flow to turn slide notes into food targets.</div>
+            </section>
+        </main>
+
+        <footer class="controls">
+            <button id="startBtn" class="btn btn-primary" type="button">Start</button>
+            <button id="resetBtn" class="btn btn-secondary" type="button">Reset</button>
+            <p class="hint">Controls: Arrow keys or WASD</p>
+        </footer>
+    </div>
+
+    <script src="../shared/adventure-layer.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

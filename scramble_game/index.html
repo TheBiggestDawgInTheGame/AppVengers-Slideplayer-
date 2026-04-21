@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scramble Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="game-header">
+            <div class="header-top">
+                <h1 class="logo">Slide<span class="logo-play">Play</span></h1>
+                <div class="header-buttons">
+                    <button class="btn-header">About</button>
+                    <button class="btn-header">Guest</button>
+                </div>
+            </div>
+            <div class="header-middle">
+                <h2>Word Unscramble</h2>
+                <p>Unscramble the word before the timer runs out.</p>
+            </div>
+            <div class="level-select">
+                <button class="btn-level" data-level="easy">Easy</button>
+                <button class="btn-level" data-level="medium">Medium</button>
+                <button class="btn-level" data-level="hard">Hard</button>
+            </div>
+        </header>
+
+        <main class="game-panel">
+            <section class="scramble-card">
+                <h2 class="section-title">Unscramble the Word</h2>
+                <div class="scramble-box" id="scrambleBox">Select a difficulty to begin.</div>
+
+                <div class="meta-row">
+                    <div class="meta-item">
+                        <span>Hint</span>
+                        <strong id="hintText">Pick a level to load hint</strong>
+                    </div>
+                    <div class="meta-item">
+                        <span>Time left</span>
+                        <strong id="timerDisplay">00:30</strong>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <label for="answerInput" class="sr-only">Type your guessed word</label>
+                    <input id="answerInput" type="text" placeholder="Enter the correct word" autocomplete="off">
+                </div>
+
+                <div class="actions-row">
+                    <button class="btn btn-secondary" id="nextBtn">Refresh Word</button>
+                    <button class="btn btn-primary" id="submitBtn">Check Word</button>
+                    <button class="btn btn-primary hidden" id="restartBtn">Restart</button>
+                </div>
+
+                <div class="feedback" id="feedbackMessage"></div>
+            </section>
+
+            <aside class="status-card">
+                <h3 class="status-title">Round Stats</h3>
+                <div class="status-row">
+                    <span>Difficulty</span>
+                    <strong id="selectedLevel">Easy</strong>
+                </div>
+                <div class="status-row">
+                    <span>Lives</span>
+                    <strong id="livesDisplay" class="hearts" aria-live="polite">❤ ❤ ❤ ❤ ❤</strong>
+                </div>
+                <div class="status-row">
+                    <span>Score</span>
+                    <strong id="scoreDisplay">0</strong>
+                </div>
+                <div class="status-row">
+                    <span>Streak</span>
+                    <strong id="streakDisplay">0</strong>
+                </div>
+                <div class="status-row">
+                    <span>Best Streak</span>
+                    <strong id="bestStreakDisplay">0</strong>
+                </div>
+                <div class="status-row">
+                    <span>Current Task</span>
+                    <strong id="taskType">Unscramble a word</strong>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="../shared/adventure-layer.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

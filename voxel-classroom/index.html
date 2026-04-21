@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voxel Escape Room</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #090c1a; overflow: hidden; }
+    body { font-family: 'Segoe UI', sans-serif; }
+    .info-panel {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      z-index: 999;
+      width: min(360px, calc(100vw - 36px));
+      background: rgba(2, 6, 17, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 18px 20px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    }
+    .info-panel h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      color: #ff1493;
+    }
+    .info-panel p {
+      margin: 0 0 12px;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .item-info {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px;
+      color: #e7f2ff;
+      line-height: 1.6;
+      min-height: 70px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="infoPanel" class="info-panel">
+    <h2>Escape Room Challenge</h2>
+    <p>Navigate the room and solve puzzles to escape!</p>
+    <div id="itemInfo" class="item-info">Interact with objects and characters to find clues and solve puzzles.</div>
+  </div>
+  <script src="bundle.js"></script>
+</body>
+</html>
