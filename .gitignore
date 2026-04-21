@@ -1,0 +1,8 @@
+node_modules/
+*.pem
+
+# Ignore node_modules
+node_modules/
+
+# Ignore private keys
+*.pem
