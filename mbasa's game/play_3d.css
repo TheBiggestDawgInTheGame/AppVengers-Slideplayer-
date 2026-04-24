@@ -1,0 +1,155 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 0%, #121a32 0%, #06080f 50%, #000 100%);
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: #eaf2ff;
+}
+
+#app {
+  width: min(920px, 96vw);
+  height: min(620px, 78vh);
+  min-height: 420px;
+  position: relative;
+  border: 1px solid #39ff14;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 0 24px rgba(57, 255, 20, 0.25);
+  background: #02050d;
+}
+
+#stage {
+  width: 100%;
+  height: 100%;
+}
+
+#stage canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  background: rgba(6, 10, 22, 0.55);
+  border: 1px solid rgba(57, 255, 20, 0.35);
+  z-index: 10;
+  pointer-events: none;
+}
+
+#hud span {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+#topic {
+  color: #9ee8ff;
+  font-weight: 600;
+}
+
+#tuning {
+  color: #ffd78f;
+  font-size: 0.78rem;
+  font-family: "Consolas", "Courier New", monospace;
+  opacity: 0.95;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 12px;
+  padding: 24px;
+  z-index: 20;
+  background: linear-gradient(to bottom, rgba(2, 8, 20, 0.45), rgba(1, 2, 8, 0.9));
+}
+
+.overlay h1,
+.overlay h2 {
+  font-size: clamp(2rem, 4.2vw, 3rem);
+  letter-spacing: 0.06em;
+  color: #b8ffab;
+  text-shadow: 0 0 16px rgba(57, 255, 20, 0.5);
+}
+
+.overlay p {
+  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+  color: #d2dcf8;
+}
+
+button {
+  justify-self: center;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #04120a;
+  background: linear-gradient(120deg, #b8ffab, #39ff14);
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(57, 255, 20, 0.3);
+  transition: transform 120ms ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+.hidden {
+  display: none;
+}
+
+#hitFlash {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 35, 35, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 15;
+}
+
+#hitFlash.active {
+  animation: hitFlash 260ms ease;
+}
+
+@keyframes hitFlash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (max-width: 700px) {
+  #app {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+
+  #hud {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    font-size: 0.85rem;
+  }
+}
