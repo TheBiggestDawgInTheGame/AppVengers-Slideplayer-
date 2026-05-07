@@ -16,6 +16,7 @@
     <div class="signup-box">
       <div class="signup-header">
         <h2>Create Account</h2>
+        <p class="signup-subtitle">Plug into the neon classroom network</p>
       </div>
 
       <form id="signupForm" class="signup-form">
@@ -30,6 +31,19 @@
           />
         </div>
 
+        <div class="role-selector">
+          <p class="role-label">I am a&hellip;</p>
+          <div class="role-toggle">
+            <button type="button" class="role-btn active" data-role="student">
+              <i class="fa-solid fa-graduation-cap"></i> Student
+            </button>
+            <button type="button" class="role-btn" data-role="teacher">
+              <i class="fa-solid fa-chalkboard-user"></i> Teacher
+            </button>
+          </div>
+          <input type="hidden" id="selectedRole" value="student" />
+        </div>
+
         <div class="input-box">
           <i class="fa-solid fa-envelope"></i>
           <input
@@ -37,6 +51,21 @@
             id="email"
             class="input-field"
             placeholder="Enter email"
+            required
+          />
+        </div>
+
+        <div class="input-box">
+          <i class="fa-solid fa-cake-candles"></i>
+          <input
+            type="number"
+            id="age"
+            class="input-field"
+            placeholder="Enter age"
+            min="5"
+            max="120"
+            title="Enter your age"
+            aria-label="Age"
             required
           />
         </div>
@@ -64,6 +93,15 @@
         </div>
 
         <button class="signup-btn" type="submit">Create Account</button>
+
+        <div class="auth-divider" aria-hidden="true">
+          <span>or</span>
+        </div>
+
+        <button class="google-signup-btn" id="googleSignupBtn" type="button" aria-label="Sign up with Google">
+          <i class="fa-brands fa-google"></i>
+          <span>Sign up with Google</span>
+        </button>
       </form>
 
       <div class="login-link">
@@ -85,6 +123,11 @@
         const size = Math.random() * 6 + 2;
         particle.style.width = size + "px";
         particle.style.height = size + "px";
+
+        // random hue and drift for a more lively field
+        particle.style.setProperty("--h", Math.floor(Math.random() * 80 + 180));
+        particle.style.setProperty("--x", Math.floor(Math.random() * 120 - 60) + "px");
+        particle.style.opacity = (Math.random() * 0.45 + 0.3).toFixed(2);
 
         // random speed
         const duration = Math.random() * 5 + 5;

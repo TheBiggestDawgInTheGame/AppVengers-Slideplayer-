@@ -3,281 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SlidePlayer</title>
+    <title>Teacher Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="Dashboard.css">
 </head>
 <body>
-    <header class="top-search-bar">
-        <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="SEARCH QUESTS...">
+    <div class="hud-grid"></div>
+
+    <header class="top-bar">
+        <div class="left-status">
+            <span class="pulse-dot"></span>
+            <span>Jarvis Node Online</span>
         </div>
 
-        <div class="right-items">
-            <button class="icon-btn">
+        <div class="search-panel">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search class, student, module...">
+        </div>
+
+        <div class="bar-actions">
+            <button class="icon-btn" aria-label="Notifications">
                 <i class="fa-solid fa-bell"></i>
-                <span class="notification-dot"></span>
             </button>
-            
-            <a href="settings.html" class="icon-btn">
+            <a class="icon-btn" href="settings.html" aria-label="Settings">
                 <i class="fa-solid fa-gear"></i>
             </a>
-
-            <div class="divider"></div>
-
-            <div class="top-user">
-                <div class="user-info">
-                    <span class="u-name">KAELEN VANCE</span>
-                    <span class="u-status">NOVICE HACKER</span>
+            <div class="teacher-pill">
+                <img src="https://i.pravatar.cc/80?img=47" alt="Teacher avatar">
+                <div>
+                    <strong>Dr. M. Stark</strong>
+                    <span>Physics Department</span>
                 </div>
-                <img src="https://via.placeholder.com/40" class="top-avatar">
             </div>
         </div>
     </header>
 
-    <main class="page-shell">
-        
-        <nav class="navigation">
-            <div class="nav-header">
-                <div class="logo-square">
-                    <i class="fa-solid fa-gamepad"></i>
-                </div>
-                <div class="logo-text-wrapper">
-                    <span class="logo-name">SlidePlayer</span>
-                    <span class="logo-sub">NEON MONOLITH V1.0</span>
+    <main class="dashboard-layout">
+        <aside class="side-nav">
+            <div class="brand">
+                <div class="reactor-core"><i class="fa-solid fa-atom"></i></div>
+                <div>
+                    <h2>SlidePlay</h2>
+                    <p>EDU DEFENSE GRID</p>
                 </div>
             </div>
 
-            <ul class="nav-links">
-                <li class="active"><a href="#"><i class="fa-solid fa-gauge"></i> DASHBOARD</a></li>
-                <li><a href="library.html"><i class="fa-solid fa-layer-group"></i> LIBRARY</a></li>
-                <li><a href="#"><i class="fa-solid fa-bolt"></i> QUESTS</a></li>
-                <li><a href="AnalyticsPage.html"><i class="fa-solid fa-chart-pie"></i> ANALYTICS</a></li>
-            </ul>
+            <nav>
+                <a href="#" class="active"><i class="fa-solid fa-gauge-high"></i> Teacher Dashboard</a>
+                <a href="library.html"><i class="fa-solid fa-book"></i> Curriculum Library</a>
+                <a href="AnalyticsPage.html"><i class="fa-solid fa-chart-line"></i> Performance Analytics</a>
+                <a href="UploadPage.html"><i class="fa-solid fa-cloud-arrow-up"></i> Resource Upload</a>
+                <a href="AccessControl.html"><i class="fa-solid fa-user-shield"></i> Student Access Grid</a>
+                <a href="payment.html"><i class="fa-solid fa-credit-card"></i> Billing &amp; Plans</a>
+                <a href="settings.html"><i class="fa-solid fa-shield"></i> Admin Controls</a>
+            </nav>
 
-            <div class="nav-footer">
-                <div class="user-pill">
-                    <div class="user-meta">
-                        <span class="user-display-name">Kaelen Vance</span>
-                        <span class="user-status">Novice Hacker</span>
-                    </div>
-                    <div class="user-icon">
-                        <i class="fa-solid fa-user-ninja"></i>
-                    </div>
+            <button class="launch-btn" onclick="window.location.href='UploadPage.html'"><i class="fa-solid fa-rocket"></i> Deploy Lesson Mode</button>
+        </aside>
+
+        <section class="main-zone">
+            <div class="hero-card card">
+                <div class="hero-copy">
+                    <p class="chip">Faculty Command Center</p>
+                    <h1>Teacher Dashboard</h1>
+                    <p>Real-time classroom intelligence, student tracking, and module readiness in one tactical display.</p>
+                </div>
+                <div class="hero-metrics">
+                    <article>
+                        <span>Attendance</span>
+                        <strong>96%</strong>
+                    </article>
+                    <article>
+                        <span>Avg. Grade</span>
+                        <strong>84.2%</strong>
+                    </article>
+                    <article>
+                        <span>Assignments Pending</span>
+                        <strong>18</strong>
+                    </article>
                 </div>
             </div>
-        </nav>
 
-        <div class="content-area">
-            <div class="main-content">
-                <section class="hero">
-                    <div class="hero-copy">
-                        <div class="welcome-section">
-                            <div class="welcome-header">
-                                <h1>Welcome back, <span class="user-name">Kaelen</span>!</h1>
-                                <p class="welcome-subtitle">Ready to unlock your next level?</p>
-                            </div>
-
-                            <div class="level-card">
-                                <div class="level-header">
-                                    <div class="level-info">
-                                        <span class="level-label">CURRENT LEVEL</span>
-                                        <span class="level-number">12</span>
-                                    </div>
-                                    <div class="xp-display">
-                                        <span class="xp-label">NEXT LEVEL</span>
-                                        <span class="xp-number">13</span>
-                                    </div>
-                                </div>
-
-                                <div class="progress-section">
-                                    <div class="progress-bar-container">
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width: 72%"></div>
-                                        </div>
-                                    </div>
-                                    <div class="progress-text">
-                                        <span class="progress-current">3,420 XP</span>
-                                        <span class="progress-total">/ 5,000 XP</span>
-                                    </div>
-                                </div>
-
-                                <div class="level-stats">
-                                    <div class="stat-box">
-                                        <i class="fa-solid fa-fire"></i>
-                                        <span>12 Day Streak</span>
-                                    </div>
-                                    <div class="stat-box">
-                                        <i class="fa-solid fa-medal"></i>
-                                        <span>8 Achievements</span>
-                                    </div>
-                                    <div class="stat-box">
-                                        <i class="fa-solid fa-crown"></i>
-                                        <span>Elite Rank</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="charts-section">
-                                <div class="chart-container">
-                                    <h3>Hours Studied by Game</h3>
-                                    <div class="doughnut-chart">
-                                        <svg viewBox="0 0 100 100" class="chart-svg">
-                                            <circle cx="50" cy="50" r="40" fill="none" stroke="#ff7ed1" stroke-width="20" stroke-dasharray="50 50" transform="rotate(-90 50 50)"></circle>
-                                            <circle cx="50" cy="50" r="40" fill="none" stroke="#5ce8ff" stroke-width="20" stroke-dasharray="30 70" transform="rotate(0 50 50)"></circle>
-                                            <circle cx="50" cy="50" r="40" fill="none" stroke="#ffd700" stroke-width="20" stroke-dasharray="20 80" transform="rotate(108 50 50)"></circle>
-                                        </svg>
-                                        <div class="chart-center">
-                                            <span class="chart-total">120h</span>
-                                        </div>
-                                    </div>
-                                    <div class="chart-legend">
-                                        <div class="legend-item"><span class="legend-color" style="background: #ff7ed1;"></span> Game A: 60h</div>
-                                        <div class="legend-item"><span class="legend-color" style="background: #5ce8ff;"></span> Game B: 36h</div>
-                                        <div class="legend-item"><span class="legend-color" style="background: #ffd700;"></span> Game C: 24h</div>
-                                    </div>
-                                </div>
-
-                                <div class="chart-container">
-                                    <h3>Time by Mode</h3>
-                                    <div class="doughnut-chart">
-                                        <svg viewBox="0 0 100 100" class="chart-svg">
-                                            <circle cx="50" cy="50" r="40" fill="none" stroke="#ff7ed1" stroke-width="20" stroke-dasharray="40 60" transform="rotate(-90 50 50)"></circle>
-                                            <circle cx="50" cy="50" r="40" fill="none" stroke="#5ce8ff" stroke-width="20" stroke-dasharray="35 65" transform="rotate(36 50 50)"></circle>
-                                            <circle cx="50" cy="50" r="40" fill="none" stroke="#ffd700" stroke-width="20" stroke-dasharray="15 85" transform="rotate(144 50 50)"></circle>
-                                            <circle cx="50" cy="50" r="40" fill="none" stroke="#ff6b6b" stroke-width="20" stroke-dasharray="10 90" transform="rotate(216 50 50)"></circle>
-                                        </svg>
-                                        <div class="chart-center">
-                                            <span class="chart-total">120h</span>
-                                        </div>
-                                    </div>
-                                    <div class="chart-legend">
-                                        <div class="legend-item"><span class="legend-color" style="background: #ff7ed1;"></span> Mode 1: 48h</div>
-                                        <div class="legend-item"><span class="legend-color" style="background: #5ce8ff;"></span> Mode 2: 42h</div>
-                                        <div class="legend-item"><span class="legend-color" style="background: #ffd700;"></span> Mode 3: 18h</div>
-                                        <div class="legend-item"><span class="legend-color" style="background: #ff6b6b;"></span> Mode 4: 12h</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+            <div class="content-grid">
+                <article class="card chart-card">
+                    <div class="card-head">
+                        <h3>Weekly Engagement Waveform</h3>
+                        <span class="live-feed-label">Live Feed</span>
                     </div>
-                </section>
+                    <div class="bar-chart" aria-hidden="true" data-chart="engagement">
+                        <span class="bar b1"></span>
+                        <span class="bar b2"></span>
+                        <span class="bar b3"></span>
+                        <span class="bar b4"></span>
+                        <span class="bar b5"></span>
+                        <span class="bar b6"></span>
+                    </div>
+                </article>
+
+                <article class="card roster-card">
+                    <div class="card-head">
+                        <h3>Student Tracker</h3>
+                        <span>Class 11 - A</span>
+                    </div>
+                    <ul class="student-list">
+                        <li><span>Ava Bennett</span><small>Present | Quiz 1: 91%</small></li>
+                        <li><span>Jayden Kim</span><small>Present | Quiz 1: 86%</small></li>
+                        <li><span>Marcus Thorne</span><small>Late | Quiz 1: 72%</small></li>
+                        <li><span>Sana Yusuf</span><small>Present | Quiz 1: 95%</small></li>
+                    </ul>
+                </article>
+
+                <article class="card modules-card">
+                    <div class="card-head">
+                        <h3>Active Modules</h3>
+                        <span>4 Running</span>
+                    </div>
+                    <div class="module-item">
+                        <div>
+                            <strong>Quantum Mechanics</strong>
+                            <p>7 tasks remaining</p>
+                        </div>
+                        <button>Open</button>
+                    </div>
+                    <div class="module-item">
+                        <div>
+                            <strong>Vector Calculus</strong>
+                            <p>2 tasks remaining</p>
+                        </div>
+                        <button>Open</button>
+                    </div>
+                </article>
+
+                <article class="card access-grid-card">
+                    <div class="card-head">
+                        <h3><i class="fa-solid fa-user-shield"></i> EDU Defense Grid</h3>
+                        <span>Control Center</span>
+                    </div>
+                    <p class="access-copy">Manage student permissions, apply penalties, suspend access, and run moderation actions from one dedicated command page.</p>
+                    <a class="access-open-btn" href="AccessControl.html"><i class="fa-solid fa-up-right-from-square"></i> Open Access & Discipline Page</a>
+                </article>
             </div>
+        </section>
 
-            <div class="right-sidebar">
-                <section class="leaderboard">
-                    <div class="leaderboard-header">
-                        <h2>ELITE PLAYERS</h2>
-                        <span class="elite-badge">⭐ ELITE</span>
-                    </div>
-                    <div class="leaderboard-list">
-                        <div class="leaderboard-item">
-                            <img src="https://via.placeholder.com/48" alt="Player" class="player-avatar">
-                            <div class="player-info">
-                                <span class="player-name">ShadowNinja</span>
-                                <span class="player-rank">Elite Player</span>
-                            </div>
-                            <span class="player-points">8,547 PTS</span>
-                        </div>
-                        <div class="leaderboard-item">
-                            <img src="https://via.placeholder.com/48" alt="Player" class="player-avatar">
-                            <div class="player-info">
-                                <span class="player-name">PhoenixRising</span>
-                                <span class="player-rank">Elite Player</span>
-                            </div>
-                            <span class="player-points">7,923 PTS</span>
-                        </div>
-                        <div class="leaderboard-item">
-                            <img src="https://via.placeholder.com/48" alt="Player" class="player-avatar">
-                            <div class="player-info">
-                                <span class="player-name">VortexKing</span>
-                                <span class="player-rank">Elite Player</span>
-                            </div>
-                            <span class="player-points">7,654 PTS</span>
-                        </div>
-                        <div class="leaderboard-item">
-                            <img src="https://via.placeholder.com/48" alt="Player" class="player-avatar">
-                            <div class="player-info">
-                                <span class="player-name">CyberVenom</span>
-                                <span class="player-rank">Elite Player</span>
-                            </div>
-                            <span class="player-points">7,421 PTS</span>
-                        </div>
-                        <div class="leaderboard-item">
-                            <img src="https://via.placeholder.com/48" alt="Player" class="player-avatar">
-                            <div class="player-info">
-                                <span class="player-name">LunaEclipse</span>
-                                <span class="player-rank">Elite Player</span>
-                            </div>
-                            <span class="player-points">7,189 PTS</span>
-                        </div>
-                        <div class="leaderboard-item">
-                            <img src="https://via.placeholder.com/48" alt="Player" class="player-avatar">
-                            <div class="player-info">
-                                <span class="player-name">IronStorm</span>
-                                <span class="player-rank">Elite Player</span>
-                            </div>
-                            <span class="player-points">6,982 PTS</span>
-                        </div>
-                    </div>
-                </section>
+        <aside class="right-zone">
+            <article class="card live-card">
+                <div class="card-head">
+                    <h3>Live Sessions</h3>
+                    <span>2 Active</span>
+                </div>
+                <div class="session-item">
+                    <h4>PHY-904</h4>
+                    <p>23/31 present</p>
+                </div>
+                <div class="session-item">
+                    <h4>CHE-112</h4>
+                    <p>19/25 present</p>
+                </div>
+                <button class="session-cta">Start Broadcasting</button>
+            </article>
 
-                <section class="system-comms">
-                    <div class="comms-header">
-                        <h2>SYSTEM COMMS</h2>
-                        <i class="fa-solid fa-bell"></i>
+            <article class="card ring-card">
+                <div class="card-head">
+                    <h3>Score Distribution</h3>
+                </div>
+                <div class="score-ring" data-chart="score">
+                    <svg viewBox="0 0 120 120" aria-hidden="true">
+                        <circle cx="60" cy="60" r="48"></circle>
+                        <circle cx="60" cy="60" r="48" class="progress"></circle>
+                    </svg>
+                    <div>
+                        <strong>8.2</strong>
+                        <span>Class Avg</span>
                     </div>
-                    <div class="comms-list">
-                        <div class="comms-item achievement">
-                            <div class="comms-icon">
-                                <i class="fa-solid fa-star"></i>
-                            </div>
-                            <div class="comms-content">
-                                <span class="comms-title">Achievement Unlocked!</span>
-                                <span class="comms-message">"First Victory" - Complete your first quest</span>
-                                <span class="comms-time">2 hours ago</span>
-                            </div>
-                        </div>
-                        <div class="comms-item update">
-                            <div class="comms-icon">
-                                <i class="fa-solid fa-download"></i>
-                            </div>
-                            <div class="comms-content">
-                                <span class="comms-title">Update Available</span>
-                                <span class="comms-message">v2.1.0 - New features and bug fixes</span>
-                                <span class="comms-time">4 hours ago</span>
-                            </div>
-                        </div>
-                        <div class="comms-item achievement">
-                            <div class="comms-icon">
-                                <i class="fa-solid fa-trophy"></i>
-                            </div>
-                            <div class="comms-content">
-                                <span class="comms-title">Rank Up!</span>
-                                <span class="comms-message">You've been promoted to "Novice Hacker"</span>
-                                <span class="comms-time">1 day ago</span>
-                            </div>
-                        </div>
-                        <div class="comms-item maintenance">
-                            <div class="comms-icon">
-                                <i class="fa-solid fa-wrench"></i>
-                            </div>
-                            <div class="comms-content">
-                                <span class="comms-title">Maintenance Notice</span>
-                                <span class="comms-message">Scheduled maintenance: Apr 20, 2:00 AM UTC</span>
-                                <span class="comms-time">2 days ago</span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </div>
-
+                </div>
+                <p class="ring-note">Top bracket (A): 34 students</p>
+            </article>
+        </aside>
     </main>
-
-    <footer>
-      <p>© 2026 SlidePlay. All Rights Reserved.</p>
-    </footer>
+    <script src="Dashboard.js"></script>
 </body>
 </html>

@@ -253,3 +253,45 @@ footer {
   background: #141428;
   color: #888;
 }
+
+/* -- Global Theme Sync: Settings Palette -- */
+:root {
+  --bg-color:
+    radial-gradient(circle at top center, rgba(255, 126, 209, 0.16), transparent 28%),
+    linear-gradient(180deg, #120617 0%, #100717 45%, #07050d 100%);
+  --card-color: rgba(255, 255, 255, 0.05);
+  --text-main: #ffffff;
+  --text-dim: #a0a0a0;
+  --accent: #5ce8ff;
+  --border: rgba(255, 255, 255, 0.1);
+
+  --bg: #100717;
+  --panel: rgba(255, 255, 255, 0.05);
+  --panel-soft: rgba(255, 255, 255, 0.05);
+  --panel-strong: rgba(7, 5, 13, 0.92);
+  --line: rgba(255, 255, 255, 0.1);
+  --line-pink: rgba(255, 126, 209, 0.3);
+  --text: #ffffff;
+  --muted: #a0a0a0;
+  --cyan: #5ce8ff;
+  --cyan-soft: rgba(92, 232, 255, 0.16);
+  --cyan-glow: rgba(92, 232, 255, 0.38);
+  --magenta: #ff7ed1;
+  --magenta-soft: rgba(255, 126, 209, 0.18);
+  --amber: #ff7ed1;
+  --amber-soft: rgba(255, 126, 209, 0.2);
+
+  --bg-main: #100717;
+  --bg-navbar: #0e0613;
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-card-alt: rgba(15, 10, 22, 0.9);
+  --neon-cyan: #5ce8ff;
+  --neon-pink: #ff7ed1;
+  --neon-purple: #a257ff;
+  --gradient-main: linear-gradient(90deg, #ff7ed1, #a257ff, #5ce8ff);
+}
+
+body {
+  background: var(--bg-color) !important;
+  color: var(--text-main);
+}

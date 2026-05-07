@@ -1,0 +1,219 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="StudentDashboard.css">
+</head>
+<body>
+  <div class="hud-grid"></div>
+
+  <main class="layout">
+    <aside class="sidebar panel">
+      <div class="brand">
+        <div class="logo-box"><i class="fa-solid fa-cube"></i></div>
+        <div>
+          <h2>SlidePlay</h2>
+          <p>Neon Education v1.0</p>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <a class="active" href="#"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+        <a href="library.html"><i class="fa-solid fa-layer-group"></i> Library</a>
+        <a href="#" class="nav-premium"><i class="fa-solid fa-bolt"></i> Quests <i class="fa-solid fa-crown nav-crown"></i></a>
+        <a href="Analysis.html"><i class="fa-solid fa-chart-pie"></i> Analytics</a>
+        <a href="student-payment.html"><i class="fa-solid fa-credit-card"></i> Upgrade Plan</a>
+        <a href="#"><i class="fa-solid fa-users"></i> Users</a>
+        <a href="StudentUploadPage.html"><i class="fa-solid fa-file-lines"></i> Content</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="#"><i class="fa-regular fa-circle-question"></i> Support</a>
+        <a href="login.html"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign out</a>
+        <a class="play-btn" href="StudentPlayMode.html">Enter Play Mode</a>
+      </div>
+    </aside>
+
+    <section class="center-column panel">
+      <header class="topbar">
+        <h1>Dashboard</h1>
+        <div class="search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search quests...">
+        </div>
+        <div class="top-actions">
+          <button class="icon-btn" aria-label="Notifications" title="Notifications"><i class="fa-regular fa-bell"></i></button>
+          <a class="icon-btn" href="settings.html" aria-label="Settings" title="Settings"><i class="fa-solid fa-gear"></i></a>
+          <div class="profile-mini">
+            <img src="https://i.pravatar.cc/80?img=32" alt="Student profile">
+            <div>
+              <strong>Kaelen Vance</strong>
+              <span>Novice Hacker</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="hero card">
+        <span class="status-chip">System Online</span>
+        <h2>Welcome back, <em>Vance.</em></h2>
+
+        <div class="level-panel">
+          <div>
+            <small>Current Level</small>
+            <strong>LVL 42</strong>
+          </div>
+          <div class="xp-wrap">
+            <small>XP Progress</small>
+            <div class="xp-track"><div class="xp-fill" data-target="82"></div></div>
+            <p><span id="xpCurrent">2,460</span> / 3,000 XP</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="premium-gate">
+        <section class="card quests">
+          <div class="section-head">
+            <h3>Active Quests</h3>
+            <a href="#">View all quests</a>
+          </div>
+
+          <div class="quest-grid">
+            <article class="quest-card">
+              <span class="tag high">High Priority</span>
+              <h4>Neural Logic Breach</h4>
+              <p>Complete 5 logic gate exercises with zero errors.</p>
+              <div class="meter"><span class="meter-fill" data-target="68"></span></div>
+              <small>3/5 Units</small>
+            </article>
+
+            <article class="quest-card">
+              <span class="tag side">Side Quest</span>
+              <h4>Script Runner v2</h4>
+              <p>Optimize your execution speed by 15% this week.</p>
+              <div class="meter"><span class="meter-fill" data-target="84"></span></div>
+              <small>84% Reached</small>
+            </article>
+          </div>
+        </section>
+        <div class="premium-overlay">
+          <div class="premium-badge">
+            <i class="fa-solid fa-crown"></i>
+            <span>Premium Feature</span>
+            <p>Upgrade your plan to unlock Quests.</p>
+            <a href="student-payment.html" class="premium-cta">Upgrade Now</a>
+          </div>
+        </div>
+      </div>
+
+      <section class="card learning-path">
+        <div class="section-head">
+          <h3>Learning Path: Quantum Systems</h3>
+        </div>
+
+        <div class="path-line">
+          <div class="node done"><i class="fa-solid fa-check"></i><span>Foundations</span></div>
+          <div class="connector"></div>
+          <div class="node done"><i class="fa-solid fa-check"></i><span>Encryption</span></div>
+          <div class="connector"></div>
+          <div class="node active"><i class="fa-solid fa-bolt"></i><span>Neural Nets</span></div>
+          <div class="connector"></div>
+          <div class="node"><i class="fa-solid fa-lock"></i><span>Quantum Link</span></div>
+        </div>
+      </section>
+
+      <section class="card recent">
+        <div class="section-head">
+          <h3>Recent Simulations</h3>
+        </div>
+        <div class="sim-grid">
+          <article class="sim-card">
+            <i class="fa-solid fa-gamepad"></i>
+            <h4>Neon Grid Runner</h4>
+            <p>Top 5%</p>
+          </article>
+          <article class="sim-card">
+            <i class="fa-solid fa-puzzle-piece"></i>
+            <h4>Fractal Equations</h4>
+            <p>New Unlock</p>
+          </article>
+          <article class="sim-card">
+            <i class="fa-solid fa-robot"></i>
+            <h4>DNA Splicer Pro</h4>
+            <p>Retry Record</p>
+          </article>
+          <article class="sim-card">
+            <i class="fa-solid fa-satellite"></i>
+            <h4>Satellite Hacker</h4>
+            <p>Mastered</p>
+          </article>
+        </div>
+      </section>
+      <section class="card privileges-card" id="privilegesCard">
+        <div class="section-head">
+          <h3><i class="fa-solid fa-shield-halved"></i> Delegated Access</h3>
+        </div>
+        <div id="privBadges" class="priv-badges"></div>
+      </section>
+    </section>
+    <aside class="right-column">
+      <section class="panel card rank-card">
+        <div class="section-head">
+          <h3>Elite Class Ranking</h3>
+        </div>
+        <div class="rank-list">
+          <div class="rank-item"><span>01</span><p>Ghost_Protocol</p><strong>14.2k</strong></div>
+          <div class="rank-item"><span>02</span><p>Nova_Crest</p><strong>13.8k</strong></div>
+          <div class="rank-item mine"><span>09</span><p>Vance (You)</p><strong>8.4k</strong></div>
+        </div>
+      </section>
+
+      <section class="panel card discipline-card" id="disciplineCard">
+        <div class="section-head">
+          <h3><i class="fa-solid fa-scale-balanced"></i> Student Discipline</h3>
+        </div>
+        <p class="discipline-status" id="disciplineStatus">Good standing</p>
+        <div class="discipline-metrics">
+          <article>
+            <span>Penalty Points</span>
+            <strong id="penaltyPointsTotal">0</strong>
+          </article>
+          <article>
+            <span>Active Flags</span>
+            <strong id="activeFlagsCount">0</strong>
+          </article>
+        </div>
+        <div class="discipline-log" id="disciplineLog"></div>
+      </section>
+
+      <section class="panel card comms-card">
+        <div class="section-head">
+          <h3>System Comms</h3>
+        </div>
+        <article class="comms-item">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <div>
+            <h4>Patch v2.4 deployed</h4>
+            <p>New quest pack unlocked in your network.</p>
+            <small>2 hours ago</small>
+          </div>
+        </article>
+        <article class="comms-item">
+          <i class="fa-solid fa-trophy"></i>
+          <div>
+            <h4>Achievement unlocked</h4>
+            <p>Display handy: maintain 85% accuracy for 3 runs.</p>
+            <small>1 day ago</small>
+          </div>
+        </article>
+      </section>
+    </aside>
+  </main>
+
+  <script src="StudentDashboard.js"></script>
+</body>
+</html>
+

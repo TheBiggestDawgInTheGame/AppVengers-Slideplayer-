@@ -5,17 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login | SlidePlay</title>
     <link rel="stylesheet" href="login.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
   </head>
 
   <body class="auth-page">
     <div id="particles"></div>
     <div class="login-box">
+      <div class="brand-mark">
+        <span class="brand-dot"></span>
+        <span class="brand-name">SlidePlay</span>
+      </div>
       <div class="login-header">
-        <h2>Welcome Back to SlidePlay</h2>
+        <h2>Welcome Back</h2>
+        <p class="login-sub">Sign in to your command center</p>
       </div>
 
       <form id="loginForm">
@@ -41,6 +44,9 @@
             autocomplete="off"
             required
           />
+          <button type="button" class="toggle-pw" id="togglePw" aria-label="Toggle password visibility">
+            <i class="fa-solid fa-eye" id="togglePwIcon"></i>
+          </button>
         </div>
 
         <div class="forgot">
@@ -53,8 +59,7 @@
             <a href="#">Forgot password?</a>
           </section>
         </div>
-
-        <div class="input-submit">
+                <div class="input-submit">
           <button class="submit-btn" type="submit">Sign In</button>
         </div>
       </form>
@@ -94,9 +99,22 @@
         }, duration * 1000);
       }
 
-      // generate particles continuously
       setInterval(createParticle, 150);
+
+      // Show/hide password toggle
+      document.getElementById('togglePw').addEventListener('click', function () {
+        const pw = document.getElementById('password');
+        const icon = document.getElementById('togglePwIcon');
+        if (pw.type === 'password') {
+          pw.type = 'text';
+          icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+          pw.type = 'password';
+          icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+      });
     </script>
     <script src="login.js"></script>
   </body>
 </html>
+

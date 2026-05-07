@@ -1,42 +1,69 @@
+// Seed demo accounts if they don''t exist yet
+(function seedDemoAccounts() {
+  const users = JSON.parse(localStorage.getItem("sp_users") || "[]");
+  const demoTeacher = { id: "usr_demo_teacher", username: "Dr. M. Stark", email: "teacher@slideplay.com", password: "teach123", role: "teacher", age: 34, createdAt: 0 };
+  const demoStudent = { id: "usr_demo_student", username: "Test Student",  email: "test@gmail.com",          password: "123456",   role: "student", age: 16, createdAt: 0 };
+  let changed = false;
+  const teacher = users.find(u => u.email === demoTeacher.email);
+  const student = users.find(u => u.email === demoStudent.email);
+
+  if (!teacher) {
+    users.push(demoTeacher);
+    changed = true;
+  } else if (!Number.isFinite(Number(teacher.age))) {
+    teacher.age = demoTeacher.age;
+    changed = true;
+  }
+
+  if (!student) {
+    users.push(demoStudent);
+    changed = true;
+  } else if (!Number.isFinite(Number(student.age))) {
+    student.age = demoStudent.age;
+    changed = true;
+  }
+
+  if (changed) localStorage.setItem("sp_users", JSON.stringify(users));
+})();
+
 const form = document.getElementById("loginForm");
 
 form.addEventListener("submit", function (e) {
-  e.preventDefault(); // stop page reload
+  e.preventDefault();
 
-  const email = document.getElementById("email").value.trim();
+  const email    = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value.trim();
 
-  // BASIC VALIDATION
-  if (email === "" || password === "") {
-    alert("Please fill in all fields!");
-    return;
-  }
+  if (!email || !password) { showError("Please fill in all fields."); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError("Please enter a valid email address."); return; }
+  if (password.length < 6) { showError("Password must be at least 6 characters."); return; }
 
-  // Check email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    alert("Please enter a valid email address!");
-    return;
-  }
+  const users = JSON.parse(localStorage.getItem("sp_users") || "[]");
+  const user = users.find(u => u.email === email && u.password === password);
 
-  // Check password length
-  if (password.length < 6) {
-    alert("Password must be at least 6 characters long!");
-    return;
-  }
+  if (!user) { showError("Invalid email or password."); return; }
 
-  // Get stored user data
-  const storedEmail = localStorage.getItem("userEmail");
-  const storedPassword = localStorage.getItem("userPassword");
+  // Set session
+  localStorage.setItem("sp_session", JSON.stringify({
+    id: user.id, username: user.username, email: user.email, role: user.role
+  }));
 
-  // Check against stored data or default
-  if ((storedEmail && email === storedEmail && password === storedPassword) ||
-      (email === "test@gmail.com" && password === "123456")) {
-    alert("Login successful 🚀");
-
-    // redirect to dashboard
-    window.location.href = "Dashboard.html";
-  } else {
-    alert("Invalid email or password ❌");
-  }
+  clearError();
+  window.location.href = user.role === "teacher" ? "Dashboard.html" : "StudentDashboard.html";
 });
+
+function showError(msg) {
+  let el = document.getElementById("loginError");
+  if (!el) {
+    el = document.createElement("p");
+    el.id = "loginError";
+    el.className = "login-error";
+    document.querySelector(".input-submit").before(el);
+  }
+  el.textContent = msg;
+}
+
+function clearError() {
+  const el = document.getElementById("loginError");
+  if (el) el.remove();
+}
