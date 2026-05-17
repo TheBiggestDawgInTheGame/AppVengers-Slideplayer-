@@ -22,14 +22,11 @@ function initializeAnalytics() {
   setupMilestoneInteractivity();
   startLiveUpdates();
 }
-
-function setupReportToggle() {
+/*function setupReportToggle() {
   const btn = document.getElementById("reportBtn");
   const reportSection = document.getElementById("fullReportSection");
 
-  if (!btn || !reportSection) {
-    return;
-  }
+  if (!btn || !reportSection) return;
 
   btn.textContent = reportSection.classList.contains("hidden")
     ? "View Full Report"
@@ -37,10 +34,39 @@ function setupReportToggle() {
 
   btn.addEventListener("click", function (event) {
     event.preventDefault();
+    if 
     reportSection.classList.toggle("hidden");
     btn.textContent = reportSection.classList.contains("hidden")
       ? "View Full Report"
       : "Hide Full Report";
+  });
+}*/
+function setupReportToggle() {
+  const btn = document.getElementById("reportBtn");
+  const reportSection = document.getElementById("fullReportSection");
+
+  if (!btn || !reportSection) return;
+
+  btn.textContent = reportSection.classList.contains("hidden")
+    ? "View Full Report"
+    : "Hide Full Report";
+
+  btn.addEventListener("click", function (event) {
+    event.preventDefault();
+
+    if (reportSection.classList.contains("hidden")) {
+      // Show it
+      reportSection.classList.remove("hidden");
+      reportSection.style.animation = "slideIn 0.4s ease";
+      btn.textContent = "Hide Full Report";
+    } else {
+      // Animate out, then hide
+      reportSection.style.animation = "slideOut 0.4s ease";
+      setTimeout(function () {
+        reportSection.classList.add("hidden");
+        btn.textContent = "View Full Report";
+      }, 380);
+    }
   });
 }
 

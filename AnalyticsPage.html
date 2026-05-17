@@ -1,12 +1,61 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!--Document metadata, character set, and responsive viewport settings -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Analytics Dashboard</title>
+    <link
+  href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="AnalyticsPage.css" />
+    <script src="AnalyticsPage.js"></script>
   </head>
   <body>
+
+      <!-- Side Navigation -->
+  <aside class="side-nav">
+    <div class="brand-block">
+      <span class="brand-dot"></span>
+      <span class="brand-name">SlidePlay</span>
+    </div>
+
+    <nav class="nav-items">
+      <a href="Dashboard.html" class="nav-item">
+        <i class="fa-solid fa-gauge-high"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="library.html" class="nav-item">
+        <i class="fa-solid fa-book-open"></i>
+        <span>Library</span>
+      </a>
+      <a href="UploadPage.html" class="nav-item active">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Upload</span>
+      </a>
+      <a href="AnalyticsPage.html" class="nav-item">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Analytics</span>
+      </a>
+      <a href="payment.html" class="nav-item">
+        <i class="fa-solid fa-credit-card"></i>
+        <span>Billing</span>
+      </a>
+      <a href="settings.html" class="nav-item">
+        <i class="fa-solid fa-gear"></i>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <button class="deploy-btn" onclick="generateQuiz()">
+      <i class="fa-solid fa-bolt"></i>
+      Generate Quiz
+    </button>
+  </aside>
+
+  <!-- Main Zone -->
+  <div class="main-zone">
+
+    <!-- Decorative background section (likely contains CSS animations for auroras and floating particles) -->
     <div class="ambient-bg" aria-hidden="true">
       <div class="aurora aurora-one"></div>
       <div class="aurora aurora-two"></div>
@@ -24,48 +73,61 @@
       </div>
     </div>
     <main class="analytics-dashboard">
+
+      <!-- Top header introducing the dasgboard -->
       <header class="dashboard-header">
         <h1 class="logo">Analytics Dashboard</h1>
         <p>Track performance, achievements, and rankings</p>
       </header>
 
+      <!-- Primary performance overview containing a weekly bar chart and top-level stats -->
       <section class="performance-insights">
         <h2>Performance Insights</h2>
         <div class="charts-container">
+
+          <!-- Weekly activity bar chart -->
           <div class="chart">
             <h3>Weekly Activity</h3>
             <div class="bar-chart">
               <div class="bar-item">
-                <div class="bar bar-mon"></div>
+                <span class="bar-percentage">45%</span>
+                <div class="bar bar-mon" style="height: 45%;"></div>
                 <label>Mon</label>
               </div>
               <div class="bar-item">
-                <div class="bar bar-tue"></div>
+                <span class="bar-percentage">70%</span>
+                <div class="bar bar-tue" style="height: 70%;"></div>
                 <label>Tue</label>
               </div>
               <div class="bar-item">
-                <div class="bar bar-wed"></div>
+                <span class="bar-percentage">60%</span>
+                <div class="bar bar-wed" style="height: 60%;"></div>
                 <label>Wed</label>
               </div>
               <div class="bar-item">
-                <div class="bar bar-thu"></div>
+                <span class="bar-percentage">80%</span>
+                <div class="bar bar-thu" style="height: 80%;"></div>
                 <label>Thu</label>
               </div>
               <div class="bar-item">
-                <div class="bar bar-fri"></div>
+                <span class="bar-percentage">55%</span>
+                <div class="bar bar-fri" style="height: 55%;"></div>
                 <label>Fri</label>
               </div>
               <div class="bar-item">
-                <div class="bar bar-sat"></div>
+                <span class="bar-percentage">0%</span>
+                <div class="bar bar-sat" style="height: 0%;"></div>
                 <label>Sat</label>
               </div>
               <div class="bar-item">
-                <div class="bar bar-sun"></div>
+                <span class="bar-percentage">0%</span>
+                <div class="bar bar-sun" style="height: 0%;"></div>
                 <label>Sun</label>
               </div>
             </div>
           </div>
 
+          <!-- Total sessions and toggle button for the full report -->
           <div class="chart stats">
             <div class="stat-box">
               <h3>Total Sessions</h3>
@@ -73,10 +135,13 @@
             </div>
             <button class="signup-btn" id="reportBtn">Hide Full Report</button>
           </div>
+          
         </div>
       </section>
 
       <div id="fullReportSection">
+
+        <!-- Secondary statistics like averages and engagement rates -->
         <section class="performance-insights">
           <h2>Additional Statistics</h2>
           <div class="charts-container">
@@ -99,6 +164,7 @@
           </div>
         </section>
 
+        <!-- Visual progress bar tracking current goals against milestone -->
         <section class="rewards-milestones">
           <h2>Progress Tracking</h2>
           <div class="progress-section">
@@ -113,8 +179,11 @@
           </div>
         </section>
 
+        <!-- Deatiled insights into class activity, health, and individual student performance -->
         <section class="class-intel">
         <h2>Class Activity Intel</h2>
+
+        <!-- Top row of class intel: Health filtering and recent overall activities -->
         <div class="intel-grid">
           <div class="intel-card">
             <div class="intel-head">
@@ -130,6 +199,8 @@
             <div id="recentActivitiesList" class="intel-list"></div>
           </div>
         </div>
+
+        <!-- Middle row: Trend analysis and identifying at-risk students -->
         <div class="drilldown-grid">
           <div class="intel-card">
             <div class="intel-head">
@@ -145,6 +216,7 @@
           </div>
         </div>
 
+        <!-- Bottom row: Student outcomes, highlighting top performers and those needing support -->
         <div class="student-outcomes-grid">
           <div class="intel-card">
             <div class="intel-head">
@@ -168,6 +240,7 @@
       </section>
       </div>
 
+      <!-- Leaderboard table for user rankings based on points and streaks -->
       <section class="leaderboard">
         <h2>Leaderboard</h2>
         <div class="leaderboard-table">
@@ -181,6 +254,7 @@
         </div>
       </section>
 
+      <!-- Collection of earned and locked achievements/badges -->
       <section class="badges">
         <h2>Earn Badges</h2>
         <div class="badges-container">
@@ -204,6 +278,8 @@
             <h4>Premium Member</h4>
             <p>Unlock premium features</p>
           </div>
+
+          <!-- Locked badges -->
           <div class="badge locked">
             <div class="badge-icon">👑</div>
             <h4>Legendary</h4>
@@ -215,6 +291,7 @@
             <p>Complete 100 sessions</p>
           </div>
         </div>
+      </div>
       </section>
     </main>
 
