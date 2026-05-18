@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeopardy Millionaire</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="game-container">
+    <div id="threejs-scene"></div>
+    <div id="game-ui">
+    <div class="container">
+        <div class="quiz-header">
+            <div class="header-top">
+                <h1 class="logo">JEOPARDY<span class="logo-play"> MILLIONAIRE</span></h1>
+                <div class="header-buttons">
+                    <button class="btn-header">About</button>
+                    <button class="btn-header">Guest</button>
+                    <button class="btn-header" id="soundToggle" type="button">Sound: On</button>
+                </div>
+            </div>
+            <div class="header-middle">
+                <h2 id="quizTitle">Jeopardy Millionaire Challenge</h2>
+                <div class="header-stats">
+                    <div class="timer" id="timer">Time: <span id="timeLeft">0</span>s</div>
+                    <div class="score">Correct: <span id="score">0</span>/<span id="totalQuestions">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <div class="start-content">
+                <h2>Welcome to the Jeopardy Stage</h2>
+                <p>Play classic Millionaire logic in a Jeopardy-style arena. Lock your final answer and climb the ladder.</p>
+                <button class="btn btn-primary" onclick="startQuiz()">Start Quiz</button>
+            </div>
+        </div>
+
+        <div id="quizScreen" class="screen hidden">
+            <div class="game-layout">
+                <section class="stage-panel">
+                    <div class="lifelines">
+                        <button class="lifeline-btn" id="lifeline5050" onclick="useFiftyFifty()">50:50</button>
+                        <button class="lifeline-btn" id="lifelineCallFriend" onclick="useCallFriend()">Call a Friend</button>
+                        <button class="lifeline-btn" id="lifelineAskAudience" onclick="useAskAudience()">Ask the Audience</button>
+                    </div>
+
+                    <div class="question-container">
+                        <div class="question-number">
+                            Question <span id="currentQuestion">1</span> of <span id="totalQuestionsNum">0</span>
+                        </div>
+                        <h2 id="questionText"></h2>
+                    </div>
+
+                    <div class="options-container">
+                        <button class="option" onclick="selectOption(0)" id="btn0">
+                            <span class="option-label">A</span>
+                            <span class="option-text" id="option0"></span>
+                        </button>
+                        <button class="option" onclick="selectOption(1)" id="btn1">
+                            <span class="option-label">B</span>
+                            <span class="option-text" id="option1"></span>
+                        </button>
+                        <button class="option" onclick="selectOption(2)" id="btn2">
+                            <span class="option-label">C</span>
+                            <span class="option-text" id="option2"></span>
+                        </button>
+                        <button class="option" onclick="selectOption(3)" id="btn3">
+                            <span class="option-label">D</span>
+                            <span class="option-text" id="option3"></span>
+                        </button>
+                    </div>
+
+                    <div class="hint-line" id="hintLine"></div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="lockAnswer()" id="lockBtn">Lock Answer</button>
+                        <button class="btn btn-secondary" onclick="nextQuestion()" id="nextBtn" disabled>Next Question</button>
+                    </div>
+                </div>
+
+                <aside class="ladder-panel">
+                    <h3>Prize Ladder</h3>
+                    <ul class="prize-ladder" id="prizeLadder"></ul>
+                </aside>
+            </div>
+        </div>
+
+        <div id="resultsScreen" class="screen hidden">
+            <div class="results-content">
+                <h2>Round Complete</h2>
+                <div class="final-score">
+                    <div class="score-circle">
+                        <span id="finalScore">0</span>/<span id="finalTotal">0</span>
+                    </div>
+                    <div class="score-percentage" id="percentageScore">$0</div>
+                </div>
+                <div class="result-message" id="resultMessage"></div>
+
+                <section class="ai-insights" aria-label="Performance insights">
+                    <h3>AI Performance Coach</h3>
+                    <p class="ai-summary" id="aiSummary">Complete a round to generate your strengths and weaknesses profile.</p>
+
+                    <div class="insight-grid">
+                        <article class="insight-card">
+                            <h4>Strengths</h4>
+                            <ul id="strengthList"></ul>
+                        </article>
+                        <article class="insight-card">
+                            <h4>Weaknesses</h4>
+                            <ul id="weaknessList"></ul>
+                        </article>
+                        <article class="insight-card">
+                            <h4>Recommendations</h4>
+                            <ul id="recommendationList"></ul>
+                        </article>
+                    </div>
+
+                    <div class="trend-block">
+                        <h4>Long-Term Trend (Last <span id="trendWindow">0</span> Rounds)</h4>
+                        <p id="trendSummary" class="trend-summary">Play multiple rounds to unlock trend analysis.</p>
+                        <ul id="trendList" class="trend-list"></ul>
+                    </div>
+                </section>
+
+                <button class="btn btn-primary" onclick="restartQuiz()">Try Again</button>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+    </div>
+
+    <script src="quiz_data.js"></script>
+    <script src="../../shared/game-modes.js"></script>
+    <script src="../../shared/progress-tracker.js"></script>
+    <script src="../../shared/adventure-layer.js"></script>
+    <script src="../../shared/mode-environment.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Road Runner — Choose Your Experience</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e8e0d0;
+      font-family: 'Courier New', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 150, 0.03) 0px,
+        transparent 1px,
+        transparent 2px,
+        rgba(0, 255, 150, 0.03) 3px
+      );
+      pointer-events: none;
+      animation: scanlines 8s linear infinite;
+      z-index: 1;
+    }
+
+    @keyframes scanlines {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(10px); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      max-width: 900px;
+    }
+
+    h1 {
+      font-size: 3.2rem;
+      margin-bottom: 0.5rem;
+      color: #00ff96;
+      text-shadow: 0 0 10px #00ff96, 0 0 20px #00ff6430;
+      letter-spacing: 3px;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: #a0a0b0;
+      margin-bottom: 3rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .modes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .mode-card {
+      background: rgba(30, 30, 60, 0.8);
+      border: 2px solid #00ff96;
+      border-radius: 8px;
+      padding: 2rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 0 20px rgba(0, 255, 150, 0.1);
+    }
+
+    .mode-card:hover {
+      transform: translateY(-8px);
+      border-color: #00ffff;
+      box-shadow: 0 0 30px rgba(0, 255, 150, 0.3);
+      background: rgba(30, 30, 60, 0.95);
+    }
+
+    .mode-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .mode-title {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin-bottom: 0.8rem;
+      color: #00ff96;
+    }
+
+    .mode-desc {
+      color: #b0b0c0;
+      line-height: 1.6;
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 2rem;
+      left: 2rem;
+      background: rgba(0, 255, 150, 0.1);
+      border: 1px solid #00ff96;
+      color: #00ff96;
+      padding: 0.8rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      z-index: 10;
+    }
+
+    .back-btn:hover {
+      background: rgba(0, 255, 150, 0.2);
+      box-shadow: 0 0 10px rgba(0, 255, 150, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <a href="javascript:history.back()" class="back-btn">← Back</a>
+
+  <div class="container">
+    <h1>Road Runner</h1>
+    <p class="subtitle">Choose Your Experience</p>
+
+    <div class="modes">
+      <a href="index.html?source=upload" class="mode-card">
+        <div class="mode-icon">🎮</div>
+        <div class="mode-title">2D Classic</div>
+        <p class="mode-desc">Pure pixel-perfect racing on a flat perspective highway. Quick reflexes required.</p>
+      </a>
+
+      <a href="play_3d.html?source=upload" class="mode-card">
+        <div class="mode-icon">🌟</div>
+        <div class="mode-title">3D Immersive</div>
+        <p class="mode-desc">Full 3D neon highway experience. Feel the rush with immersive depth.</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

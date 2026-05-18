@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escape Room — Choose Your Experience</title>
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0a0a0f;
+      color: #e8e0d0;
+      font-family: 'Special Elite', serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Animated background flicker */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 50% 0%, rgba(180, 30, 30, 0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 80% 80%, rgba(80, 10, 10, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+      animation: flicker 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes flicker {
+      0%   { opacity: 1; }
+      40%  { opacity: 0.92; }
+      50%  { opacity: 1; }
+      70%  { opacity: 0.88; }
+      100% { opacity: 1; }
+    }
+
+    /* Scanlines overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0,0,0,0.08) 3px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* ── Header ── */
+    .er-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .er-lock-icon {
+      font-size: 3.2rem;
+      display: block;
+      margin-bottom: 0.5rem;
+      filter: drop-shadow(0 0 12px rgba(220, 50, 50, 0.7));
+      animation: sway 4s ease-in-out infinite;
+    }
+
+    @keyframes sway {
+      0%, 100% { transform: rotate(-4deg); }
+      50%       { transform: rotate(4deg); }
+    }
+
+    .er-title {
+      font-family: 'Creepster', cursive;
+      font-size: clamp(2.2rem, 6vw, 3.4rem);
+      letter-spacing: 0.04em;
+      color: #ff3a3a;
+      text-shadow: 0 0 20px rgba(255,60,60,0.6), 0 2px 0 #600;
+      line-height: 1.1;
+    }
+
+    .er-subtitle {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.82rem;
+      color: #8a7f70;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 0.5rem;
+    }
+
+    /* ── Version cards ── */
+    .version-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.4rem;
+      width: 100%;
+      max-width: 680px;
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (max-width: 520px) {
+      .version-grid { grid-template-columns: 1fr; }
+    }
+
+    .version-card {
+      background: rgba(18, 10, 10, 0.85);
+      border: 1px solid rgba(160, 30, 30, 0.35);
+      border-radius: 12px;
+      padding: 2rem 1.5rem 1.6rem;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .version-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(200,40,40,0.08) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .version-card:hover,
+    .version-card:focus-visible {
+      transform: translateY(-4px);
+      border-color: rgba(255, 60, 60, 0.65);
+      box-shadow: 0 8px 32px rgba(200, 30, 30, 0.25), 0 0 0 1px rgba(255,80,80,0.2);
+      outline: none;
+    }
+
+    .version-card:hover::before,
+    .version-card:focus-visible::before {
+      opacity: 1;
+    }
+
+    .version-card:active { transform: translateY(-1px); }
+
+    .card-icon {
+      font-size: 2.8rem;
+      filter: drop-shadow(0 0 8px rgba(220,60,60,0.5));
+      line-height: 1;
+    }
+
+    .card-badge {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #ff3a3a;
+      background: rgba(255, 40, 40, 0.12);
+      border: 1px solid rgba(255, 40, 40, 0.3);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+
+    .card-badge.badge-2d {
+      color: #ffa040;
+      background: rgba(255, 140, 30, 0.12);
+      border-color: rgba(255, 140, 30, 0.3);
+    }
+
+    .card-title {
+      font-family: 'Creepster', cursive;
+      font-size: 1.7rem;
+      color: #f0e0d0;
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .card-desc {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      color: #7a6f60;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 0.25rem;
+    }
+
+    .tag {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.62rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 3px;
+      padding: 2px 6px;
+      color: #9a8f80;
+      letter-spacing: 0.05em;
+    }
+
+    .card-cta {
+      margin-top: auto;
+      padding-top: 0.75rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.78rem;
+      color: #ff3a3a;
+      letter-spacing: 0.1em;
+    }
+
+    .version-card:nth-child(2) .card-cta {
+      color: #ffa040;
+    }
+
+    /* ── Footer note ── */
+    .er-note {
+      margin-top: 2rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: #504840;
+      letter-spacing: 0.1em;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="er-header">
+    <span class="er-lock-icon">🔒</span>
+    <h1 class="er-title">Locked In</h1>
+    <p class="er-subtitle">Mzansi High Escape — Choose Your Experience</p>
+  </header>
+
+  <div class="version-grid">
+
+    <!-- 3D Version -->
+    <a class="version-card" id="btn-3d" href="index-3d.html">
+      <span class="card-icon">🌐</span>
+      <span class="card-badge">NEW</span>
+      <h2 class="card-title">3D Version</h2>
+      <p class="card-desc">Full three-dimensional classroom.<br>First-person exploration, free movement, and immersive puzzles.</p>
+      <div class="card-tags">
+        <span class="tag">First-Person</span>
+        <span class="tag">WebGL</span>
+        <span class="tag">Immersive</span>
+      </div>
+      <span class="card-cta">▶ Enter 3D →</span>
+    </a>
+
+    <!-- 2D Version -->
+    <a class="version-card" id="btn-2d" href="2d_escape_room/index.html">
+      <span class="card-icon">🗺️</span>
+      <span class="card-badge badge-2d">CLASSIC</span>
+      <h2 class="card-title">2D Version</h2>
+      <p class="card-desc">Point-and-click overhead view.<br>Lighter on hardware, faster to load. Same puzzles, different lens.</p>
+      <div class="card-tags">
+        <span class="tag">Point & Click</span>
+        <span class="tag">Lightweight</span>
+        <span class="tag">Classic</span>
+      </div>
+      <span class="card-cta">▶ Enter 2D →</span>
+    </a>
+
+  </div>
+
+  <p class="er-note">⏱ You have 10 minutes. Choose wisely.</p>
+
+  <script>
+    // Forward any existing URL query params (e.g. ?source=upload) to both links
+    (function () {
+      const search = window.location.search;
+      if (!search) return;
+      document.querySelectorAll('.version-card').forEach(function (card) {
+        const base = card.getAttribute('href');
+        card.setAttribute('href', base + search);
+      });
+    })();
+  </script>
+
+</body>
+</html>

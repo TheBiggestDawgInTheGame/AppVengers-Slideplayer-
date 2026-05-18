@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlidePlay | Upgrade Plan</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="payment.css" />
+</head>
+<body>
+  <div class="hud-grid"></div>
+
+  <!-- Side Nav -->
+  <aside class="side-nav">
+    <div class="brand-block">
+      <div class="reactor-core"><i class="fa-solid fa-atom"></i></div>
+      <div>
+        <h2>SlidePlay</h2>
+        <p>EDU DEFENSE GRID</p>
+      </div>
+    </div>
+    <nav class="nav-items">
+      <a href="../admin/Dashboard.html" class="nav-item"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
+      <a href="../admin/library.html" class="nav-item"><i class="fa-solid fa-book"></i><span>Library</span></a>
+      <a href="../admin/AnalyticsPage.html" class="nav-item"><i class="fa-solid fa-chart-line"></i><span>Analytics</span></a>
+      <a href="../admin/UploadPage.html" class="nav-item"><i class="fa-solid fa-cloud-arrow-up"></i><span>Upload</span></a>
+      <a href="../admin/AccessControl.html" class="nav-item"><i class="fa-solid fa-user-shield"></i><span>Access Grid</span></a>
+      <a href="payment.html" class="nav-item active"><i class="fa-solid fa-credit-card"></i><span>Billing</span></a>
+      <a href="../admin/settings.html" class="nav-item"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
+    </nav>
+  </aside>
+
+  <!-- Main Zone -->
+  <div class="main-zone">
+    <div class="top-bar">
+      <div class="page-id">
+        <span class="page-tag">SYSTEM › BILLING</span>
+        <h1 class="page-title">Upgrade Plan</h1>
+      </div>
+      <div class="top-controls">
+        <span class="checkout-mode-chip" id="pageModeChip" aria-live="polite"></span>
+        <span class="status-pill" id="currentPlanPill"><i class="fa-solid fa-circle-check"></i> <span id="activePlanLabel">Free Plan</span></span>
+        <a href="../admin/settings.html" class="icon-btn" title="Settings"><i class="fa-solid fa-gear"></i></a>
+      </div>
+    </div>
+
+    <!-- Billing Toggle -->
+    <div class="billing-toggle-wrap">
+      <span class="toggle-label">Monthly</span>
+      <label class="toggle-switch" aria-label="Billing period toggle">
+        <input type="checkbox" id="billingToggle" />
+        <span class="toggle-track"></span>
+      </label>
+      <span class="toggle-label">Yearly <span class="save-chip">Save 20%</span></span>
+    </div>
+
+    <!-- Plan Cards -->
+    <div class="plans-grid" id="plansGrid">
+
+      <div class="plan-card" data-plan="free" data-monthly="0" data-yearly="0">
+        <div class="plan-badge">Current</div>
+        <div class="plan-icon"><i class="fa-solid fa-seedling"></i></div>
+        <h2 class="plan-name">Free</h2>
+        <p class="plan-desc">Get started with core features, no credit card needed.</p>
+        <div class="plan-price">
+          <span class="price-amount" data-monthly="$0" data-yearly="$0">$0</span>
+          <span class="price-period">/mo</span>
+        </div>
+        <ul class="plan-features">
+          <li><i class="fa-solid fa-check"></i> Up to 2 classes</li>
+          <li><i class="fa-solid fa-check"></i> 10 activity uploads/month</li>
+          <li><i class="fa-solid fa-check"></i> Basic analytics</li>
+          <li class="locked"><i class="fa-solid fa-lock"></i> Advanced analytics</li>
+          <li class="locked"><i class="fa-solid fa-lock"></i> Unlimited uploads</li>
+          <li class="locked"><i class="fa-solid fa-lock"></i> Priority support</li>
+        </ul>
+        <button class="plan-btn current-btn" disabled>Current Plan</button>
+      </div>
+
+      <div class="plan-card featured" data-plan="pro" data-monthly="12" data-yearly="115">
+        <div class="plan-badge popular">Most Popular</div>
+        <div class="plan-icon"><i class="fa-solid fa-bolt"></i></div>
+        <h2 class="plan-name">Teacher Pro</h2>
+        <p class="plan-desc">Everything you need to run a powerful classroom operation.</p>
+        <div class="plan-price">
+          <span class="price-amount" data-monthly="$12" data-yearly="$115">$12</span>
+          <span class="price-period">/mo</span>
+        </div>
+        <ul class="plan-features">
+          <li><i class="fa-solid fa-check"></i> Unlimited classes</li>
+          <li><i class="fa-solid fa-check"></i> Unlimited activity uploads</li>
+          <li><i class="fa-solid fa-check"></i> Full analytics + risk alerts</li>
+          <li><i class="fa-solid fa-check"></i> Intervention plans</li>
+          <li><i class="fa-solid fa-check"></i> Parent/student messaging</li>
+          <li class="locked"><i class="fa-solid fa-lock"></i> School-wide reporting</li>
+        </ul>
+        <button class="plan-btn upgrade-btn" data-target="pro">Upgrade Now</button>
+      </div>
+
+      <div class="plan-card" data-plan="school" data-monthly="49" data-yearly="470">
+        <div class="plan-badge">Enterprise</div>
+        <div class="plan-icon"><i class="fa-solid fa-school"></i></div>
+        <h2 class="plan-name">School Premium</h2>
+        <p class="plan-desc">Full institutional access for entire schools and admin teams.</p>
+        <div class="plan-price">
+          <span class="price-amount" data-monthly="$49" data-yearly="$470">$49</span>
+          <span class="price-period">/mo</span>
+        </div>
+        <ul class="plan-features">
+          <li><i class="fa-solid fa-check"></i> Everything in Teacher Pro</li>
+          <li><i class="fa-solid fa-check"></i> School-wide reporting</li>
+          <li><i class="fa-solid fa-check"></i> Multi-teacher accounts</li>
+          <li><i class="fa-solid fa-check"></i> Admin dashboard</li>
+          <li><i class="fa-solid fa-check"></i> Custom branding</li>
+          <li><i class="fa-solid fa-check"></i> Dedicated support</li>
+        </ul>
+        <button class="plan-btn upgrade-btn" data-target="school">Upgrade Now</button>
+      </div>
+
+    </div>
+
+    <!-- Active Subscription Info -->
+    <div class="sub-info-panel sp-hidden" id="subInfoPanel">
+      <div class="sub-info-inner">
+        <div>
+          <h3 id="subPlanTitle">Teacher Pro — Active</h3>
+          <p id="subRenewalDate">Renews on —</p>
+        </div>
+        <div class="sub-actions">
+          <button class="cancel-sub-btn" id="cancelSubBtn"><i class="fa-solid fa-ban"></i> Cancel Subscription</button>
+          <a href="#" class="view-invoices-btn" id="viewInvoicesBtn"><i class="fa-solid fa-file-invoice"></i> View Invoices</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invoices Table -->
+    <div class="invoices-section sp-hidden" id="invoicesSection">
+      <h2 class="section-heading"><i class="fa-solid fa-file-invoice-dollar"></i> Billing History</h2>
+      <div class="invoice-table">
+        <div class="invoice-header">
+          <span>Receipt ID</span><span>Plan</span><span>Amount</span><span>Date</span><span>Status</span>
+        </div>
+        <div id="invoicesList"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Checkout Modal -->
+  <div class="modal-overlay" id="checkoutModal">
+    <div class="checkout-panel">
+      <button class="close-modal" id="closeCheckout" aria-label="Close checkout"><i class="fa-solid fa-xmark"></i></button>
+      <h2 class="checkout-title"><i class="fa-solid fa-lock"></i> Secure Checkout</h2>
+      <div class="checkout-summary" id="checkoutSummary"></div>
+      <div class="checkout-mode-badge sp-hidden" id="checkoutModeBadge" aria-live="polite"></div>
+
+      <!-- Payment Method Tabs -->
+      <div class="method-tabs">
+        <button class="method-tab active" data-method="card"><i class="fa-solid fa-credit-card"></i> Card</button>
+        <button class="method-tab" data-method="mobile"><i class="fa-solid fa-mobile-screen-button"></i> Mobile Money</button>
+        <button class="method-tab" data-method="bank"><i class="fa-solid fa-building-columns"></i> Bank Transfer</button>
+      </div>
+
+      <!-- Card Form -->
+      <form class="payment-form" id="paymentForm" novalidate>
+        <div class="pay-method-panel active" id="panel-card">
+          <div class="hosted-checkout-box">
+            <h3><i class="fa-solid fa-arrow-up-right-from-square"></i> Stripe Checkout</h3>
+            <p class="hosted-checkout-copy">We already have your account details. Payment details should only be entered once on Stripe's secure page.</p>
+            <div class="account-summary-grid">
+              <div class="account-summary-row">
+                <span>Account name</span>
+                <strong id="checkoutCustomerName">Signed in user</strong>
+              </div>
+              <div class="account-summary-row">
+                <span>Account email</span>
+                <strong id="checkoutCustomerEmail">account@slideplay.com</strong>
+              </div>
+            </div>
+          </div>
+          <p class="method-note hosted-checkout-note"><i class="fa-solid fa-shield-halved"></i> Continue to Stripe to enter card details once and complete payment securely.</p>
+        </div>
+
+        <!-- Mobile Money Form -->
+        <div class="pay-method-panel" id="panel-mobile">
+          <div class="form-group">
+            <label for="mobileNetwork">Network Provider</label>
+            <select id="mobileNetwork">
+              <option value="">Select network</option>
+              <option>MTN Mobile Money</option>
+              <option>Vodafone Cash</option>
+              <option>AirtelTigo Money</option>
+              <option>M-Pesa</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mobileNumber">Mobile Number</label>
+            <input type="tel" id="mobileNumber" placeholder="+1 234 567 8900" autocomplete="tel" required />
+          </div>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will receive a prompt on your phone to confirm the payment.</p>
+        </div>
+
+        <!-- Bank Transfer Form -->
+        <div class="pay-method-panel" id="panel-bank">
+          <div class="bank-details-box">
+            <h4><i class="fa-solid fa-building-columns"></i> Transfer to</h4>
+            <div class="bank-row"><span>Bank</span><strong>SlidePlay Finance Ltd.</strong></div>
+            <div class="bank-row"><span>Account No.</span><strong>0123456789</strong></div>
+            <div class="bank-row"><span>Routing / Sort</span><strong>021000021</strong></div>
+            <div class="bank-row"><span>Reference</span><strong id="bankRef">SP-000000</strong></div>
+          </div>
+          <div class="form-group">
+            <label for="transferProof">Upload Transfer Proof (optional)</label>
+            <input type="file" id="transferProof" accept="image/*,.pdf" />
+          </div>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> Activation within 1–2 business days after transfer confirmation.</p>
+        </div>
+
+        <!-- Coupon -->
+        <div class="coupon-row">
+          <input type="text" id="couponCode" placeholder="Coupon code" />
+          <button type="button" id="applyCoupon" class="coupon-btn">Apply</button>
+        </div>
+        <p class="coupon-msg" id="couponMsg"></p>
+
+        <!-- Totals -->
+        <div class="order-summary">
+          <div class="order-row"><span>Plan</span><span id="orderPlanName">—</span></div>
+          <div class="order-row"><span>Billing</span><span id="orderBilling">—</span></div>
+          <div class="order-row discount-row sp-hidden" id="discountRow"><span>Discount</span><span id="orderDiscount">—</span></div>
+          <div class="order-row total-row"><span>Total</span><span id="orderTotal">—</span></div>
+        </div>
+
+        <!-- Terms -->
+        <label class="terms-check">
+          <input type="checkbox" id="termsCheck" required />
+          <span>I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a></span>
+        </label>
+
+        <button type="submit" class="pay-btn" id="payBtn">
+          <span id="payBtnText"><i class="fa-solid fa-lock"></i> Pay Now</span>
+          <span id="payBtnLoading" class="sp-hidden"><i class="fa-solid fa-spinner fa-spin"></i> Processing…</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="success-panel">
+      <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
+      <h2>Payment Successful!</h2>
+      <p id="successPlanMsg">Your Teacher Pro plan is now active.</p>
+      <div class="receipt-box">
+        <span>Receipt ID</span>
+        <strong id="receiptId">SP-000000</strong>
+      </div>
+      <p class="success-sub">A confirmation has been stored in your billing history.</p>
+      <div class="success-actions">
+        <a href="../admin/Dashboard.html" class="pay-btn">Go to Dashboard</a>
+        <button class="view-invoices-btn" id="successViewInvoices">View Invoices</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="payment.js"></script>
+</body>
+</html>

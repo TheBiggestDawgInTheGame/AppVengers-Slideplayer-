@@ -1,0 +1,268 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    background: radial-gradient(circle at top, #1d2a4d 0%, #0b1020 55%, #060912 100%);
+    color: #f4f7ff;
+}
+
+.container {
+    width: min(92vw, 560px);
+    background: linear-gradient(160deg, rgba(16, 26, 53, 0.95), rgba(10, 16, 33, 0.96));
+    border: 1px solid rgba(94, 124, 255, 0.35);
+    border-radius: 16px;
+    box-shadow: 0 20px 55px rgba(2, 7, 16, 0.65);
+    padding: 18px;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.game-header h1 {
+    font-size: 28px;
+    color: #7fe4ff;
+}
+
+.stats {
+    display: flex;
+    gap: 10px;
+}
+
+.stat {
+    font-size: 14px;
+    padding: 8px 10px;
+    background: rgba(127, 228, 255, 0.12);
+    border: 1px solid rgba(127, 228, 255, 0.3);
+    border-radius: 8px;
+}
+
+.game-panel {
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+}
+
+#gameCanvas {
+    width: min(84vw, 420px);
+    height: min(84vw, 420px);
+    image-rendering: pixelated;
+    border: 2px solid rgba(115, 255, 150, 0.6);
+    border-radius: 8px;
+    background: #0d1325;
+}
+
+.status {
+    min-height: 24px;
+    text-align: center;
+    color: #a8badc;
+    font-weight: 600;
+}
+
+.study-card {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(127, 228, 255, 0.22);
+    background: rgba(127, 228, 255, 0.08);
+}
+
+.multiplayer-card {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(115, 255, 150, 0.25);
+    background: rgba(115, 255, 150, 0.08);
+}
+
+.multiplayer-form {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.mp-input {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(4, 14, 23, 0.65);
+    color: #e7edff;
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.mp-input::placeholder {
+    color: #98aacb;
+}
+
+.multiplayer-actions {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+}
+
+.multiplayer-players {
+    margin-top: 8px;
+    display: grid;
+    gap: 6px;
+}
+
+.player-chip {
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(7, 15, 27, 0.72);
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #e1ebff;
+}
+
+.study-label {
+    color: #7fe4ff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.study-prompt {
+    color: #e7edff;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.checkpoint {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 77, 121, 0.46);
+    background: rgba(44, 12, 26, 0.8);
+}
+
+.checkpoint.hidden {
+    display: none;
+}
+
+.checkpoint-label {
+    color: #ff94b3;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.checkpoint-question {
+    margin-top: 6px;
+    color: #ffe5ee;
+    font-size: 16px;
+    line-height: 1.45;
+}
+
+.checkpoint-options {
+    margin-top: 10px;
+    display: grid;
+    gap: 8px;
+}
+
+.checkpoint-option {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #f4f7ff;
+    padding: 10px 12px;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.checkpoint-option:hover {
+    border-color: rgba(115, 255, 150, 0.66);
+    background: rgba(115, 255, 150, 0.12);
+}
+
+.checkpoint-option.correct {
+    border-color: rgba(115, 255, 150, 0.72);
+    background: rgba(115, 255, 150, 0.2);
+}
+
+.checkpoint-option.wrong {
+    border-color: rgba(255, 100, 138, 0.75);
+    background: rgba(255, 77, 121, 0.2);
+}
+
+.checkpoint-option:disabled {
+    cursor: default;
+    opacity: 0.85;
+}
+
+.checkpoint-feedback {
+    min-height: 20px;
+    margin-top: 10px;
+    color: #ffdbe6;
+    font-size: 13px;
+}
+
+.controls {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.btn {
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4be879, #22b573);
+    color: #042512;
+}
+
+.btn-secondary {
+    background: rgba(127, 228, 255, 0.14);
+    color: #dff8ff;
+    border: 1px solid rgba(127, 228, 255, 0.35);
+}
+
+.hint {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #95a8cd;
+    font-size: 13px;
+}
+
+@media (max-width: 480px) {
+    .game-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .stats {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .multiplayer-form,
+    .multiplayer-actions {
+        grid-template-columns: 1fr;
+    }
+}

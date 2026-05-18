@@ -1,0 +1,2357 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🎯 Knowledge Quest 3D – Game Show</title>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Mammoth.js for DOCX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+    <style>
+      :root {
+        --bg: #0a0a14;
+        --gold: #d4a745;
+        --blue: #1a3a5c;
+        --correct: #2ecc71;
+        --incorrect: #e74c3c;
+        --panel-bg: rgba(10, 10, 30, 0.92);
+        --text: #f0e6d3;
+        --glow: #4a90d9;
+        --controls-bottom: 16px;
+        --controls-height: 188px;
+        --controls-gap: 16px;
+        --play-area-width: min(860px, calc(100vw - 500px));
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        background:
+          radial-gradient(circle at 15% 20%, rgba(68, 98, 170, 0.35), transparent 38%),
+          radial-gradient(circle at 82% 18%, rgba(212, 167, 69, 0.24), transparent 36%),
+          radial-gradient(circle at 50% 100%, rgba(30, 44, 96, 0.45), transparent 55%),
+          #050814;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background-image:
+          radial-gradient(2px 2px at 12% 24%, rgba(255, 255, 255, 0.45), transparent),
+          radial-gradient(1.5px 1.5px at 68% 36%, rgba(255, 255, 255, 0.38), transparent),
+          radial-gradient(2px 2px at 82% 72%, rgba(255, 255, 255, 0.4), transparent),
+          radial-gradient(1.5px 1.5px at 36% 80%, rgba(255, 255, 255, 0.32), transparent);
+      }
+      #three-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+      #ui-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        pointer-events: none;
+      }
+      #ui-overlay > * {
+        pointer-events: auto;
+      }
+
+      /* Upload Panel */
+      #upload-panel {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--panel-bg);
+        border: 2px solid var(--gold);
+        border-radius: 20px;
+        padding: 40px 30px;
+        text-align: center;
+        color: var(--text);
+        box-shadow:
+          0 0 60px rgba(212, 167, 69, 0.4),
+          0 0 120px rgba(74, 144, 217, 0.3);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        max-width: 550px;
+        width: 90%;
+        z-index: 20;
+        transition: all 0.5s ease;
+      }
+      #upload-panel.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, -50%) scale(0.9);
+      }
+      #upload-panel h1 {
+        font-size: 2.2em;
+        margin-bottom: 8px;
+        background: linear-gradient(
+          180deg,
+          #f7d774 0%,
+          #d4a745 50%,
+          #b8860b 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 900;
+        letter-spacing: 2px;
+      }
+      #upload-panel .subtitle {
+        font-size: 0.95em;
+        color: #aac4e0;
+        margin-bottom: 25px;
+        letter-spacing: 1px;
+      }
+      #file-drop-zone {
+        border: 3px dashed var(--gold);
+        border-radius: 16px;
+        padding: 40px 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: rgba(26, 58, 92, 0.3);
+        margin-bottom: 15px;
+      }
+      #file-drop-zone:hover,
+      #file-drop-zone.drag-over {
+        border-color: #f7d774;
+        background: rgba(74, 144, 217, 0.25);
+        box-shadow: 0 0 40px rgba(212, 167, 69, 0.5);
+      }
+      #file-drop-zone .icon {
+        font-size: 3em;
+        margin-bottom: 10px;
+      }
+      #file-drop-zone p {
+        color: #c0d0e0;
+        font-size: 0.9em;
+      }
+      #file-drop-zone .drop-browse {
+        font-size: 0.8em;
+        color: #8899aa;
+      }
+      #file-drop-zone .drop-support {
+        font-size: 0.7em;
+        color: #667788;
+      }
+      #file-input {
+        display: none;
+      }
+      #api-key-section {
+        margin-top: 15px;
+        color: #aac4e0;
+        font-size: 0.85em;
+      }
+      #api-key-input {
+        width: 80%;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--gold);
+        background: rgba(0, 0, 0, 0.4);
+        color: var(--text);
+        font-size: 0.9em;
+      }
+      #upload-status {
+        margin-top: 10px;
+        font-size: 0.85em;
+        color: #8ab4d8;
+        min-height: 20px;
+      }
+      #upload-panel .proceed-btn {
+        margin-top: 20px;
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #f7d774 0%, #d4a745 100%);
+        color: #0a0a14;
+        border: none;
+        border-radius: 25px;
+        font-weight: 700;
+        font-size: 1em;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        letter-spacing: 1px;
+      }
+      #upload-panel .proceed-btn:hover {
+        box-shadow: 0 0 30px rgba(212, 167, 69, 0.6);
+        transform: translateY(-2px);
+      }
+      #upload-panel .proceed-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* Mode Chooser Screen */
+      #mode-chooser-screen {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--panel-bg);
+        border: 2px solid var(--gold);
+        border-radius: 20px;
+        padding: 40px 30px;
+        text-align: center;
+        color: var(--text);
+        box-shadow: 0 0 60px rgba(212, 167, 69, 0.4);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        max-width: 700px;
+        width: 90%;
+        z-index: 20;
+        transition: all 0.5s ease;
+      }
+      #mode-chooser-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, -50%) scale(0.9);
+      }
+      #mode-chooser-screen h1 {
+        font-size: 2.5em;
+        margin-bottom: 15px;
+        background: linear-gradient(180deg, #f7d774 0%, #d4a745 50%, #b8860b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 900;
+        letter-spacing: 2px;
+      }
+      #mode-chooser-screen .subtitle {
+        font-size: 1em;
+        color: #aac4e0;
+        margin-bottom: 35px;
+        letter-spacing: 1px;
+      }
+      .mode-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 10px;
+      }
+      .mode-option {
+        background: rgba(26, 58, 92, 0.4);
+        border: 2px solid rgba(212, 167, 69, 0.5);
+        border-radius: 14px;
+        padding: 20px 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+      }
+      .mode-option:hover {
+        border-color: #f7d774;
+        background: rgba(74, 144, 217, 0.3);
+        box-shadow: 0 0 30px rgba(212, 167, 69, 0.4);
+        transform: translateY(-3px);
+      }
+      .mode-option-title {
+        font-size: 1.3em;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #f7d774;
+      }
+      .mode-option-desc {
+        font-size: 0.8em;
+        color: #9fb6cd;
+      }
+
+      /* Game Selector Screen */
+      #game-selector-screen {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--panel-bg);
+        border: 2px solid var(--gold);
+        border-radius: 20px;
+        padding: 40px 30px;
+        text-align: center;
+        color: var(--text);
+        box-shadow: 0 0 60px rgba(212, 167, 69, 0.4);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        max-width: 700px;
+        width: 90%;
+        z-index: 20;
+        transition: all 0.5s ease;
+      }
+      #game-selector-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, -50%) scale(0.9);
+      }
+      #game-selector-screen h1 {
+        font-size: 2.2em;
+        margin-bottom: 10px;
+        background: linear-gradient(180deg, #f7d774 0%, #d4a745 50%, #b8860b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 900;
+        letter-spacing: 2px;
+      }
+      #game-selector-screen .subtitle {
+        font-size: 0.95em;
+        color: #aac4e0;
+        margin-bottom: 25px;
+      }
+      .game-options {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        text-align: left;
+      }
+      .game-option {
+        background: rgba(26, 58, 92, 0.4);
+        border: 2px solid rgba(212, 167, 69, 0.5);
+        border-radius: 14px;
+        padding: 18px 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .game-option:hover {
+        border-color: #f7d774;
+        background: rgba(74, 144, 217, 0.3);
+        box-shadow: 0 0 30px rgba(212, 167, 69, 0.4);
+        transform: translateX(8px);
+      }
+      .game-option-title {
+        font-size: 1.15em;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #f7d774;
+      }
+      .game-option-desc {
+        font-size: 0.85em;
+        color: #9fb6cd;
+      }
+
+      /* Play Style Screen */
+      #play-style-screen {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--panel-bg);
+        border: 2px solid var(--gold);
+        border-radius: 20px;
+        padding: 40px 30px;
+        text-align: center;
+        color: var(--text);
+        box-shadow: 0 0 60px rgba(212, 167, 69, 0.4);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        max-width: 700px;
+        width: 90%;
+        z-index: 20;
+        transition: all 0.5s ease;
+      }
+      #play-style-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, -50%) scale(0.9);
+      }
+      #play-style-screen h1 {
+        font-size: 2.2em;
+        margin-bottom: 10px;
+        background: linear-gradient(180deg, #f7d774 0%, #d4a745 50%, #b8860b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 900;
+        letter-spacing: 2px;
+      }
+      #play-style-screen .subtitle {
+        font-size: 0.95em;
+        color: #aac4e0;
+        margin-bottom: 30px;
+      }
+      .play-style-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 15px;
+      }
+      .play-style-option {
+        background: rgba(26, 58, 92, 0.4);
+        border: 2px solid rgba(212, 167, 69, 0.5);
+        border-radius: 14px;
+        padding: 25px 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+      }
+      .play-style-option:hover {
+        border-color: #f7d774;
+        background: rgba(74, 144, 217, 0.3);
+        box-shadow: 0 0 30px rgba(212, 167, 69, 0.4);
+        transform: scale(1.08);
+      }
+      .play-style-icon {
+        font-size: 3em;
+        margin-bottom: 10px;
+      }
+      .play-style-title {
+        font-size: 1.1em;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #f7d774;
+      }
+      .play-style-desc {
+        font-size: 0.8em;
+        color: #9fb6cd;
+      }
+
+      /* Game Engine Screen */
+      #game-engine-screen {
+        display: contents;
+      }
+      #game-engine-screen.hidden {
+        display: none !important;
+      }
+
+      /* Lobby Screen (injected by flow manager) */
+      #lobby-screen {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--panel-bg);
+        border: 2px solid var(--gold);
+        border-radius: 20px;
+        padding: 40px 30px;
+        text-align: center;
+        color: var(--text);
+        box-shadow: 0 0 60px rgba(212, 167, 69, 0.4);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        max-width: 700px;
+        width: 90%;
+        z-index: 20;
+        transition: all 0.5s ease;
+      }
+      #lobby-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, -50%) scale(0.9);
+      }
+      #lobby-screen h1 {
+        font-size: 2.2em;
+        margin-bottom: 10px;
+        background: linear-gradient(180deg, #f7d774 0%, #d4a745 50%, #b8860b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 900;
+        letter-spacing: 2px;
+      }
+      #lobby-screen .subtitle {
+        font-size: 0.95em;
+        color: #aac4e0;
+        margin-bottom: 25px;
+      }
+      .player-name-input::placeholder {
+        color: rgba(170, 196, 224, 0.5);
+      }
+      .player-name-input:focus {
+        outline: none;
+        border-color: var(--gold) !important;
+        box-shadow: 0 0 20px rgba(212, 167, 69, 0.3);
+      }
+
+      /* Common hidden class */
+      .hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: scale(0.9);
+      }
+
+      /* HUD */
+      #game-hud {
+        position: absolute;
+        top: 15px;
+        left: 0;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 25px;
+        z-index: 15;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+      }
+      #game-hud.visible {
+        opacity: 1;
+      }
+      #question-panel {
+        position: absolute;
+        top: 88px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(940px, calc(100vw - 340px));
+        padding: 14px 18px;
+        border-radius: 14px;
+        border: 1px solid rgba(212, 167, 69, 0.6);
+        background: rgba(8, 14, 44, 0.78);
+        box-shadow: 0 0 32px rgba(0, 0, 0, 0.45);
+        color: #f4ecd9;
+        font-size: 1.05em;
+        letter-spacing: 0.2px;
+        text-align: center;
+        z-index: 16;
+        opacity: 0;
+        transition: opacity 0.35s ease;
+      }
+      #question-panel.visible {
+        opacity: 1;
+      }
+      #question-text {
+        margin: 0;
+        line-height: 1.35;
+      }
+      #controls-panel {
+        position: absolute;
+        left: 50%;
+        bottom: var(--controls-bottom);
+        transform: translateX(-50%);
+        z-index: 16;
+        width: var(--play-area-width);
+        background: rgba(8, 10, 32, 0.86);
+        border: 1px solid rgba(212, 167, 69, 0.55);
+        border-radius: 14px;
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+        min-height: var(--controls-height);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+      #controls-panel.visible {
+        opacity: 1;
+      }
+      #lifelines-row,
+      #actions-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+      }
+      .control-subrow {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .action-btn,
+      .lifeline-btn {
+        border: 1px solid rgba(212, 167, 69, 0.75);
+        background: rgba(22, 32, 72, 0.75);
+        color: var(--text);
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-size: 0.9em;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      }
+      .secondary-btn {
+        padding: 8px 12px;
+        font-size: 0.8em;
+        background: rgba(14, 22, 54, 0.8);
+      }
+      .secondary-btn.inactive {
+        border-color: rgba(132, 154, 188, 0.55);
+        color: #9fb6cd;
+      }
+      .action-btn:hover,
+      .lifeline-btn:hover {
+        transform: translateY(-2px);
+      }
+      .action-btn:disabled,
+      .lifeline-btn:disabled,
+      .lifeline-btn.used {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+      }
+      #hint-line {
+        min-height: 20px;
+        text-align: center;
+        font-size: 0.85em;
+        color: #9cc4e7;
+      }
+      #ladder-panel {
+        position: absolute;
+        right: 16px;
+        top: 82px;
+        width: 210px;
+        max-height: calc(100vh - 118px);
+        overflow: auto;
+        z-index: 16;
+        background: rgba(8, 10, 32, 0.86);
+        border: 1px solid rgba(212, 167, 69, 0.55);
+        border-radius: 14px;
+        padding: 12px;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+      #ladder-panel.visible {
+        opacity: 1;
+      }
+      #ladder-panel h3 {
+        margin: 0 0 8px;
+        color: #f7d774;
+        text-align: center;
+        font-size: 0.95em;
+        letter-spacing: 0.8px;
+      }
+      #prize-ladder {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .prize-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 8px;
+        border-radius: 8px;
+        background: rgba(26, 32, 60, 0.6);
+        border: 1px solid rgba(132, 154, 188, 0.15);
+        font-size: 0.84em;
+      }
+      .prize-row.active {
+        border-color: rgba(212, 167, 69, 0.95);
+        box-shadow: 0 0 18px rgba(212, 167, 69, 0.35);
+      }
+      .prize-row.won {
+        background: rgba(46, 204, 113, 0.2);
+        border-color: rgba(46, 204, 113, 0.6);
+      }
+      .hud-item {
+        background: var(--panel-bg);
+        border: 1px solid var(--gold);
+        border-radius: 12px;
+        padding: 12px 20px;
+        color: var(--text);
+        font-weight: 700;
+        font-size: 0.95em;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        letter-spacing: 1px;
+      }
+      .hud-score {
+        color: #f7d774;
+        font-size: 1.3em;
+      }
+
+      /* Answer buttons */
+      #answers-container {
+        position: absolute;
+        bottom: calc(var(--controls-bottom) + var(--controls-height) + var(--controls-gap));
+        left: 50%;
+        transform: translateX(-50%);
+        display: grid;
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+        gap: 12px;
+        width: var(--play-area-width);
+        z-index: 17;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+      }
+      #answers-container.visible {
+        opacity: 1;
+      }
+      .answer-btn {
+        background: var(--panel-bg);
+        border: 2px solid var(--blue);
+        border-radius: 14px;
+        padding: 16px 28px;
+        color: var(--text);
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        letter-spacing: 0.5px;
+        min-width: 130px;
+        min-height: 62px;
+        text-align: center;
+        line-height: 1.25;
+        white-space: normal;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        width: 100%;
+      }
+      .answer-btn:hover {
+        border-color: var(--gold);
+        box-shadow: 0 0 35px rgba(212, 167, 69, 0.6);
+        transform: translateY(-3px);
+      }
+      .answer-btn:active {
+        transform: scale(0.95);
+      }
+      .answer-btn.correct-flash {
+        border-color: var(--correct) !important;
+        box-shadow: 0 0 50px rgba(46, 204, 113, 0.8) !important;
+        background: rgba(46, 204, 113, 0.3) !important;
+        animation: pulse-green 0.5s ease-out;
+      }
+      .answer-btn.incorrect-flash {
+        border-color: var(--incorrect) !important;
+        box-shadow: 0 0 50px rgba(231, 76, 60, 0.8) !important;
+        background: rgba(231, 76, 60, 0.3) !important;
+        animation: shake 0.5s ease-out;
+      }
+      .answer-btn:disabled {
+        pointer-events: none;
+        opacity: 0.6;
+      }
+      .answer-btn.selected {
+        border-color: #f7d774;
+        box-shadow: 0 0 30px rgba(212, 167, 69, 0.55);
+      }
+      .answer-btn.eliminated {
+        opacity: 0.24;
+        text-decoration: line-through;
+      }
+
+      @keyframes pulse-green {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.06);
+        }
+      }
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        20% {
+          transform: translateX(-8px);
+        }
+        40% {
+          transform: translateX(8px);
+        }
+        60% {
+          transform: translateX(-5px);
+        }
+        80% {
+          transform: translateX(5px);
+        }
+      }
+
+      /* Feedback toast */
+      #feedback-toast {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        font-size: 3em;
+        font-weight: 900;
+        letter-spacing: 3px;
+        z-index: 25;
+        pointer-events: none;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        text-shadow: 0 0 40px currentColor;
+      }
+      #feedback-toast.show-correct {
+        transform: translate(-50%, -50%) scale(1);
+        color: #2ecc71;
+      }
+      #feedback-toast.show-incorrect {
+        transform: translate(-50%, -50%) scale(1);
+        color: #e74c3c;
+      }
+
+      /* Results */
+      #results-panel {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        background: var(--panel-bg);
+        border: 2px solid var(--gold);
+        border-radius: 20px;
+        padding: 35px 30px;
+        text-align: center;
+        color: var(--text);
+        box-shadow: 0 0 80px rgba(212, 167, 69, 0.5);
+        z-index: 20;
+        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        max-width: 500px;
+        width: 90%;
+      }
+      #results-panel.show {
+        transform: translate(-50%, -50%) scale(1);
+      }
+      #results-panel h2 {
+        font-size: 2em;
+        color: #f7d774;
+        margin-bottom: 10px;
+      }
+      #results-panel .final-score {
+        font-size: 3em;
+        font-weight: 900;
+        color: #f7d774;
+      }
+      #results-detail {
+        white-space: pre-line;
+        text-align: left;
+        margin-top: 8px;
+      }
+      #results-insights {
+        margin-top: 10px;
+        text-align: left;
+        font-size: 0.9em;
+        line-height: 1.35;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 154, 188, 0.35);
+        background: rgba(12, 20, 52, 0.55);
+        color: #c8d9eb;
+        min-height: 64px;
+        white-space: pre-line;
+      }
+      #results-panel button {
+        margin-top: 20px;
+        padding: 14px 35px;
+        border-radius: 25px;
+        border: 2px solid var(--gold);
+        background: rgba(212, 167, 69, 0.2);
+        color: var(--text);
+        font-size: 1.1em;
+        cursor: pointer;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+      }
+      #results-panel button:hover {
+        background: rgba(212, 167, 69, 0.4);
+        box-shadow: 0 0 30px rgba(212, 167, 69, 0.5);
+      }
+
+      @media (max-width: 768px) {
+        :root {
+          --controls-bottom: 14px;
+          --controls-height: 206px;
+          --controls-gap: 14px;
+          --play-area-width: 94vw;
+        }
+        #upload-panel h1 {
+          font-size: 1.5em;
+        }
+        #ladder-panel {
+          display: none;
+        }
+        #controls-panel {
+          width: var(--play-area-width);
+          padding: 10px 8px;
+          gap: 8px;
+        }
+        #answers-container {
+          width: var(--play-area-width);
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        .answer-btn {
+          padding: 12px 18px;
+          font-size: 0.85em;
+          min-width: 0;
+          min-height: 52px;
+        }
+        .hud-item {
+          padding: 8px 14px;
+          font-size: 0.8em;
+        }
+        #feedback-toast {
+          font-size: 2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <style>
+      #paid-overlay {
+        position: fixed; inset: 0; z-index: 9999;
+        background: radial-gradient(ellipse at center, rgba(35,36,58,0.78) 60%, rgba(16,16,26,0.68) 100%);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-family: 'Space Grotesk', 'Share Tech Mono', monospace, sans-serif;
+        color: #fff; animation: fadeInScale 0.7s cubic-bezier(.23,1.12,.32,1) 1;
+        overflow: hidden;
+        backdrop-filter: blur(2.5px);
+      }
+      @keyframes fadeInScale {
+        0% { opacity: 0; transform: scale(0.92); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+      #paid-objects {
+        position: absolute; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1;
+      }
+      .edu-obj {
+        position: absolute; opacity: 0.7; filter: drop-shadow(0 2px 8px #0006);
+        will-change: transform;
+        transition: opacity 0.3s;
+      }
+      .book { font-size: 2.2rem; color: #ffd86b; }
+      .cube { font-size: 2.1rem; color: #6be0ff; }
+      .atom { font-size: 2.3rem; color: #ff6bcb; }
+      .math { font-size: 2.1rem; color: #baff6b; }
+      .pencil { font-size: 2.1rem; color: #ffb36b; }
+      #paid-modal {
+        background: linear-gradient(135deg, #23243a 92%, #2e2e4d 100%);
+        border-radius: 22px; padding: 48px 38px 36px;
+        box-shadow: 0 10px 48px #000b, 0 0 0 2px #ffd86b44;
+        text-align: center; max-width: 92vw; border: 1.5px solid #ffd86b33;
+        position: relative; z-index: 2;
+        opacity: 0.98;
+      }
+      #paid-modal .lock {
+        font-size: 3.2rem; margin-bottom: 10px; display: block;
+        color: #ffd86b; text-shadow: 0 2px 8px #0006;
+      }
+      #paid-modal .title {
+        font-size: 2.3rem; font-weight: 700; letter-spacing: 1.5px; margin-bottom: 8px;
+        color: #ffd86b; text-shadow: 0 2px 8px #0006;
+      }
+      #paid-modal .desc {
+        font-size: 1.13rem; margin-bottom: 22px; max-width: 370px; color: #eaeaea;
+      }
+      #paid-modal .highlight {
+        color: #ffd86b; font-weight: 600; letter-spacing: 0.5px;
+      }
+      #paid-modal button {
+        margin-top: 10px; padding: 12px 38px; font-size: 1.13rem;
+        background: linear-gradient(90deg, #ffd86b 60%, #ffe9a7 100%);
+        color: #23243a; border: none; border-radius: 9px; opacity: 0.85;
+        font-weight: 700; box-shadow: 0 2px 12px #0003;
+        cursor: not-allowed; transition: opacity 0.2s;
+      }
+      #paid-modal button:active { opacity: 0.7; }
+    </style>
+    <div id="paid-overlay">
+      <audio id="paid-bgm" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b8b6b7.mp3" loop autoplay></audio>
+      <audio id="paid-sfx" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b7b7b.mp3"></audio>
+      <button id="paid-mute" style="position:absolute;top:18px;right:22px;z-index:10;background:rgba(30,30,60,0.7);color:#ffd86b;border:none;border-radius:50%;width:38px;height:38px;font-size:1.3rem;cursor:pointer;box-shadow:0 2px 8px #0004;">🔈</button>
+      <div id="paid-objects"></div>
+      <div id="paid-modal">
+        <span class="lock">🔒</span>
+        <div class="title">Paid Feature</div>
+        <div class="desc">The 3D Quiz Game Show is a premium experience.<br><br><span class="highlight">Upgrade to unlock full access.</span></div>
+        <button disabled>Upgrade Required</button>
+        <div id="slide-quiz-wrap" style="margin-top:18px;display:none;">
+          <div style="font-size:1.05rem;color:#6be0ff;font-weight:600;margin-bottom:6px;">Prof Byte's Slide Challenge</div>
+          <div id="slide-quiz-q" style="color:#fff;font-size:1.01rem;margin-bottom:8px;"></div>
+          <input id="slide-quiz-a" type="text" placeholder="Your answer..." style="padding:6px 12px;border-radius:6px;border:none;width:70%;max-width:220px;font-size:1rem;" />
+          <button id="slide-quiz-btn" style="margin-left:8px;padding:6px 18px;font-size:1rem;background:#ffd86b;color:#23243a;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Check</button>
+          <div id="slide-quiz-feedback" style="margin-top:6px;font-size:0.98rem;"></div>
+        </div>
+          <script>
+          // ...existing code...
+          // Slide-related mini-quiz logic (only if slide context exists)
+          function hasSlideContext() {
+            // Example: check for a global or a DOM element that signals slide study mode
+            return window.SLIDE_STUDY_FEED || document.querySelector('.slide-study-feed') || false;
+          }
+          if (hasSlideContext()) {
+            const quizWrap = document.getElementById('slide-quiz-wrap');
+            quizWrap.style.display = 'block';
+            // Example slide-related question (replace with dynamic if available)
+            const question = "What is the main topic of the current slide?";
+            const answer = "Sport Finance";
+            document.getElementById('slide-quiz-q').textContent = question;
+            document.getElementById('slide-quiz-btn').onclick = function() {
+              const userA = document.getElementById('slide-quiz-a').value.trim().toLowerCase();
+              const feedback = document.getElementById('slide-quiz-feedback');
+              if (!userA) { feedback.textContent = "Type your answer above."; feedback.style.color = '#ffd86b'; return; }
+              if (userA.includes(answer.toLowerCase())) {
+                feedback.textContent = "Correct! Well done.";
+                feedback.style.color = '#baff6b';
+              } else {
+                feedback.textContent = "Not quite. Try again or check your slide.";
+                feedback.style.color = '#ff6b6b';
+              }
+            };
+          }
+          </script>
+      </div>
+    </div>
+    <script>
+    // Animated, gamified, educational objects
+    const icons = [
+      { html: '📚', class: 'book' },
+      { html: '🧊', class: 'cube' },
+      { html: '⚛️', class: 'atom' },
+      { html: '➗', class: 'math' },
+      { html: '✏️', class: 'pencil' }
+    ];
+    const objCount = 7;
+    const paidObjects = document.getElementById('paid-objects');
+    function random(min, max) { return Math.random() * (max - min) + min; }
+    for (let i = 0; i < objCount; i++) {
+      const icon = icons[i % icons.length];
+      const el = document.createElement('span');
+      el.className = `edu-obj ${icon.class}`;
+      el.innerHTML = icon.html;
+      el.style.left = random(5, 85) + 'vw';
+      el.style.top = random(5, 80) + 'vh';
+      el.style.fontSize = random(2, 3.2) + 'rem';
+      paidObjects.appendChild(el);
+      animateObj(el, i);
+    }
+    function animateObj(el, idx) {
+      let t = random(0, 1000);
+      function frame() {
+        t += 0.016 + idx * 0.001;
+        const x = parseFloat(el.style.left);
+        const y = parseFloat(el.style.top);
+        el.style.transform = `translateY(${Math.sin(t + idx) * 18}px) scale(${1 + 0.08 * Math.sin(t + idx * 2)})`;
+        requestAnimationFrame(frame);
+      }
+      frame();
+    }
+    // Play overlay SFX on show
+    setTimeout(()=>{
+      try{document.getElementById('paid-sfx').play();}catch(e){}
+    }, 350);
+    // Mute/unmute music
+    const bgm = document.getElementById('paid-bgm');
+    const muteBtn = document.getElementById('paid-mute');
+    let muted = false;
+    muteBtn.onclick = function() {
+      muted = !muted;
+      bgm.muted = muted;
+      muteBtn.textContent = muted ? '🔇' : '🔈';
+    };
+    </script>
+    <canvas id="three-canvas"></canvas>
+
+    <div id="ui-overlay">
+      <!-- Mode Chooser Screen -->
+      <div id="mode-chooser-screen">
+        <h1>🎮 Choose Your Game</h1>
+        <p class="subtitle">Select a game mode to get started</p>
+        <div class="mode-options"></div>
+      </div>
+
+      <!-- Upload Panel -->
+      <div id="upload-panel" class="hidden">
+        <h1>🎯 Knowledge Quest</h1>
+        <p class="subtitle">Upload your learning material</p>
+        <div id="file-drop-zone">
+          <div class="icon">📁</div>
+          <p><strong>Drop your learning material here</strong></p>
+          <p class="drop-browse">or click to browse</p>
+          <p class="drop-support">
+            Supports: .txt, .pdf, .docx
+          </p>
+        </div>
+        <input
+          type="file"
+          id="file-input"
+          accept=".txt,.pdf,.docx,.md,.csv,.json"
+        />
+        <div id="api-key-section">
+          <label>🔑 Optional: Gemini API key for AI questions</label><br />
+          <input
+            type="text"
+            id="api-key-input"
+            placeholder="Paste your free key here"
+          />
+        </div>
+        <div id="upload-status"></div>
+        <button id="btn-upload-proceed" class="proceed-btn" disabled>Proceed to Game Selection ➡️</button>
+      </div>
+
+      <!-- Game Selector Screen -->
+      <div id="game-selector-screen" class="hidden">
+        <h1>🎮 Select Your Game</h1>
+        <p class="subtitle">Choose which game to play with your content</p>
+        <div class="game-options"></div>
+      </div>
+
+      <!-- Play Style Screen -->
+      <div id="play-style-screen" class="hidden">
+        <h1>⚙️ Game Mode</h1>
+        <p class="subtitle">Choose how you want to play</p>
+        <div class="play-style-options"></div>
+      </div>
+
+      <!-- Game Engine Screen (wraps all game UI) -->
+      <div id="game-engine-screen" class="hidden">
+        <!-- Game HUD -->
+        <div id="game-hud">
+          <div class="hud-item">
+            📋 Q <span id="hud-qnum">1</span>/<span id="hud-qtotal">10</span>
+          </div>
+          <div class="hud-item">⏱️ <span id="hud-timer">30</span>s</div>
+          <div class="hud-item">
+            💰 $<span class="hud-score" id="hud-winnings">0</span>
+          </div>
+        </div>
+
+      <div id="question-panel">
+        <p id="question-text"></p>
+      </div>
+
+      <div id="ladder-panel">
+        <h3>PRIZE LADDER</h3>
+        <ol id="prize-ladder"></ol>
+      </div>
+
+      <!-- Answer Buttons -->
+      <div id="answers-container">
+        <button class="answer-btn" data-index="0">A</button>
+        <button class="answer-btn" data-index="1">B</button>
+        <button class="answer-btn" data-index="2">C</button>
+        <button class="answer-btn" data-index="3">D</button>
+      </div>
+
+      <div id="controls-panel">
+        <div id="lifelines-row">
+          <button id="lifeline-5050" class="lifeline-btn">50:50</button>
+          <button id="lifeline-call" class="lifeline-btn">Call Friend</button>
+          <button id="lifeline-audience" class="lifeline-btn">
+            Ask Audience
+          </button>
+        </div>
+        <div id="actions-row">
+          <button id="btn-lock" class="action-btn" disabled>
+            🔒 Lock Answer
+          </button>
+          <button id="btn-next" class="action-btn" disabled>
+            ➡️ Next Question
+          </button>
+        </div>
+        <div id="adaptive-row" class="control-subrow">
+          <button id="btn-adaptive-toggle" class="action-btn secondary-btn">
+            Adaptive: ON
+          </button>
+          <button id="btn-adaptive-reset" class="action-btn secondary-btn">
+            Reset AI Memory
+          </button>
+        </div>
+        <div id="hint-line"></div>
+      </div>
+
+      <!-- Feedback Toast -->
+      <div id="feedback-toast"></div>
+
+      <!-- Results Panel -->
+      <div id="results-panel">
+        <h2>🏆 Complete!</h2>
+        <div class="final-score" id="final-score">0</div>
+        <p id="results-detail"></p>
+        <div id="results-insights">AI insights will appear here after the round.</div>
+        <button id="btn-restart">🔄 Play Again</button>
+      </div>
+      </div>
+      <!-- End Game Engine Screen -->
+    </div>
+
+    <script src="flow-manager.js"></script>
+    <script>
+      /* ========== 3D SCENE ENGINE (unchanged but kept for reference) ========== */
+      const GameScene = (function () {
+        let scene, camera, renderer, canvas;
+        let stageGroup, audienceGroup, lightingGroup;
+        let questionScreenMesh,
+          answerScreenMeshes = [];
+        let hostGroup,
+          contestantGroups = [];
+        let spotlights = [];
+        let particlesSystem;
+        let animationObjects = [];
+        let clock;
+        let questionCanvas, questionCtx;
+        let answerCanvases = [],
+          answerCtxs = [];
+        const QUESTION_SCREEN_W = 1024,
+          QUESTION_SCREEN_H = 300;
+        const ANSWER_SCREEN_W = 400,
+          ANSWER_SCREEN_H = 180;
+
+        function init() {
+          canvas = document.getElementById("three-canvas");
+          clock = new THREE.Clock();
+          renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: true,
+            alpha: true,
+          });
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          renderer.shadowMap.enabled = true;
+          renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+          renderer.toneMapping = THREE.ACESFilmicToneMapping;
+          renderer.toneMappingExposure = 1.2;
+          scene = new THREE.Scene();
+          scene.fog = new THREE.FogExp2(0x0a0a20, 0.00015);
+          scene.background = new THREE.Color(0x080818);
+          camera = new THREE.PerspectiveCamera(
+            55,
+            window.innerWidth / window.innerHeight,
+            0.5,
+            60,
+          );
+          camera.position.set(0, 5, 14);
+          camera.lookAt(0, 0, -3);
+          buildStage();
+          buildBackdrop();
+          buildScreens();
+          buildLighting();
+          buildHost();
+          buildContestants();
+          buildAudience();
+          buildParticles();
+          buildFloorReflection();
+          animate();
+          window.addEventListener("resize", onResize);
+          return { scene, camera, renderer };
+        }
+
+        function buildStage() {
+          stageGroup = new THREE.Group();
+          scene.add(stageGroup);
+          const stageGeo = new THREE.BoxGeometry(14, 0.4, 8);
+          const stageMat = new THREE.MeshStandardMaterial({
+            color: 0x1a1a3a,
+            roughness: 0.25,
+            metalness: 0.6,
+          });
+          const stage = new THREE.Mesh(stageGeo, stageMat);
+          stage.position.y = -0.2;
+          stage.receiveShadow = true;
+          stage.castShadow = true;
+          stageGroup.add(stage);
+          const trimGeo = new THREE.BoxGeometry(14.2, 0.08, 8.2);
+          const trimMat = new THREE.MeshStandardMaterial({
+            color: 0xd4a745,
+            roughness: 0.3,
+            metalness: 0.8,
+            emissive: 0x332200,
+            emissiveIntensity: 0.5,
+          });
+          const trim = new THREE.Mesh(trimGeo, trimMat);
+          trim.position.y = 0.05;
+          stageGroup.add(trim);
+          for (let i = -6; i <= 6; i += 1.2) {
+            const lineGeo = new THREE.BoxGeometry(0.03, 0.01, 7.5);
+            const line = new THREE.Mesh(
+              lineGeo,
+              new THREE.MeshStandardMaterial({
+                color: 0x334466,
+                roughness: 0.5,
+                metalness: 0.3,
+                emissive: 0x111133,
+                emissiveIntensity: 0.3,
+              }),
+            );
+            line.position.set(i, 0.22, 0);
+            stageGroup.add(line);
+          }
+          for (let j = -3; j <= 3; j += 1) {
+            const lineGeo = new THREE.BoxGeometry(13.5, 0.01, 0.03);
+            const line = new THREE.Mesh(
+              lineGeo,
+              new THREE.MeshStandardMaterial({
+                color: 0x334466,
+                roughness: 0.5,
+                metalness: 0.3,
+                emissive: 0x111133,
+                emissiveIntensity: 0.3,
+              }),
+            );
+            line.position.set(0, 0.22, j);
+            stageGroup.add(line);
+          }
+          for (let s = 0; s < 3; s++) {
+            const stepGeo = new THREE.BoxGeometry(10 - s * 1.5, 0.25, 0.8);
+            const step = new THREE.Mesh(
+              stepGeo,
+              new THREE.MeshStandardMaterial({
+                color: 0x2a2a4a,
+                roughness: 0.3,
+                metalness: 0.5,
+              }),
+            );
+            step.position.set(0, -0.45 - s * 0.25, 4.2 + s * 0.8);
+            step.receiveShadow = true;
+            stageGroup.add(step);
+          }
+        }
+
+        function buildBackdrop() {
+          const bg = new THREE.Group();
+          scene.add(bg);
+          const wallGeo = new THREE.BoxGeometry(16, 7, 0.3);
+          const wall = new THREE.Mesh(
+            wallGeo,
+            new THREE.MeshStandardMaterial({
+              color: 0x1a1a40,
+              roughness: 0.5,
+              metalness: 0.3,
+            }),
+          );
+          wall.position.set(0, 3, -6.5);
+          wall.receiveShadow = true;
+          bg.add(wall);
+          for (let a = -3; a <= 3; a += 2) {
+            const archGeo = new THREE.TorusGeometry(1.3, 0.12, 16, 32, Math.PI);
+            const arch = new THREE.Mesh(
+              archGeo,
+              new THREE.MeshStandardMaterial({
+                color: 0xd4a745,
+                roughness: 0.2,
+                metalness: 0.9,
+                emissive: 0x221100,
+                emissiveIntensity: 0.4,
+              }),
+            );
+            arch.position.set(a, 4.8, -6.3);
+            arch.rotation.z = Math.PI;
+            bg.add(arch);
+          }
+          const emblemGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.15, 48);
+          const emblem = new THREE.Mesh(
+            emblemGeo,
+            new THREE.MeshStandardMaterial({
+              color: 0xd4a745,
+              roughness: 0.15,
+              metalness: 0.95,
+              emissive: 0x332200,
+              emissiveIntensity: 0.7,
+            }),
+          );
+          emblem.position.set(0, 5.5, -6.2);
+          emblem.rotation.x = Math.PI / 2;
+          bg.add(emblem);
+          const starGeo = new THREE.OctahedronGeometry(0.5, 0);
+          const star = new THREE.Mesh(
+            starGeo,
+            new THREE.MeshStandardMaterial({
+              color: 0xffdd88,
+              roughness: 0.1,
+              metalness: 0.2,
+              emissive: 0xffaa00,
+              emissiveIntensity: 1.5,
+            }),
+          );
+          star.position.set(0, 5.5, -6.1);
+          star.rotation.y = Math.PI / 4;
+          bg.add(star);
+          animationObjects.push({ mesh: star, type: "rotate", speed: 0.8 });
+        }
+
+        function buildScreens() {
+          questionCanvas = document.createElement("canvas");
+          questionCanvas.width = QUESTION_SCREEN_W;
+          questionCanvas.height = QUESTION_SCREEN_H;
+          questionCtx = questionCanvas.getContext("2d");
+          drawQuestionScreen(
+            "Upload learning material\nto begin the game show!",
+          );
+          const qTex = new THREE.CanvasTexture(questionCanvas);
+          qTex.minFilter = THREE.LinearFilter;
+          const qScreenGeo = new THREE.PlaneGeometry(7, 2.1);
+          const qScreenMat = new THREE.MeshStandardMaterial({
+            map: qTex,
+            emissive: 0x4488cc,
+            emissiveIntensity: 0.7,
+            emissiveMap: qTex,
+            roughness: 0.3,
+            metalness: 0.2,
+            side: THREE.DoubleSide,
+          });
+          questionScreenMesh = new THREE.Mesh(qScreenGeo, qScreenMat);
+          questionScreenMesh.position.set(0, 4.2, -5.5);
+          scene.add(questionScreenMesh);
+          const frameGeo = new THREE.BoxGeometry(7.4, 2.5, 0.2);
+          const frame = new THREE.Mesh(
+            frameGeo,
+            new THREE.MeshStandardMaterial({
+              color: 0xd4a745,
+              roughness: 0.2,
+              metalness: 0.9,
+              emissive: 0x221100,
+              emissiveIntensity: 0.5,
+            }),
+          );
+          frame.position.set(0, 4.2, -5.35);
+          scene.add(frame);
+          const answerPositions = [
+            { x: -3.3, y: 1.6, z: -4.8 },
+            { x: -1.1, y: 1.6, z: -4.8 },
+            { x: 1.1, y: 1.6, z: -4.8 },
+            { x: 3.3, y: 1.6, z: -4.8 },
+          ];
+          const answerColors = [0x4499dd, 0x44bb77, 0xdd9944, 0xdd5577];
+          for (let i = 0; i < 4; i++) {
+            const aCanvas = document.createElement("canvas");
+            aCanvas.width = ANSWER_SCREEN_W;
+            aCanvas.height = ANSWER_SCREEN_H;
+            const aCtx = aCanvas.getContext("2d");
+            drawAnswerScreen(aCtx, "", i);
+            answerCanvases.push(aCanvas);
+            answerCtxs.push(aCtx);
+            const aTex = new THREE.CanvasTexture(aCanvas);
+            aTex.minFilter = THREE.LinearFilter;
+            const aScreenGeo = new THREE.PlaneGeometry(1.9, 0.85);
+            const aScreenMat = new THREE.MeshStandardMaterial({
+              map: aTex,
+              emissive: answerColors[i],
+              emissiveIntensity: 0.5,
+              emissiveMap: aTex,
+              roughness: 0.3,
+              metalness: 0.2,
+              side: THREE.DoubleSide,
+            });
+            const aScreenMesh = new THREE.Mesh(aScreenGeo, aScreenMat);
+            aScreenMesh.position.set(
+              answerPositions[i].x,
+              answerPositions[i].y,
+              answerPositions[i].z,
+            );
+            aScreenMesh.userData = { index: i, color: answerColors[i] };
+            scene.add(aScreenMesh);
+            answerScreenMeshes.push(aScreenMesh);
+            const aFrameGeo = new THREE.BoxGeometry(2.15, 1.1, 0.12);
+            const aFrame = new THREE.Mesh(
+              aFrameGeo,
+              new THREE.MeshStandardMaterial({
+                color: 0xd4a745,
+                roughness: 0.2,
+                metalness: 0.9,
+                emissive: 0x221100,
+                emissiveIntensity: 0.5,
+              }),
+            );
+            aFrame.position.set(
+              answerPositions[i].x,
+              answerPositions[i].y,
+              answerPositions[i].z - 0.05,
+            );
+            scene.add(aFrame);
+          }
+        }
+
+        function drawQuestionScreen(text) {
+          questionCtx.fillStyle = "#0a0a28";
+          questionCtx.fillRect(0, 0, QUESTION_SCREEN_W, QUESTION_SCREEN_H);
+          questionCtx.fillStyle = "#e8dcc8";
+          questionCtx.font =
+            'bold 36px "Segoe UI","Helvetica Neue",Arial,sans-serif';
+          questionCtx.textAlign = "center";
+          questionCtx.textBaseline = "middle";
+          const lines = text.split("\n");
+          const lineHeight = 50;
+          const startY =
+            QUESTION_SCREEN_H / 2 - ((lines.length - 1) * lineHeight) / 2;
+          lines.forEach((line, idx) =>
+            questionCtx.fillText(
+              line,
+              QUESTION_SCREEN_W / 2,
+              startY + idx * lineHeight,
+            ),
+          );
+          questionCtx.strokeStyle = "#4a90d9";
+          questionCtx.lineWidth = 6;
+          questionCtx.strokeRect(
+            8,
+            8,
+            QUESTION_SCREEN_W - 16,
+            QUESTION_SCREEN_H - 16,
+          );
+        }
+
+        function drawAnswerScreen(ctx, text, index) {
+          const colors = ["#1a3a5c", "#1a4a3a", "#4a3a1a", "#4a1a2a"];
+          ctx.fillStyle = colors[index];
+          ctx.fillRect(0, 0, ANSWER_SCREEN_W, ANSWER_SCREEN_H);
+          ctx.fillStyle = "#f0e6d3";
+          ctx.font = 'bold 26px "Segoe UI","Helvetica Neue",Arial,sans-serif';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(text, ANSWER_SCREEN_W / 2, ANSWER_SCREEN_H / 2);
+          ctx.strokeStyle = "#d4a745";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(6, 6, ANSWER_SCREEN_W - 12, ANSWER_SCREEN_H - 12);
+        }
+
+        function buildLighting() {
+          lightingGroup = new THREE.Group();
+          scene.add(lightingGroup);
+          const ambient = new THREE.AmbientLight(0x223344, 0.6);
+          scene.add(ambient);
+          const mainSpot = new THREE.SpotLight(
+            0xffffff,
+            1.8,
+            25,
+            Math.PI / 7,
+            0.3,
+            0.5,
+          );
+          mainSpot.position.set(0, 10, -4);
+          mainSpot.target.position.set(0, 0, -3);
+          mainSpot.castShadow = true;
+          mainSpot.shadow.mapSize.width = 1024;
+          mainSpot.shadow.mapSize.height = 1024;
+          mainSpot.shadow.camera.near = 0.5;
+          mainSpot.shadow.camera.far = 30;
+          mainSpot.shadow.bias = -0.0005;
+          scene.add(mainSpot);
+          scene.add(mainSpot.target);
+          spotlights.push(mainSpot);
+          const colorsL = [0x4488ff, 0xff8844, 0x44ff88, 0xff4488];
+          const posL = [
+            { x: -5, z: -5 },
+            { x: 5, z: -5 },
+            { x: -3, z: -3 },
+            { x: 3, z: -3 },
+          ];
+          posL.forEach((p, i) => {
+            const spot = new THREE.SpotLight(
+              colorsL[i],
+              0.8,
+              18,
+              Math.PI / 8,
+              0.4,
+              0.6,
+            );
+            spot.position.set(p.x, 8, p.z);
+            spot.target.position.set(p.x * 0.5, 0, -3);
+            spot.castShadow = true;
+            spot.shadow.mapSize.width = 512;
+            spot.shadow.mapSize.height = 512;
+            spot.shadow.bias = -0.0004;
+            scene.add(spot);
+            scene.add(spot.target);
+            spotlights.push(spot);
+          });
+          const wash = new THREE.PointLight(0x4466aa, 1.5, 15, 1.5);
+          wash.position.set(0, 3, 6);
+          scene.add(wash);
+          for (let i = -5; i <= 5; i += 1.5) {
+            const el = new THREE.PointLight(0xd4a745, 0.4, 3, 2);
+            el.position.set(i, 0.1, 3.8);
+            scene.add(el);
+          }
+        }
+
+        function buildHost() {
+          hostGroup = new THREE.Group();
+          hostGroup.position.set(-4.5, 0, -2.5);
+          scene.add(hostGroup);
+          const pGeo = new THREE.CylinderGeometry(0.7, 0.85, 1.4, 32);
+          const podium = new THREE.Mesh(
+            pGeo,
+            new THREE.MeshStandardMaterial({
+              color: 0x3a2a1a,
+              roughness: 0.3,
+              metalness: 0.6,
+            }),
+          );
+          podium.position.y = 0.7;
+          podium.castShadow = true;
+          podium.receiveShadow = true;
+          hostGroup.add(podium);
+          const topGeo = new THREE.CylinderGeometry(0.85, 0.7, 0.1, 32);
+          const top = new THREE.Mesh(
+            topGeo,
+            new THREE.MeshStandardMaterial({
+              color: 0xd4a745,
+              roughness: 0.2,
+              metalness: 0.9,
+            }),
+          );
+          top.position.y = 1.42;
+          hostGroup.add(top);
+          const bodyGeo = new THREE.CylinderGeometry(0.35, 0.45, 1.8, 24);
+          const body = new THREE.Mesh(
+            bodyGeo,
+            new THREE.MeshStandardMaterial({
+              color: 0x2c2c4a,
+              roughness: 0.4,
+              metalness: 0.3,
+            }),
+          );
+          body.position.y = 2.4;
+          body.castShadow = true;
+          hostGroup.add(body);
+          const headGeo = new THREE.SphereGeometry(0.4, 32, 32);
+          const head = new THREE.Mesh(
+            headGeo,
+            new THREE.MeshStandardMaterial({
+              color: 0xf5d5b0,
+              roughness: 0.5,
+              metalness: 0.05,
+            }),
+          );
+          head.position.y = 3.45;
+          head.castShadow = true;
+          hostGroup.add(head);
+          animationObjects.push({
+            mesh: head,
+            type: "nod",
+            speed: 0.3,
+            group: hostGroup,
+          });
+          const bow1 = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, 0.1, 0.12),
+            new THREE.MeshStandardMaterial({
+              color: 0xdd3333,
+              roughness: 0.2,
+              metalness: 0.4,
+              emissive: 0x330000,
+              emissiveIntensity: 0.3,
+            }),
+          );
+          bow1.position.set(0, 3.1, 0.42);
+          hostGroup.add(bow1);
+          const bow2 = new THREE.Mesh(
+            new THREE.BoxGeometry(0.12, 0.1, 0.4),
+            new THREE.MeshStandardMaterial({
+              color: 0xdd3333,
+              roughness: 0.2,
+              metalness: 0.4,
+              emissive: 0x330000,
+              emissiveIntensity: 0.3,
+            }),
+          );
+          bow2.position.set(0, 3.1, 0.42);
+          hostGroup.add(bow2);
+          const armGeo = new THREE.CylinderGeometry(0.1, 0.13, 1.2, 16);
+          const armMat = new THREE.MeshStandardMaterial({
+            color: 0x2c2c4a,
+            roughness: 0.4,
+            metalness: 0.3,
+          });
+          const la = new THREE.Mesh(armGeo, armMat);
+          la.position.set(-0.5, 2.8, 0);
+          la.rotation.z = Math.PI / 6;
+          la.castShadow = true;
+          hostGroup.add(la);
+          const ra = new THREE.Mesh(armGeo, armMat);
+          ra.position.set(0.5, 2.8, 0);
+          ra.rotation.z = -Math.PI / 6;
+          ra.castShadow = true;
+          hostGroup.add(ra);
+        }
+
+        function buildContestants() {
+          const positions = [
+            { x: 2.5, z: -2.8 },
+            { x: 4.5, z: -2.8 },
+            { x: 6.5, z: -2.8 },
+          ];
+          const bodyColors = [0x3a3050, 0x304050, 0x403040];
+          positions.forEach((pos, i) => {
+            const group = new THREE.Group();
+            group.position.set(pos.x, 0, pos.z);
+            scene.add(group);
+            contestantGroups.push(group);
+            const pGeo = new THREE.CylinderGeometry(0.5, 0.6, 1.2, 24);
+            const podium = new THREE.Mesh(
+              pGeo,
+              new THREE.MeshStandardMaterial({
+                color: 0x2a2a3a,
+                roughness: 0.3,
+                metalness: 0.5,
+              }),
+            );
+            podium.position.y = 0.6;
+            podium.castShadow = true;
+            podium.receiveShadow = true;
+            group.add(podium);
+            const pTop = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.6, 0.5, 0.08, 24),
+              new THREE.MeshStandardMaterial({
+                color: 0x8899aa,
+                roughness: 0.2,
+                metalness: 0.7,
+              }),
+            );
+            pTop.position.y = 1.22;
+            group.add(pTop);
+            const bGeo = new THREE.CylinderGeometry(0.28, 0.35, 1.5, 20);
+            const body = new THREE.Mesh(
+              bGeo,
+              new THREE.MeshStandardMaterial({
+                color: bodyColors[i],
+                roughness: 0.4,
+                metalness: 0.3,
+              }),
+            );
+            body.position.y = 2.05;
+            body.castShadow = true;
+            group.add(body);
+            const hGeo = new THREE.SphereGeometry(0.32, 24, 24);
+            const head = new THREE.Mesh(
+              hGeo,
+              new THREE.MeshStandardMaterial({
+                color: 0xf0c8a0,
+                roughness: 0.5,
+                metalness: 0.05,
+              }),
+            );
+            head.position.y = 2.95;
+            head.castShadow = true;
+            group.add(head);
+            const buzz = new THREE.Mesh(
+              new THREE.SphereGeometry(0.08, 16, 16),
+              new THREE.MeshStandardMaterial({
+                color: 0xff4444,
+                roughness: 0.1,
+                metalness: 0.1,
+                emissive: 0x330000,
+                emissiveIntensity: 0.8,
+              }),
+            );
+            buzz.position.set(0, 1.28, 0.55);
+            buzz.name = "buzzer";
+            group.add(buzz);
+          });
+        }
+
+        function buildAudience() {
+          audienceGroup = new THREE.Group();
+          audienceGroup.position.set(0, -0.3, 5.5);
+          scene.add(audienceGroup);
+          for (let row = 0; row < 5; row++) {
+            const riserGeo = new THREE.BoxGeometry(16, 0.3, 1.5);
+            const riser = new THREE.Mesh(
+              riserGeo,
+              new THREE.MeshStandardMaterial({
+                color: 0x1a1a2a,
+                roughness: 0.6,
+                metalness: 0.2,
+              }),
+            );
+            riser.position.set(0, row * 0.7, row * 1.6);
+            riser.receiveShadow = true;
+            audienceGroup.add(riser);
+            const seatsInRow = 16 - row;
+            const rowWidth = 14;
+            const spacing = rowWidth / seatsInRow;
+            for (let s = 0; s < seatsInRow; s++) {
+              const mg = new THREE.Group();
+              const xPos = -rowWidth / 2 + spacing / 2 + s * spacing;
+              mg.position.set(xPos, row * 0.7 + 0.35, row * 1.6);
+              const bodyGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.55, 12);
+              const bodyColor = new THREE.Color().setHSL(
+                Math.random() * 0.15 + 0.55,
+                0.3,
+                0.2 + Math.random() * 0.3,
+              );
+              const body = new THREE.Mesh(
+                bodyGeo,
+                new THREE.MeshStandardMaterial({
+                  color: bodyColor,
+                  roughness: 0.7,
+                  metalness: 0.1,
+                }),
+              );
+              body.position.y = 0.28;
+              mg.add(body);
+              const headGeo = new THREE.SphereGeometry(0.14, 12, 12);
+              const headColor = new THREE.Color().setHSL(
+                0.08,
+                0.3,
+                0.5 + Math.random() * 0.4,
+              );
+              const head = new THREE.Mesh(
+                headGeo,
+                new THREE.MeshStandardMaterial({
+                  color: headColor,
+                  roughness: 0.6,
+                  metalness: 0.05,
+                }),
+              );
+              head.position.y = 0.65;
+              mg.add(head);
+              audienceGroup.add(mg);
+              if (Math.random() < 0.3)
+                animationObjects.push({
+                  mesh: head,
+                  type: "audience",
+                  speed: 0.1 + Math.random() * 0.4,
+                  baseY: head.position.y,
+                  group: mg,
+                  offset: Math.random() * Math.PI * 2,
+                });
+            }
+          }
+        }
+
+        function buildParticles() {
+          const pGeo = new THREE.BufferGeometry();
+          const count = 400;
+          const posArr = new Float32Array(count * 3);
+          const colArr = new Float32Array(count * 3);
+          for (let i = 0; i < count; i++) {
+            posArr[i * 3] = (Math.random() - 0.5) * 16;
+            posArr[i * 3 + 1] = Math.random() * 8;
+            posArr[i * 3 + 2] = (Math.random() - 0.5) * 14;
+            const c = new THREE.Color().setHSL(
+              0.15 + Math.random() * 0.1,
+              0.8,
+              0.5 + Math.random() * 0.5,
+            );
+            colArr[i * 3] = c.r;
+            colArr[i * 3 + 1] = c.g;
+            colArr[i * 3 + 2] = c.b;
+          }
+          pGeo.setAttribute("position", new THREE.BufferAttribute(posArr, 3));
+          pGeo.setAttribute("color", new THREE.BufferAttribute(colArr, 3));
+          const pMat = new THREE.PointsMaterial({
+            size: 0.04,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            transparent: true,
+            opacity: 0.7,
+          });
+          particlesSystem = new THREE.Points(pGeo, pMat);
+          scene.add(particlesSystem);
+        }
+
+        function buildFloorReflection() {
+          const floorGeo = new THREE.PlaneGeometry(20, 12);
+          const floor = new THREE.Mesh(
+            floorGeo,
+            new THREE.MeshStandardMaterial({
+              color: 0x0a0a18,
+              roughness: 0.15,
+              metalness: 0.9,
+              transparent: true,
+              opacity: 0.4,
+            }),
+          );
+          floor.rotation.x = -Math.PI / 2;
+          floor.position.set(0, -0.5, 2);
+          floor.receiveShadow = true;
+          scene.add(floor);
+        }
+
+        function animate() {
+          requestAnimationFrame(animate);
+          const dt = Math.min(clock.getDelta(), 0.1);
+          const time = performance.now() * 0.001;
+          animationObjects.forEach((obj) => {
+            if (obj.type === "rotate") obj.mesh.rotation.y += obj.speed * dt;
+            else if (obj.type === "nod")
+              obj.mesh.rotation.x = Math.sin(time * 1.5) * 0.08;
+            else if (obj.type === "audience")
+              obj.mesh.position.y =
+                obj.baseY + Math.sin(time * obj.speed + obj.offset) * 0.04;
+          });
+          if (particlesSystem) {
+            const posArr = particlesSystem.geometry.attributes.position.array;
+            for (let i = 0; i < posArr.length; i += 3) {
+              posArr[i + 1] += Math.sin(time * 0.7 + i) * 0.003;
+              if (posArr[i + 1] > 8) posArr[i + 1] = 0;
+              if (posArr[i + 1] < 0) posArr[i + 1] = 8;
+            }
+            particlesSystem.geometry.attributes.position.needsUpdate = true;
+            particlesSystem.rotation.y += dt * 0.06;
+          }
+          spotlights.forEach((spot, i) => {
+            if (i > 0) spot.intensity = 0.6 + Math.sin(time * 0.8 + i) * 0.25;
+          });
+          camera.position.x += Math.sin(time * 0.3) * 0.008;
+          camera.position.y += Math.cos(time * 0.35) * 0.005;
+          camera.lookAt(0, 1.5, -3);
+          renderer.render(scene, camera);
+        }
+
+        function onResize() {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        return {
+          init,
+          updateQuestionScreen(text) {
+            drawQuestionScreen(text);
+            questionScreenMesh.material.map.needsUpdate = true;
+            questionScreenMesh.material.emissiveMap.needsUpdate = true;
+          },
+          updateAnswerScreen(i, text) {
+            if (i >= 0 && i < 4) {
+              drawAnswerScreen(answerCtxs[i], text, i);
+              answerScreenMeshes[i].material.map.needsUpdate = true;
+              answerScreenMeshes[i].material.emissiveMap.needsUpdate = true;
+            }
+          },
+          updateAllAnswerScreens(texts) {
+            for (let i = 0; i < 4; i++)
+              this.updateAnswerScreen(i, texts[i] || "");
+          },
+          flashAnswerScreen(i, color) {
+            if (i >= 0 && i < 4) {
+              const mesh = answerScreenMeshes[i];
+              const orig = mesh.material.emissive.getHex();
+              mesh.material.emissive.setHex(color);
+              mesh.material.emissiveIntensity = 1.5;
+              setTimeout(() => {
+                mesh.material.emissive.setHex(orig);
+                mesh.material.emissiveIntensity = 0.5;
+              }, 600);
+            }
+          },
+          getScene: () => scene,
+          getCamera: () => camera,
+          getAnswerScreenMeshes: () => answerScreenMeshes,
+          animate,
+        };
+      })();
+    </script>
+
+    <script>
+      /* ========== QUIZ ENGINE (improved + Gemini integration) ========== */
+      const QuizEngine = (function () {
+        let allQuestions = [];
+        let currentIndex = -1;
+        let score = 0,
+          streak = 0,
+          bestStreak = 0;
+        const GEMINI_API_KEY = "AIzaSyDF8cGnw2TBWxISEy6KkLQ_v5YBS3OIDJo"; // <-- PASTE YOUR FREE GEMINI API KEY HERE
+
+        function reset() {
+          allQuestions = [];
+          currentIndex = -1;
+          score = 0;
+          streak = 0;
+          bestStreak = 0;
+        }
+
+        async function parseFile(file) {
+          const ext = file.name.split(".").pop().toLowerCase();
+          let text = "";
+          if (["txt", "md", "csv", "json"].includes(ext)) {
+            text = await readTextFile(file);
+          } else if (ext === "pdf") {
+            text = await readPdfFile(file);
+          } else if (ext === "docx") {
+            text = await readDocxFile(file);
+          } else {
+            throw new Error("Unsupported file type: ." + ext);
+          }
+          if (!text || text.trim().length < 50)
+            throw new Error("File too short for questions.");
+          return text;
+        }
+
+        function readTextFile(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => reject(new Error("Read error"));
+            reader.readAsText(file);
+          });
+        }
+
+        async function readPdfFile(file) {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          let full = "";
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            full += content.items.map((it) => it.str).join(" ") + "\n";
+          }
+          return full;
+        }
+
+        async function readDocxFile(file) {
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          return result.value;
+        }
+
+        // ========== AI QUESTION GENERATION (Gemini) ==========
+        async function generateWithGemini(text, numQuestions = 10) {
+          const apiKey =
+            GEMINI_API_KEY ||
+            document.getElementById("api-key-input")?.value?.trim();
+          if (!apiKey) return null;
+
+          const prompt = `You are a quiz creator. Based on the following educational material, create ${numQuestions} multiple-choice questions.
+Each question must have 4 options, with exactly one correct answer. 
+Return ONLY a valid JSON array of objects with the keys: "questionText", "correctAnswer", "options" (array of 4 strings, including the correct answer).
+The correct answer must be one of the options. 
+Make sure the questions test understanding of key concepts from the text.
+
+Material:
+${text.substring(0, 8000)}`;
+
+          try {
+            const response = await fetch(
+              "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-goog-api-key": apiKey,
+                },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+                }),
+              },
+            );
+            if (!response.ok) {
+              console.warn("Gemini API error:", await response.text());
+              return null;
+            }
+            const data = await response.json();
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawText) return null;
+
+            // Extract JSON array from response
+            const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) return null;
+            const questions = JSON.parse(jsonMatch[0]);
+            if (!Array.isArray(questions) || questions.length === 0)
+              return null;
+
+            // Validate each question
+            return questions.filter(
+              (q) =>
+                q.questionText &&
+                q.correctAnswer &&
+                Array.isArray(q.options) &&
+                q.options.length === 4,
+            );
+          } catch (e) {
+            console.error("Gemini call failed:", e);
+            return null;
+          }
+        }
+
+        // ========== FALLBACK GENERATOR (guaranteed to produce questions) ==========
+        function generateFallback(text, count = 8) {
+          // Clean and extract sentences
+          const cleaned = text
+            .replace(/\s+/g, " ")
+            .replace(/\n+/g, ". ")
+            .trim();
+          const sentences = cleaned
+            .split(/[.!?]+/)
+            .map((s) => s.trim())
+            .filter((s) => s.length > 25 && s.length < 500);
+          if (sentences.length < 5) {
+            // Ultimate fallback: create questions from whole chunks
+            const chunks = text.match(/.{80,300}[.!?]/g) || [
+              text.substring(0, 300),
+            ];
+            sentences.push(
+              ...chunks.map((c) => c.trim()).filter((c) => c.length > 25),
+            );
+          }
+
+          // Key terms
+          const stop = new Set([
+            "the",
+            "is",
+            "at",
+            "which",
+            "on",
+            "and",
+            "a",
+            "an",
+            "in",
+            "to",
+            "of",
+            "for",
+            "with",
+            "that",
+            "this",
+            "are",
+            "was",
+            "were",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "does",
+            "did",
+            "but",
+            "or",
+            "nor",
+            "not",
+            "so",
+            "if",
+            "then",
+            "than",
+            "too",
+            "very",
+            "can",
+            "will",
+            "just",
+            "about",
+          ]);
+          const freq = {};
+          sentences.forEach((s) => {
+            (s.toLowerCase().match(/\b[a-z]{4,}\b/g) || []).forEach((w) => {
+              if (!stop.has(w)) freq[w] = (freq[w] || 0) + 1;
+            });
+          });
+          const keywords = Object.entries(freq)
+            .sort((a, b) => b[1] - a[1])
+            .map((e) => e[0]);
+
+          const questions = [];
+          const used = new Set();
+          for (const kw of keywords.slice(0, count * 2)) {
+            for (let i = 0; i < sentences.length; i++) {
+              if (used.has(i)) continue;
+              if (
+                sentences[i].toLowerCase().includes(kw) &&
+                sentences[i].length > 40
+              ) {
+                const q = createQuestionFromSentence(
+                  sentences[i],
+                  kw,
+                  keywords,
+                );
+                if (
+                  q &&
+                  !questions.some((qq) => qq.questionText === q.questionText)
+                ) {
+                  questions.push(q);
+                  used.add(i);
+                }
+                break;
+              }
+            }
+            if (questions.length >= count) break;
+          }
+
+          // Fill remaining slots
+          for (
+            let i = 0;
+            i < sentences.length && questions.length < count;
+            i++
+          ) {
+            if (!used.has(i) && sentences[i].length > 30) {
+              const kw = extractKeyword(sentences[i], keywords);
+              const q = createQuestionFromSentence(sentences[i], kw, keywords);
+              if (q) {
+                questions.push(q);
+                used.add(i);
+              }
+            }
+          }
+
+          // Final fallback: if still < 3, create from words
+          if (questions.length < 3) {
+            const words = text.match(/\b[A-Z][a-z]{4,}\b/g) ||
+              text.match(/\b[a-z]{5,}\b/g) || ["concept"];
+            for (const w of words.slice(0, 5)) {
+              const q = {
+                questionText: `What does the term "${w}" refer to in the context of the material?`,
+                correctAnswer: w,
+                options: [w, w + "s", "Unknown", "None"],
+              };
+              questions.push(q);
+            }
+          }
+
+          return questions.slice(0, count);
+        }
+
+        function createQuestionFromSentence(sentence, keyword, allKeywords) {
+          const regex = new RegExp(
+            "\\b" + keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b",
+            "i",
+          );
+          const qText = sentence.replace(regex, "__________");
+          const correct =
+            keyword.charAt(0).toUpperCase() + keyword.slice(1).toLowerCase();
+          const distractors = new Set();
+          distractors.add(keyword.toLowerCase());
+          for (const kw of allKeywords) {
+            if (distractors.size >= 4) break;
+            const lw = kw.toLowerCase();
+            if (lw !== keyword.toLowerCase() && lw.length >= 3)
+              distractors.add(lw);
+          }
+          const fallbacks = [
+            keyword + "s",
+            keyword + "ing",
+            keyword + "ed",
+            "un" + keyword,
+          ];
+          for (const f of fallbacks) {
+            if (distractors.size >= 4) break;
+            distractors.add(f.toLowerCase());
+          }
+          let distArr = Array.from(distractors)
+            .filter((d) => d !== keyword.toLowerCase())
+            .slice(0, 3);
+          while (distArr.length < 3) distArr.push("option_" + distArr.length);
+          const options = [
+            correct,
+            ...distArr.map((d) => d.charAt(0).toUpperCase() + d.slice(1)),
+          ];
+          shuffleArray(options);
+          return { questionText: qText, correctAnswer: correct, options };
+        }
+
+        function extractKeyword(sentence, keywords) {
+          for (const kw of keywords)
+            if (sentence.toLowerCase().includes(kw)) return kw;
+          return (sentence.match(/\b[a-z]{4,}\b/gi) || ["term"])[0];
+        }
+
+        function shuffleArray(arr) {
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+        }
+
+        // Main generation function
+        async function generateQuestions(text, count = 10) {
+          allQuestions = [];
+          // Try Gemini first
+          const geminiQuestions = await generateWithGemini(text, count);
+          if (geminiQuestions && geminiQuestions.length >= 3) {
+            allQuestions = geminiQuestions;
+            console.log("✅ Using AI-generated questions");
+          } else {
+            // Fallback
+            allQuestions = generateFallback(text, count);
+            console.log("ℹ️ Using built‑in question generator");
+          }
+
+          if (allQuestions.length < 3) {
+            throw new Error(
+              "Could not generate enough questions. Try a longer document.",
+            );
+          }
+          shuffleArray(allQuestions);
+          allQuestions = allQuestions.slice(0, count);
+          currentIndex = -1;
+          return allQuestions.length;
+        }
+
+        function getNextQuestion() {
+          currentIndex++;
+          if (currentIndex >= allQuestions.length) return null;
+          return allQuestions[currentIndex];
+        }
+
+        function getCurrent() {
+          return allQuestions[currentIndex] || null;
+        }
+
+        function checkAnswer(answer) {
+          const q = getCurrent();
+          if (!q) return null;
+          const correct =
+            answer.trim().toLowerCase() ===
+            q.correctAnswer.trim().toLowerCase();
+          if (correct) {
+            score += 100 + streak * 20;
+            streak++;
+            if (streak > bestStreak) bestStreak = streak;
+          } else {
+            streak = 0;
+          }
+          return {
+            isCorrect: correct,
+            correctAnswer: q.correctAnswer,
+            score,
+            streak,
+            bestStreak,
+          };
+        }
+
+        function getProgress() {
+          return {
+            current: currentIndex + 1,
+            total: allQuestions.length,
+            score,
+            streak,
+            bestStreak,
+            isComplete: currentIndex >= allQuestions.length - 1,
+          };
+        }
+
+        function hasMore() {
+          return currentIndex < allQuestions.length - 1;
+        }
+
+        return {
+          reset,
+          parseFile,
+          generateQuestions,
+          getNextQuestion,
+          getCurrent,
+          checkAnswer,
+          getProgress,
+          hasMore,
+          getTotal: () => allQuestions.length,
+        };
+      })();
+    </script>
+
+    <script src="quiz-app-api.js"></script>
+    <script src="upload-handler.js"></script>
+    
+    <!-- Flow Manager Initialization -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // Initialize Flow Manager
+        GameFlowManager.init();
+        
+        // Render mode chooser options
+        const modeContainer = document.querySelector('#mode-chooser-screen .mode-options');
+        if (modeContainer) {
+          modeContainer.innerHTML = GameFlowManager.AVAILABLE_MODES.map(mode => `
+            <div class="mode-option" data-mode-id="${mode.id}">
+              <div class="mode-option-title">${mode.name}</div>
+              <div class="mode-option-desc">${mode.description}</div>
+            </div>
+          `).join('');
+        }
+
+        // Handle upload proceed button
+        const proceedBtn = document.getElementById('btn-upload-proceed');
+        if (proceedBtn) {
+          proceedBtn.addEventListener('click', () => {
+            GameFlowManager.proceedToGameSelector();
+          });
+        }
+      });
+    </script>
+
+    <script src="millionaire-app.js"></script>
+  </body>
+</html>

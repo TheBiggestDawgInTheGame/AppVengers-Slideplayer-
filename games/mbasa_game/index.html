@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Road Runner 3D</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="game">
+
+    <!-- Road rendered on canvas by main.js -->
+    <canvas id="roadCanvas" width="600" height="500"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+      <span id="scoreDisplay">Score: 0</span>
+      <span id="livesDisplay">❤ ❤ ❤</span>
+      <span id="speedDisplay">Speed: 1.0×</span>
+    </div>
+
+    <!-- Quiz prompt -->
+    <div id="quizPanel" class="hidden" aria-live="polite">
+      <div id="quizQuestionText">Run into the block that matches the definition!</div>
+      <div id="quizFeedback"></div>
+    </div>
+
+    <!-- Player character -->
+    <img src="geoSquare.png" alt="Runner" id="character">
+
+    <!-- Speed-lines overlay (visible at high speed) -->
+    <div id="speedLines" aria-hidden="true">
+      <span></span><span></span><span></span>
+      <span></span><span></span><span></span>
+    </div>
+
+    <!-- Start screen -->
+    <div id="startScreen">
+      <h1>Road Runner 3D</h1>
+      <p>Dodge every obstacle flying at you!</p>
+      <p class="hint">← → Arrow keys &nbsp;|&nbsp; Swipe to switch lanes</p>
+      <button id="startBtn">Start Running</button>
+    </div>
+
+    <!-- Game-over screen -->
+    <div id="gameOverScreen" class="hidden">
+      <h2>Game Over</h2>
+      <p id="finalScore">Score: 0</p>
+      <p id="quizSummary">Correct: 0 | Wrong: 0</p>
+      <p id="highScoreDisplay">Best: 0</p>
+      <button id="restartBtn">Run Again</button>
+    </div>
+
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

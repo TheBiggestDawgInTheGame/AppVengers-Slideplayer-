@@ -1,0 +1,374 @@
+
+/* ─────────────────────────────────────────────
+   Road Runner 3D  –  style.css
+   All visual styles live here; no inline CSS.
+───────────────────────────────────────────── */
+
+/* ── Reset ─────────────────────────────────── */
+*, *::before, *::after {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* ── Body ───────────────────────────────────── */
+body {
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* ── Game container ─────────────────────────── */
+#game {
+  width: 600px;
+  height: 500px;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid greenyellow;
+  box-shadow:
+    0 0 20px rgba(57, 255, 20, 0.4),
+    0 0 60px rgba(57, 255, 20, 0.15);
+}
+
+/* ── Canvas (road background) ───────────────── */
+#roadCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* ── Player character ───────────────────────── */
+#character {
+  width: 54px;
+  height: 74px;
+  position: absolute;
+  bottom: 82px;
+  left: 273px;               /* default: center lane */
+  z-index: 20;
+  transition: left 0.14s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.7));
+  animation: charBounce 0.28s ease-in-out infinite alternate;
+}
+
+#character.flash {
+  filter: brightness(5) drop-shadow(0 0 14px #ff2020);
+  animation: none;
+}
+
+@keyframes charBounce {
+  from { transform: translateY(0) scaleX(1);   }
+  to   { transform: translateY(-3px) scaleX(0.98); }
+}
+
+/* ── Obstacles (created by JS) ──────────────── */
+.obstacle {
+  position: absolute;
+  border-radius: 6px;
+  z-index: 10;
+}
+
+/* Colour variants – 3-face 3-D box illusion */
+.obs-red {
+  background: #e74c3c;
+  box-shadow:
+    inset 0 -5px 0 #922b21,
+    inset 5px 0 0 #f1948a,
+    0 0 10px rgba(231, 76, 60, 0.6);
+}
+.obs-blue {
+  background: #2980b9;
+  box-shadow:
+    inset 0 -5px 0 #1a5276,
+    inset 5px 0 0 #5dade2,
+    0 0 10px rgba(41, 128, 185, 0.6);
+}
+.obs-orange {
+  background: #e67e22;
+  box-shadow:
+    inset 0 -5px 0 #a04000,
+    inset 5px 0 0 #f0b27a,
+    0 0 10px rgba(230, 126, 34, 0.6);
+}
+.obs-purple {
+  background: #8e44ad;
+  box-shadow:
+    inset 0 -5px 0 #5b2c6f,
+    inset 5px 0 0 #c39bd3,
+    0 0 10px rgba(142, 68, 173, 0.6);
+}
+.obs-teal {
+  background: #16a085;
+  box-shadow:
+    inset 0 -5px 0 #0e6655,
+    inset 5px 0 0 #76d7c4,
+    0 0 10px rgba(22, 160, 133, 0.6);
+}
+
+/* ── HUD ────────────────────────────────────── */
+#hud {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 14px;
+  z-index: 100;
+  font-size: 14px;
+  font-weight: bold;
+  color: greenyellow;
+  text-shadow: 0 0 8px greenyellow;
+  pointer-events: none;
+}
+
+#quizPanel {
+  position: absolute;
+  top: 56px;
+  left: 14px;
+  right: 14px;
+  padding: 12px 14px;
+  border: 2px solid #9fff7f;
+  border-radius: 12px;
+  background: rgba(0, 10, 0, 0.88);
+  color: #e1ffd9;
+  font-size: 14px;
+  line-height: 1.4;
+  z-index: 120;
+  box-shadow: inset 0 0 12px rgba(157, 255, 94, 0.18), 0 0 18px rgba(157, 255, 94, 0.16);
+  pointer-events: none;
+}
+
+#quizPanel.visible {
+  display: block;
+}
+
+#quizQuestionText {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+#quizFeedback {
+  font-size: 14px;
+  color: #d3ffbd;
+  min-height: 24px;
+}
+
+.quiz-item {
+  position: absolute;
+  border-radius: 8px;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 28px 32px;
+  min-width: 220px;
+  min-height: 160px;
+  font-size: 40px;
+  line-height: 1.4;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 1), 0 0 16px rgba(0, 0, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.98);
+  background: #0a0a0a !important;
+  background-clip: padding-box;
+  border: 5px solid #1a1a1a !important;
+  box-shadow: none !important;
+  transition: none !important;
+  letter-spacing: 0.5px;
+}
+
+.quiz-item::after {
+  content: '';
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background: #333333;
+  border-radius: 50%;
+  box-shadow: none !important;
+}
+
+.quiz-item span {
+  pointer-events: none;
+  z-index: 1;
+}
+
+.quiz-item.correct,
+.quiz-item.wrong {
+  background: #0a0a0a !important;
+  border: 5px solid #1a1a1a !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+.quiz-item.hit {
+  transform: none !important;
+}
+
+/* ── Speed-lines overlay ────────────────────── */
+#speedLines {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+#speedLines.visible {
+  opacity: 1;
+}
+
+#speedLines span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(57, 255, 20, 0.12) 40%,
+    rgba(57, 255, 20, 0.25) 60%,
+    transparent 100%
+  );
+  animation: speedLine 0.25s linear infinite;
+}
+
+#speedLines span:nth-child(1)  { left: 8%;  animation-delay: 0.00s; }
+#speedLines span:nth-child(2)  { left: 22%; animation-delay: 0.04s; }
+#speedLines span:nth-child(3)  { left: 38%; animation-delay: 0.08s; }
+#speedLines span:nth-child(4)  { left: 62%; animation-delay: 0.02s; }
+#speedLines span:nth-child(5)  { left: 78%; animation-delay: 0.06s; }
+#speedLines span:nth-child(6)  { left: 92%; animation-delay: 0.10s; }
+
+@keyframes speedLine {
+  from { transform: scaleY(0.8) translateY(-10%); opacity: 0.6; }
+  to   { transform: scaleY(1.2) translateY(10%);  opacity: 0;   }
+}
+
+/* ── Overlay screens ────────────────────────── */
+#startScreen,
+#gameOverScreen {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(0, 0, 10, 0.78);
+  color: greenyellow;
+  text-align: center;
+  padding: 24px;
+}
+
+#startScreen h1 {
+  font-size: 38px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 20px greenyellow;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+#gameOverScreen h2 {
+  font-size: 36px;
+  letter-spacing: 0.08em;
+  color: #ff4444;
+  text-shadow: 0 0 20px #ff4444;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+#startScreen p,
+#gameOverScreen p {
+  font-size: 15px;
+  color: #aaffaa;
+  margin: 4px 0;
+}
+
+#quizSummary {
+  font-size: 16px !important;
+  color: #ffffff !important;
+  text-shadow: 0 0 8px rgba(255,255,255,0.7);
+}
+
+#finalScore {
+  font-size: 22px !important;
+  color: #ffffff !important;
+  text-shadow: 0 0 10px #fff;
+}
+
+#highScoreDisplay {
+  font-size: 14px !important;
+  color: greenyellow !important;
+}
+
+.hint {
+  font-size: 13px !important;
+  color: #77bb77 !important;
+}
+
+/* ── Buttons ────────────────────────────────── */
+#startBtn,
+#restartBtn {
+  margin-top: 6px;
+  padding: 12px 36px;
+  font-size: 17px;
+  font-family: inherit;
+  font-weight: bold;
+  color: #000;
+  background: greenyellow;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 18px greenyellow;
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+
+#startBtn:hover,
+#restartBtn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 30px greenyellow;
+}
+
+/* ── Utility ────────────────────────────────── */
+.hidden {
+  display: none !important;
+}
+
+/* ── Animations ─────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1;   }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0);    }
+  20%       { transform: translateX(-7px); }
+  40%       { transform: translateX( 7px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX( 4px); }
+}
+
+#game.shake {
+  animation: shake 0.38s ease;
+}
+
+/* ── Responsive ─────────────────────────────── */
+@media (max-width: 640px) {
+  #game {
+    width: 100vw;
+    height: calc(100vw * 500 / 600);
+    border-left: none;
+    border-right: none;
+  }
+}
+

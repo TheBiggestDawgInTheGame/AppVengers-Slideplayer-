@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Access And Discipline Grid</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="AccessControl.css">
+</head>
+<body>
+  <div class="bg-grid"></div>
+
+  <header class="topbar">
+    <a class="back-link" href="Dashboard.html"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+    <h1><i class="fa-solid fa-user-shield"></i> EDU Access And Discipline Grid</h1>
+    <span class="status-pill" id="teacherStatus">Teacher Session</span>
+  </header>
+
+  <main class="page-shell">
+    <section class="panel card">
+      <div class="card-head">
+        <h2>Grant Access</h2>
+        <span>Single Or Bulk</span>
+      </div>
+      <p class="hint">Use comma separated emails to grant permissions to one or more students.</p>
+      <label class="label" for="grantEmails">Student Emails</label>
+      <textarea id="grantEmails" class="field" rows="3" placeholder="student1@mail.com, student2@mail.com"></textarea>
+
+      <label class="label">Permissions</label>
+      <div class="check-grid">
+        <label><input type="checkbox" value="upload"> Upload Resources</label>
+        <label><input type="checkbox" value="view_analytics"> View Analytics</label>
+        <label><input type="checkbox" value="deploy_lesson"> Deploy Lessons</label>
+        <label><input type="checkbox" value="manage_library"> Manage Library</label>
+      </div>
+
+      <button class="btn primary" id="grantBtn"><i class="fa-solid fa-bolt"></i> Grant Access</button>
+    </section>
+
+    <section class="panel card">
+      <div class="card-head">
+        <h2>Penalty Engine</h2>
+        <span>Behavior Actions</span>
+      </div>
+      <label class="label" for="penaltyEmail">Student Email</label>
+      <input id="penaltyEmail" class="field" type="email" placeholder="student@mail.com">
+
+      <div class="inline-grid">
+        <div>
+          <label class="label" for="penaltyPoints">Penalty Points</label>
+          <input id="penaltyPoints" class="field" type="number" min="1" max="100" value="5">
+        </div>
+        <div>
+          <label class="label" for="penaltyReason">Reason</label>
+          <input id="penaltyReason" class="field" type="text" placeholder="Late submission">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn danger" id="penalizeBtn"><i class="fa-solid fa-triangle-exclamation"></i> Apply Penalty</button>
+      </div>
+    </section>
+
+    <section class="panel card">
+      <div class="card-head">
+        <h2>Other Actions</h2>
+        <span>Moderation</span>
+      </div>
+      <label class="label" for="modEmail">Student Email</label>
+      <input id="modEmail" class="field" type="email" placeholder="student@mail.com">
+      <label class="label" for="modReason">Action Note</label>
+      <input id="modReason" class="field" type="text" placeholder="Temporary restriction for misconduct">
+
+      <div class="btn-row">
+        <button class="btn warning" id="suspendBtn"><i class="fa-solid fa-user-lock"></i> Suspend</button>
+        <button class="btn ok" id="restoreBtn"><i class="fa-solid fa-user-check"></i> Restore</button>
+        <button class="btn secondary" id="warnBtn"><i class="fa-solid fa-bullhorn"></i> Issue Warning</button>
+      </div>
+    </section>
+
+    <section class="panel card list-card">
+      <div class="card-head">
+        <h2>Granted Privileges</h2>
+        <span id="grantCount">0</span>
+      </div>
+      <div id="grantList" class="list-wrap"></div>
+    </section>
+
+    <section class="panel card list-card">
+      <div class="card-head">
+        <h2>Penalty Log</h2>
+        <span id="penaltyCount">0</span>
+      </div>
+      <div id="penaltyList" class="list-wrap"></div>
+    </section>
+
+    <section class="panel card list-card">
+      <div class="card-head">
+        <h2>Suspension Board</h2>
+        <span id="suspendCount">0</span>
+      </div>
+      <div id="suspendList" class="list-wrap"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="AccessControl.js"></script>
+</body>
+</html>

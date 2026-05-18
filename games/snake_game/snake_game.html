@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classic Snake Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="game-header">
+            <h1>Classic Snake</h1>
+            <div class="stats">
+                <div class="stat">Score: <span id="score">0</span></div>
+                <div class="stat">Best: <span id="bestScore">0</span></div>
+            </div>
+        </header>
+
+        <main class="game-panel">
+            <canvas id="gameCanvas" width="420" height="420" aria-label="Snake game board"></canvas>
+            <div id="status" class="status">Press Start to play</div>
+
+            <section class="multiplayer-card" aria-live="polite">
+                <div class="study-label">Multiplayer</div>
+                <div class="multiplayer-form">
+                    <input id="mpDisplayName" class="mp-input" type="text" maxlength="24" placeholder="Display name">
+                    <input id="mpRoomId" class="mp-input" type="text" maxlength="32" placeholder="Room ID">
+                </div>
+                <div class="multiplayer-actions">
+                    <button id="mpCreateBtn" class="btn btn-secondary" type="button">Create Room</button>
+                    <button id="mpJoinBtn" class="btn btn-primary" type="button">Join Room</button>
+                    <button id="mpLeaveBtn" class="btn btn-secondary" type="button">Leave</button>
+                </div>
+                <p id="mpHint" class="hint">Create a room, share the ID, then play together in real time.</p>
+                <div id="mpPlayers" class="multiplayer-players"></div>
+            </section>
+
+            <section class="study-card" aria-live="polite">
+                <div class="study-label">Slide Prompt</div>
+                <div id="studyPrompt" class="study-prompt">Launch from the upload flow to turn slide notes into food targets.</div>
+            </section>
+
+            <section id="studyCheckpoint" class="checkpoint hidden" aria-live="polite">
+                <div class="checkpoint-label">Study Checkpoint</div>
+                <h2 id="checkpointQuestion" class="checkpoint-question">Question</h2>
+                <div id="checkpointOptions" class="checkpoint-options"></div>
+                <p id="checkpointFeedback" class="checkpoint-feedback"></p>
+            </section>
+        </main>
+
+        <footer class="controls">
+            <button id="startBtn" class="btn btn-primary" type="button">Start</button>
+            <button id="resetBtn" class="btn btn-secondary" type="button">Reset</button>
+            <p class="hint">Controls: Arrow keys or WASD</p>
+        </footer>
+    </div>
+
+    <script src="../../shared/game-modes.js"></script>
+    <script src="../../shared/progress-tracker.js"></script>
+    <script src="../../shared/adventure-layer.js"></script>
+    <script src="../../shared/mode-environment.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

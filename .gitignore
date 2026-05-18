@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment secrets — NEVER commit
+.env
+**/.env
+.env.local
+.env.*.local
+
+# Leaderboard data (runtime file)
+app-vengers/leaderboard.json
+
+# Embedded repos
+Quiz-App/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+
+# Build outputs
+dist/
+build/

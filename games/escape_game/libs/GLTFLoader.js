@@ -1,0 +1,1 @@
+// Placeholder: Download GLTFLoader.js from https://threejs.org/examples/jsm/loaders/GLTFLoader.js and place here for local use if needed.

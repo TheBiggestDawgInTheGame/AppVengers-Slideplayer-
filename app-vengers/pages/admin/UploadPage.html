@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlidePlay | Upload Command Center</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="UploadPage.css" />
+</head>
+<body>
+  <div id="particles"></div>
+
+  <!-- Side Navigation -->
+  <aside class="side-nav">
+    <div class="brand-block">
+      <span class="brand-dot"></span>
+      <span class="brand-name">SlidePlay</span>
+    </div>
+
+    <nav class="nav-items">
+      <a href="Dashboard.html" class="nav-item">
+        <i class="fa-solid fa-gauge-high"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="library.html" class="nav-item">
+        <i class="fa-solid fa-book-open"></i>
+        <span>Library</span>
+      </a>
+      <a href="UploadPage.html" class="nav-item active">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Upload</span>
+      </a>
+      <a href="AnalyticsPage.html" class="nav-item">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Analytics</span>
+      </a>
+      <a href="../billing/payment.html" class="nav-item">
+        <i class="fa-solid fa-credit-card"></i>
+        <span>Billing</span>
+      </a>
+      <a href="settings.html" class="nav-item">
+        <i class="fa-solid fa-gear"></i>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <button class="deploy-btn" onclick="generateQuiz()">
+      <i class="fa-solid fa-bolt"></i>
+      Generate Quiz
+    </button>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-zone">
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="page-id">
+        <span class="page-tag">SYSTEM &rsaquo; UPLOAD</span>
+        <h1 class="page-title">Upload Command Center</h1>
+      </div>
+      <div class="top-controls">
+        <span class="status-pill"><span class="pulse-dot"></span> AI Engine Online</span>
+        <a href="Dashboard.html" class="back-link" aria-label="Back to Dashboard"><i class="fa-solid fa-arrow-left"></i> Back</a>
+      </div>
+    </div>
+
+    <!-- Upload Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="slides-tab">
+        <i class="fa-solid fa-file-powerpoint"></i> Digital Slides
+      </button>
+      <button class="tab-btn" data-tab="notes-tab">
+        <i class="fa-solid fa-camera"></i> Handwritten Notes
+      </button>
+    </div>
+
+    <!-- Tab: Digital Slides -->
+    <div class="tab-content active" id="slides-tab">
+      <div class="upload-zone" id="slides-upload-area">
+        <div class="upload-zone-inner">
+          <div class="upload-icon-ring">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <h3>Drop Files Here</h3>
+          <p class="upload-hint">PDF, PPTX, PNG, JPG &mdash; Max 50 MB per file</p>
+          <button class="pick-btn" onclick="document.getElementById('slides-input').click()">
+            <i class="fa-solid fa-folder-open"></i> Browse Files
+          </button>
+          <input type="file" id="slides-input" multiple accept=".pdf,.pptx,.png,.jpg,.jpeg" hidden />
+        </div>
+        <div class="drop-scanline"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Handwritten Notes -->
+    <div class="tab-content" id="notes-tab">
+      <div class="scan-grid">
+        <div class="scan-card" onclick="startCamera()">
+          <div class="scan-icon"><i class="fa-solid fa-camera"></i></div>
+          <h3>Live Camera Scan</h3>
+          <p>Capture handwritten notes directly using your device camera.</p>
+          <button class="pick-btn">Activate Camera</button>
+        </div>
+        <div class="scan-card" onclick="document.getElementById('notes-input').click()">
+          <div class="scan-icon"><i class="fa-solid fa-image"></i></div>
+          <h3>Upload Image</h3>
+          <p>Upload a photo of your notes for AI text extraction.</p>
+          <button class="pick-btn">Select Image</button>
+          <input type="file" id="notes-input" accept=".png,.jpg,.jpeg,.heic" hidden />
+        </div>
+      </div>
+    </div>
+
+    <!-- Uploaded Files -->
+    <div class="hud-card files-card">
+      <div class="card-head">
+        <span class="card-label"><i class="fa-solid fa-database"></i> Loaded Files</span>
+        <button class="ghost-btn" onclick="clearAllFiles()"><i class="fa-solid fa-trash"></i> Clear All</button>
+      </div>
+      <div class="files-list" id="files-list">
+        <p class="empty-state"><i class="fa-solid fa-satellite-dish"></i> No files loaded &mdash; upload to begin.</p>
+      </div>
+    </div>
+
+    <!-- Quiz Settings + Capability Row -->
+    <div class="config-row">
+
+      <!-- Settings Panel -->
+      <div class="hud-card settings-card">
+        <div class="card-head">
+          <span class="card-label"><i class="fa-solid fa-sliders"></i> Mission Config</span>
+        </div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label>Questions</label>
+            <div class="input-group">
+              <button onclick="decreaseValue('question-count')" aria-label="Decrease question count">&#8722;</button>
+              <input type="number" id="question-count" min="5" max="50" value="10" title="Number of questions" aria-label="Number of questions" />
+              <button onclick="increaseValue('question-count')" aria-label="Increase question count">+</button>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>Difficulty</label>
+            <select id="difficulty" title="Difficulty level" aria-label="Difficulty level">
+              <option value="Easy">Easy</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="Hard">Hard</option>
+              <option value="Mixed">Mixed</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label>Time Limit (min)</label>
+            <div class="input-group">
+              <button onclick="decreaseValue('time-limit')" aria-label="Decrease time limit">&#8722;</button>
+              <input type="number" id="time-limit" min="5" max="120" value="30" title="Time limit in minutes" aria-label="Time limit in minutes" />
+              <button onclick="increaseValue('time-limit')" aria-label="Increase time limit">+</button>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>Question Type</label>
+            <select id="question-type" title="Question type" aria-label="Question type">
+              <option value="Multiple Choice">Multiple Choice</option>
+              <option value="True/False">True / False</option>
+              <option value="Short Answer">Short Answer</option>
+              <option value="Mixed" selected>Mixed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="toggle-group">
+          <label class="toggle-item">
+            <input type="checkbox" id="include-answers" checked />
+            <span class="toggle-track"></span>
+            Include Answer Key
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" id="shuffle-questions" checked />
+            <span class="toggle-track"></span>
+            Shuffle Questions
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" id="show-timer" checked />
+            <span class="toggle-track"></span>
+            Show Timer
+          </label>
+        </div>
+      </div>
+
+      <!-- Capability Badges -->
+      <div class="hud-card badge-card">
+        <div class="card-head">
+          <span class="card-label"><i class="fa-solid fa-microchip"></i> AI Capabilities</span>
+        </div>
+        <div class="cap-list">
+          <div class="cap-item">
+            <i class="fa-solid fa-file-pdf"></i>
+            <div>
+              <strong>Slide Support</strong>
+              <span>PDF, PowerPoint, Images</span>
+            </div>
+          </div>
+          <div class="cap-item">
+            <i class="fa-solid fa-camera"></i>
+            <div>
+              <strong>Camera Scan</strong>
+              <span>Handwritten note capture</span>
+            </div>
+          </div>
+          <div class="cap-item">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <div>
+              <strong>AI Extraction</strong>
+              <span>Automatic concept mining</span>
+            </div>
+          </div>
+          <div class="cap-item">
+            <i class="fa-solid fa-chart-bar"></i>
+            <div>
+              <strong>Live Analytics</strong>
+              <span>Real-time progress tracking</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teacher Class Operations -->
+    <div class="ops-grid">
+      <div class="hud-card ops-card">
+        <div class="card-head">
+          <span class="card-label"><i class="fa-solid fa-school"></i> Class Setup</span>
+        </div>
+        <div class="ops-form-grid">
+          <div class="setting-item">
+            <label>Class Name</label>
+            <input type="text" id="class-name" placeholder="Physics 11A" />
+          </div>
+          <div class="setting-item">
+            <label>Class Code</label>
+            <input type="text" id="class-code" placeholder="PHY-11A" />
+          </div>
+          <div class="setting-item full-width">
+            <label>Student Emails</label>
+            <textarea id="class-students" placeholder="student1@mail.com, student2@mail.com"></textarea>
+          </div>
+        </div>
+        <div class="ops-btn-row">
+          <button class="pick-btn" onclick="createClassroom()"><i class="fa-solid fa-plus"></i> Create Class</button>
+        </div>
+        <div class="ops-list" id="class-list"></div>
+      </div>
+
+      <div class="hud-card ops-card">
+        <div class="card-head">
+          <span class="card-label"><i class="fa-solid fa-list-check"></i> Activity Planner</span>
+        </div>
+        <div class="ops-form-grid">
+          <div class="setting-item">
+            <label>Target Class</label>
+            <select id="activity-class" title="Target class" aria-label="Target class"></select>
+          </div>
+          <div class="setting-item">
+            <label>Activity Type</label>
+            <select id="activity-type" title="Activity type" aria-label="Activity type">
+              <option value="quiz">Quiz</option>
+              <option value="assignment">Assignment</option>
+              <option value="challenge">Challenge</option>
+              <option value="game">Game Mission</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label>Title</label>
+            <input type="text" id="activity-title" placeholder="Kinematics Blitz" />
+          </div>
+          <div class="setting-item">
+            <label>Points</label>
+            <input type="number" id="activity-points" min="5" max="200" value="20" title="Activity points" aria-label="Activity points" placeholder="20" />
+          </div>
+          <div class="setting-item full-width">
+            <label>Due Date</label>
+            <input type="date" id="activity-due" title="Activity due date" aria-label="Activity due date" placeholder="YYYY-MM-DD" />
+          </div>
+        </div>
+        <div class="toggle-group">
+          <label class="toggle-item">
+            <input type="checkbox" id="link-current-quiz" checked />
+            <span class="toggle-track"></span>
+            Link current mission quiz settings
+          </label>
+        </div>
+        <div class="ops-btn-row">
+          <button class="pick-btn" onclick="createActivity()"><i class="fa-solid fa-flag-checkered"></i> Add Activity</button>
+        </div>
+        <div class="ops-list" id="activity-list"></div>
+      </div>
+
+      <div class="hud-card ops-card">
+        <div class="card-head">
+          <span class="card-label"><i class="fa-solid fa-chart-pie"></i> Progress Monitor</span>
+        </div>
+        <div class="ops-form-grid">
+          <div class="setting-item full-width">
+            <label>Monitor Class</label>
+            <select id="progress-class" title="Class to monitor" aria-label="Class to monitor" onchange="renderProgress()"></select>
+          </div>
+        </div>
+        <div class="ops-kpis" id="progress-kpis">
+          <div class="kpi-card"><span>Students</span><strong id="kpi-students">0</strong></div>
+          <div class="kpi-card"><span>Avg Completion</span><strong id="kpi-completion">0%</strong></div>
+          <div class="kpi-card"><span>Avg Score</span><strong id="kpi-score">0%</strong></div>
+        </div>
+        <div class="ops-list" id="progress-list"></div>
+      </div>
+    </div>
+
+    <!-- Generate Button -->
+    <div class="launch-row">
+      <button class="launch-btn" onclick="generateQuiz()">
+        <i class="fa-solid fa-rocket"></i>
+        Deploy AI Generation
+      </button>
+    </div>
+
+  </div><!-- /main-zone -->
+
+  <!-- Processing Modal -->
+  <div class="modal hidden" id="processing-modal">
+    <div class="modal-box">
+      <div class="modal-ring"><i class="fa-solid fa-atom fa-spin"></i></div>
+      <h3>AI Processing Mission</h3>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <p id="processing-text">Initializing...</p>
+    </div>
+  </div>
+
+  <script src="UploadPage.js"></script>
+  <script>
+    const container = document.getElementById("particles");
+    function createParticle() {
+      const p = document.createElement("div");
+      p.classList.add("particle");
+      p.style.left = Math.random() * 100 + "vw";
+      const s = Math.random() * 4 + 2;
+      p.style.width = s + "px";
+      p.style.height = s + "px";
+      const d = Math.random() * 6 + 5;
+      p.style.animationDuration = d + "s";
+      p.style.setProperty("--drift", Math.floor(Math.random() * 80 - 40) + "px");
+      container.appendChild(p);
+      setTimeout(() => p.remove(), d * 1000);
+    }
+    setInterval(createParticle, 200);
+  </script>
+</body>
+</html>
+

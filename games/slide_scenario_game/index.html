@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slide Scenario Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="game-header">
+      <div>
+        <h1>Scenario Quest</h1>
+        <p>Pick the best response to slide-based situations and learn by making decisions.</p>
+      </div>
+      <div class="difficulty-controls" role="group" aria-label="Difficulty">
+        <button class="difficulty-btn active" data-level="easy" type="button">Easy</button>
+        <button class="difficulty-btn" data-level="medium" type="button">Medium</button>
+        <button class="difficulty-btn" data-level="hard" type="button">Hard</button>
+      </div>
+    </header>
+
+    <main class="game-main">
+      <section class="scenario-panel" aria-label="Scenario challenge">
+        <div class="scenario-head">
+          <h2>Slide Scenario</h2>
+          <p id="sourceInfo">Loading scenario data...</p>
+        </div>
+
+        <article class="scenario-card">
+          <span id="scenarioTag" class="scenario-tag">Scenario 1</span>
+          <h3 id="scenarioTitle">Scenario title</h3>
+          <p id="scenarioText" class="scenario-text">Scenario prompt appears here.</p>
+        </article>
+
+        <div id="answerChoices" class="answer-choices" aria-live="polite"></div>
+
+        <div class="action-row">
+          <button id="shuffleBtn" class="action-btn secondary" type="button">Shuffle Choices</button>
+          <button id="checkBtn" class="action-btn primary" type="button">Submit Answer</button>
+          <button id="nextBtn" class="action-btn tertiary" type="button" disabled>Next Scenario</button>
+        </div>
+
+        <p id="feedbackText" class="feedback-text" aria-live="polite"></p>
+      </section>
+
+      <aside class="stats-panel" aria-label="Scenario stats">
+        <h3>Round Stats</h3>
+        <div class="stat-row"><span>Difficulty</span><strong id="difficultyValue">Easy</strong></div>
+        <div class="stat-row"><span>Round</span><strong id="roundValue">1</strong></div>
+        <div class="stat-row"><span>Time</span><strong id="timeValue">00:00</strong></div>
+        <div class="stat-row"><span>Accuracy</span><strong id="accuracyValue">0%</strong></div>
+        <div class="stat-row"><span>Round Points</span><strong id="roundPointsValue">0</strong></div>
+        <div class="stat-row"><span>Total Score</span><strong id="totalScoreValue">0</strong></div>
+        <div class="stat-row"><span>Streak</span><strong id="streakValue">0</strong></div>
+
+        <div class="legend-box">
+          <h4>Decision Legend</h4>
+          <p><span class="dot correct"></span> Best answer selected</p>
+          <p><span class="dot wrong"></span> Weak answer or missed opportunity</p>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="../../shared/game-modes.js"></script>
+  <script src="../../shared/progress-tracker.js"></script>
+  <script src="../../shared/adventure-layer.js"></script>
+  <script src="../../shared/mode-environment.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+Place your GLTF/GLB character models from Mixamo or Sketchfab in this folder. Example: student.glb, player.glb

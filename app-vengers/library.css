@@ -1,0 +1,218 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Outfit:wght@500&family=Inter:wght@400&display=swap");
+
+:root {
+  --bg-dark:
+    radial-gradient(
+      circle at top center,
+      rgba(255, 126, 209, 0.16),
+      transparent 28%
+    ),
+    linear-gradient(180deg, #120617 0%, #100717 45%, #07050d 100%);
+  --card-bg: #151518;
+  --accent-teal: #00f2ea;
+  --text-main: #ffffff;
+  --text-dim: #a0a0a0;
+  --font-heading: "Montserrat", sans-serif;
+  --font-subheading: "Outfit", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
+body {
+  background: #0f0f1a;
+  color: var(--text-main);
+  font-family: "Inter", sans-serif;
+  margin: 0;
+  padding: 40px 40px 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.library-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.library-header {
+  margin-bottom: 40px;
+  color: #ff7ed1;
+}
+
+.library-header h1 {
+  font-family: var(--font-heading);
+  letter-spacing: 2px;
+  font-size: 1.8rem;
+}
+
+.library-header p {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+}
+
+/* Grid Layout */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.game-card {
+  background: var(--card-bg);
+  border: 2px solid transparent;
+  border-radius: 20px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.game-card:hover {
+  background: #1c1c21;
+  transform: translateY(-5px);
+}
+
+/* Selected State */
+.game-card.selected {
+  border-color: var(--accent-teal);
+  background: rgba(0, 242, 234, 0.03);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.emoji {
+  font-size: 1.5rem;
+}
+
+.badge {
+  font-size: 0.6rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-dim);
+}
+
+.category-physics {
+  color: #5ce8ff;
+  background: rgba(92, 232, 255, 0.1);
+}
+.selected-badge {
+  background: var(--accent-teal);
+  color: black;
+  margin-right: 5px;
+}
+
+.game-card h3 {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.game-card p {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* Teal bar at the bottom of selected card */
+.selection-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 24px;
+  width: 40px;
+  height: 3px;
+  background: var(--accent-teal);
+  border-radius: 2px;
+}
+
+/* Bottom Action Bar */
+.action-bar {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1c1c21;
+  border: 1px solid var(--accent-teal);
+  padding: 15px 40px;
+  border-radius: 50px;
+  display: none; /* Hidden until selection */
+  align-items: center;
+  gap: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.analyze-btn {
+  background: var(--accent-teal);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: var(--font-heading);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+/* FOOTER */
+footer {
+  position: relative;
+  width: calc(100% + 80px);
+  left: -40px;
+  text-align: center;
+  padding: 20px 0;
+  background: #141428;
+  color: #888;
+  box-sizing: border-box;
+  margin-top: auto;
+}
+footer p {
+  margin: 0;
+}
+
+/* -- Global Theme Sync: Settings Palette -- */
+:root {
+  --bg-color:
+    radial-gradient(circle at top center, rgba(255, 126, 209, 0.16), transparent 28%),
+    linear-gradient(180deg, #120617 0%, #100717 45%, #07050d 100%);
+  --card-color: rgba(255, 255, 255, 0.05);
+  --text-main: #ffffff;
+  --text-dim: #a0a0a0;
+  --accent: #5ce8ff;
+  --border: rgba(255, 255, 255, 0.1);
+
+  --bg: #100717;
+  --panel: rgba(255, 255, 255, 0.05);
+  --panel-soft: rgba(255, 255, 255, 0.05);
+  --panel-strong: rgba(7, 5, 13, 0.92);
+  --line: rgba(255, 255, 255, 0.1);
+  --line-pink: rgba(255, 126, 209, 0.3);
+  --text: #ffffff;
+  --muted: #a0a0a0;
+  --cyan: #5ce8ff;
+  --cyan-soft: rgba(92, 232, 255, 0.16);
+  --cyan-glow: rgba(92, 232, 255, 0.38);
+  --magenta: #ff7ed1;
+  --magenta-soft: rgba(255, 126, 209, 0.18);
+  --amber: #ff7ed1;
+  --amber-soft: rgba(255, 126, 209, 0.2);
+
+  --bg-main: #100717;
+  --bg-navbar: #0e0613;
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-card-alt: rgba(15, 10, 22, 0.9);
+  --neon-cyan: #5ce8ff;
+  --neon-pink: #ff7ed1;
+  --neon-purple: #a257ff;
+  --gradient-main: linear-gradient(90deg, #ff7ed1, #a257ff, #5ce8ff);
+}
+
+body {
+  background: var(--bg-color) !important;
+  color: var(--text-main);
+}

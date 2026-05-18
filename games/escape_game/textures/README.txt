@@ -1,0 +1,1 @@
+Place your texture images (wood, tiles, chalkboard, etc.) in this folder. Example: wood.jpg, tiles.png, chalkboard.jpg

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Locked In — 2D Classroom Escape</title>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Startup Screen -->
+<div id="startup-screen">
+  <div class="startup-panel">
+    <h1>🔒 LOCKED IN</h1>
+    <h2>The Locked Classroom — 2D Edition</h2>
+    <div class="section">
+      📍 <strong>Room 14B — After Hours</strong><br>
+      You wake up alone in a locked classroom. The intercom crackles…<br><br>
+      🎯 Explore objects, gather clues, solve puzzles.<br>
+      🔑 Find the door code and escape before time runs out.<br>
+      ⏱️ You have <strong>10 minutes</strong>.
+    </div>
+    <div class="note">Click objects in the room to interact. Collect clues in your inventory.</div>
+    <br>
+    <button id="start-btn">▶ BEGIN ESCAPE</button>
+  </div>
+</div>
+
+<!-- Intro Cinematic -->
+<div id="intro-overlay"><div id="intro-text"></div></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="hud-title">🔒 The Locked Classroom [2D]</div>
+  <div id="progress">
+    <div class="pdot" id="d1" title="Chalkboard"><span class="pdot-shape">△</span><span class="pdot-num">1</span></div>
+    <div class="pdot" id="d2" title="RTH Machine"><span class="pdot-shape">◇</span><span class="pdot-num">2</span></div>
+    <div class="pdot" id="d3" title="Skull"><span class="pdot-shape">□</span><span class="pdot-num">3</span></div>
+    <div class="pdot" id="d4" title="Bookshelf"><span class="pdot-shape">○</span><span class="pdot-num">4</span></div>
+    <div class="pdot" id="d5" title="Globe"><span class="pdot-shape">☆</span><span class="pdot-num">5</span></div>
+    <div class="pdot" id="d6" title="Door"><span class="pdot-shape">⬡</span><span class="pdot-num">6</span></div>
+  </div>
+  <div id="timer">10:00</div>
+</div>
+
+<!-- Objective Tracker -->
+<div id="objective-tracker"><span id="obj-icon">🎯</span> <span id="obj-text">Explore the classroom</span></div>
+
+<!-- GM Bubble -->
+<div id="gm-bubble"><div id="gm-name">📢 MR. THOMPSON</div><span id="gm-text"></span></div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Screen Flash & Urgency -->
+<div id="screen-flash"></div>
+<div id="urgency-border"></div>
+
+<!-- Game Layout -->
+<div id="game-container">
+  <div id="room">
+    <div class="room-label">Room 14B</div>
+
+    <!-- Core objects -->
+    <div class="hs" id="hs-clock" data-key="clock"><span class="hs-icon">⏰</span><span class="hs-lbl">Clock</span></div>
+    <div class="hs" id="hs-board" data-key="board"><span class="hs-icon">📋</span><span class="hs-lbl">Chalkboard</span></div>
+    <div class="hs" id="hs-skull" data-key="skull"><span class="hs-icon">☠️</span><span class="hs-lbl">Skull</span></div>
+    <div class="hs" id="hs-rth" data-key="rth"><span class="hs-icon">⚙️</span><span class="hs-lbl">RTH Machine</span></div>
+    <div class="hs" id="hs-shelf" data-key="shelf"><span class="hs-icon">📚</span><span class="hs-lbl">Bookshelf</span></div>
+    <div class="hs" id="hs-globe" data-key="globe_l"><span class="hs-icon">🌍</span><span class="hs-lbl">Globe</span></div>
+    <div class="hs" id="hs-map" data-key="map"><span class="hs-icon">🗺️</span><span class="hs-lbl">Map</span></div>
+    <div class="hs" id="hs-door" data-key="door"><span class="hs-icon">🚪</span><span class="hs-lbl">Door</span></div>
+    <div class="hs" id="hs-candle" data-key="candle"><span class="hs-icon">🕯️</span><span class="hs-lbl">Candle</span></div>
+    <div class="hs" id="hs-window" data-key="window"><span class="hs-icon">🪟</span><span class="hs-lbl">Window</span></div>
+    <div class="hs" id="hs-teacher" data-key="teacher"><span class="hs-icon">👨‍🏫</span><span class="hs-lbl">Teacher</span></div>
+
+    <!-- Hidden items (shown after discovery) -->
+    <div class="hs hidden-obj" id="hs-drawer" data-key="hidden_drawer"><span class="hs-icon">📜</span><span class="hs-lbl">Drawer</span></div>
+    <div class="hs hidden-obj" id="hs-envelope" data-key="hidden_envelope"><span class="hs-icon">✉️</span><span class="hs-lbl">Envelope</span></div>
+    <div class="hs hidden-obj" id="hs-photo" data-key="hidden_photo"><span class="hs-icon">📷</span><span class="hs-lbl">Photo</span></div>
+    <div class="hs hidden-obj" id="hs-tally" data-key="wall_tally"><span class="hs-icon">𝍸</span><span class="hs-lbl">Scratches</span></div>
+    <div class="hs hidden-obj" id="hs-uv" data-key="uv_flashlight"><span class="hs-icon">🔦</span><span class="hs-lbl">UV Light</span></div>
+    <div class="hs hidden-obj uv-only" id="hs-uvmsg" data-key="uv_message"><span class="hs-icon">💜</span><span class="hs-lbl">UV Text</span></div>
+    <div class="hs hidden-obj" id="hs-painting" data-key="red_herring_painting"><span class="hs-icon">🖼️</span><span class="hs-lbl">Painting</span></div>
+    <div class="hs hidden-obj" id="hs-box" data-key="red_herring_box"><span class="hs-icon">📦</span><span class="hs-lbl">Box</span></div>
+
+    <!-- NPC students -->
+    <div class="hs npc" id="hs-mia" data-key="student_mia"><span class="hs-icon">👧</span><span class="hs-lbl">Mia</span></div>
+    <div class="hs npc" id="hs-tate" data-key="student_tate"><span class="hs-icon">👦</span><span class="hs-lbl">Tate</span></div>
+    <div class="hs npc" id="hs-lina" data-key="student_lina"><span class="hs-icon">👩</span><span class="hs-lbl">Lina</span></div>
+    <div class="hs npc" id="hs-omar" data-key="student_omar"><span class="hs-icon">🧑</span><span class="hs-lbl">Omar</span></div>
+    <div class="hs npc" id="hs-nia" data-key="student_nia"><span class="hs-icon">👧🏽</span><span class="hs-lbl">Nia</span></div>
+
+    <!-- Door locks -->
+    <div id="door-locks">
+      <div class="door-lock" id="lock-padlock">🔒 Padlock</div>
+      <div class="door-lock" id="lock-chain">⛓️ Chain</div>
+      <div class="door-lock" id="lock-keypad">🔢 Keypad</div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="panel" id="inv-panel">
+      <h3>🎒 Inventory</h3>
+      <ul id="inv-list"></ul>
+    </div>
+    <div class="panel" id="log-panel">
+      <h3>📜 Activity Log</h3>
+      <div id="log-entries"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Hint Button -->
+<button id="hint-btn">💡 Hint (-30s)</button>
+
+<!-- Modal -->
+<div id="modal-wrapper">
+  <div id="modal-content">
+    <button id="modal-close">×</button>
+    <h2 id="modal-title"></h2>
+    <div id="modal-body"></div>
+    <div id="modal-input"></div>
+    <div id="modal-buttons"></div>
+  </div>
+</div>
+
+<!-- Pause Overlay -->
+<div id="pause-overlay">
+  <div id="pause-panel">
+    <h2>⏸️ PAUSED</h2>
+    <div class="settings-row"><label>🔊 SFX Volume</label><input type="range" id="vol-sfx" min="0" max="100" value="70"><span id="vol-sfx-val">70</span></div>
+    <div class="pause-btn-row">
+      <button class="btn-resume" id="resume-btn">▶ Resume</button>
+      <button class="btn-leaderboard" id="show-lb-btn">🏆 Leaderboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leaderboard -->
+<div id="leaderboard-overlay">
+  <div id="leaderboard-panel">
+    <h2>🏆 Leaderboard</h2>
+    <table id="lb-table"><thead><tr><th>#</th><th>Time</th><th>Date</th></tr></thead><tbody></tbody></table>
+    <button id="lb-close">Close</button>
+  </div>
+</div>
+
+<!-- Help Overlay -->
+<div id="help-overlay">
+  <div id="help-panel">
+    <h2>❓ How to Play</h2>
+    <h3>🖱️ Controls</h3>
+    <div class="help-grid">
+      <div class="help-item"><span class="help-key">Click</span> Interact</div>
+      <div class="help-item"><span class="help-key">Esc</span> Pause</div>
+      <div class="help-item"><span class="help-key">H</span> Help</div>
+    </div>
+    <h3>💡 Tips</h3>
+    <ul class="help-tips">
+      <li>Click objects in the room to gather clues and items</li>
+      <li>Check your inventory — click items to examine them</li>
+      <li>The door has three locks — each needs a different solution</li>
+      <li>Talk to students — they know more than they let on</li>
+      <li>Some items are hidden — explore thoroughly!</li>
+    </ul>
+    <button id="help-close">Got It</button>
+  </div>
+</div>
+
+<!-- Examine Overlay -->
+<div id="examine-overlay">
+  <div id="examine-panel">
+    <div id="examine-icon"></div>
+    <div id="examine-title"></div>
+    <div id="examine-desc"></div>
+    <button id="examine-close">Close</button>
+  </div>
+</div>
+
+<!-- Failure Overlay -->
+<div id="failure-overlay"><div id="failure-text"></div></div>
+
+<!-- Fixed Buttons -->
+<button id="pause-btn-fixed">⏸️ Pause</button>
+<button id="help-btn-fixed">❓ Help</button>
+
+<script src="script.js"></script>
+</body>
+</html>

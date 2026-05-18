@@ -1,0 +1,11 @@
+Model Information:
+* title:	Synth Running Forward 2.0
+* source:	https://sketchfab.com/3d-models/synth-running-forward-20-6826f3a868fc4071aac3de237bb3f577
+* author:	Vadim Fedenko (https://sketchfab.com/vadimfedenko)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Synth Running Forward 2.0" (https://sketchfab.com/3d-models/synth-running-forward-20-6826f3a868fc4071aac3de237bb3f577) by Vadim Fedenko (https://sketchfab.com/vadimfedenko) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

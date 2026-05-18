@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Mode</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Dynamic Animated Background Layer -->
+    <canvas id="dynamic-bg" class="dynamic-bg"></canvas>
+
+    <!-- Ambient Background Music -->
+    <audio id="ambient-music" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b8b6b7.mp3" loop autoplay class="ambient-music"></audio>
+
+    <!-- Achievements Modal -->
+    <div id="achievements-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <h2>Achievements</h2>
+            <ul id="achievements-list"></ul>
+            <button onclick="closeAchievements()">Close</button>
+        </div>
+    </div>
+
+    <!-- Daily Challenge Card -->
+    <div id="daily-challenge" class="challenge-card" tabindex="0" aria-label="Daily Challenge">
+        <h3>Challenge of the Day</h3>
+        <div class="challenge-meta-row">
+            <span id="challenge-difficulty-badge" class="challenge-difficulty-badge">Easy</span>
+        </div>
+        <p id="challenge-desc">Complete any world without using hints!</p>
+        <button onclick="acceptChallenge()">Accept</button>
+    </div>
+
+    <!-- Daily Reward Breakdown Modal -->
+    <div id="reward-breakdown-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <h2>Daily Reward Breakdown</h2>
+            <div id="reward-breakdown-content"></div>
+            <button onclick="closeRewardBreakdown()">Close</button>
+        </div>
+    </div>
+
+    <!-- Branching Choice Modal -->
+    <div id="branch-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <h2>Branching Story Choice</h2>
+            <p id="branch-question">Choose your route:</p>
+            <div id="branch-options"></div>
+            <button onclick="closeBranchModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Daily Challenge Quiz Modal -->
+    <div id="challenge-quiz-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content challenge-quiz-content">
+            <h2>Slide Checkpoint</h2>
+            <p id="challenge-quiz-question">Question loading...</p>
+            <div id="challenge-quiz-options" class="challenge-quiz-options"></div>
+            <p id="challenge-quiz-feedback" class="challenge-quiz-feedback"></p>
+            <button onclick="closeChallengeQuiz()">Close</button>
+        </div>
+    </div>
+
+    <!-- Cutscene Modal (Comic Panel) -->
+    <div id="cutscene-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <img src="images/cutscene_intro.png" alt="Intro Comic Panel" class="cutscene-image"/>
+            <p>"A new threat rises in the city shadows..."</p>
+            <button onclick="closeCutscene()">Continue</button>
+        </div>
+    </div>
+    <!-- Leaderboard Modal -->
+    <div id="leaderboard-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <h2>Friend Leaderboard</h2>
+            <ul id="leaderboard-list"><li>Coming soon: Your friends' progress will appear here!</li></ul>
+            <button onclick="closeLeaderboard()">Close</button>
+        </div>
+    </div>
+    <!-- Share Progress Modal -->
+    <div id="share-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <h2>Share Your Progress</h2>
+            <p>Copy your progress link or share with friends!</p>
+            <input id="progress-link" value="https://storymode.app/progress/your-id" readonly class="progress-link-input" aria-label="Progress link" />
+            <button onclick="copyProgressLink()">Copy Link</button>
+            <button onclick="closeShare()">Close</button>
+        </div>
+    </div>
+    <!-- World Facts Modal -->
+    <div id="world-facts-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <h2>World Facts</h2>
+            <div id="world-facts-content">Select a world to see facts!</div>
+            <button onclick="closeWorldFacts()">Close</button>
+        </div>
+    </div>
+    <!-- Language Options Modal -->
+    <div id="language-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <h2>Language Options</h2>
+            <select id="language-select" aria-label="Select Language">
+                <option value="en">English</option>
+                <option value="af">Afrikaans</option>
+                <option value="zu">Zulu</option>
+                <option value="xh">Xhosa</option>
+                <option value="st">Sotho</option>
+            </select>
+            <button onclick="closeLanguage()">Close</button>
+        </div>
+    </div>
+    <!-- Avatar Customization Modal -->
+    <div id="avatar-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <h2>Customize Avatar</h2>
+            <p id="avatar-preview" class="avatar-preview-text">Loading avatar...</p>
+            <div id="avatar-picker" class="avatar-picker-grid"></div>
+            <button onclick="closeAvatar()">Close</button>
+        </div>
+    </div>
+    <!-- Save/Resume Modal -->
+    <div id="save-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <h2>Save & Resume</h2>
+            <p>Your progress is saved automatically. Resume anytime!</p>
+            <div class="save-actions-row">
+                <button onclick="saveProgress()">Save Now</button>
+                <button onclick="resumeProgress()">Resume Last Save</button>
+            </div>
+            <div id="save-slots" class="save-slots"></div>
+            <button onclick="closeSave()">Close</button>
+        </div>
+    </div>
+    <!-- In-Game Help Modal -->
+    <div id="help-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content">
+            <h2>In-Game Help</h2>
+            <p>Need help? Here you'll find tips, controls, and FAQ.</p>
+            <button onclick="closeHelp()">Close</button>
+        </div>
+    </div>
+    <div class="container story-container">
+            <button id="achievements-btn" class="floating-btn pos-achievements" aria-label="View Achievements" onclick="openAchievements()">🏆</button>
+        <button id="leaderboard-btn" class="floating-btn pos-leaderboard" aria-label="View Leaderboard" onclick="openLeaderboard()">🏅</button>
+        <button id="share-btn" class="floating-btn pos-share" aria-label="Share Progress" onclick="openShare()">🔗</button>
+        <button id="avatar-btn" class="floating-btn pos-avatar" aria-label="Customize Avatar" onclick="openAvatar()">🧑‍🎨</button>
+        <button id="language-btn" class="floating-btn pos-language" aria-label="Language Options" onclick="openLanguage()">🌐</button>
+        <button id="help-btn" class="floating-btn pos-help" aria-label="In-Game Help" onclick="openHelp()">❓</button>
+        <button id="save-btn" class="floating-btn pos-save" aria-label="Save/Resume" onclick="openSave()">💾</button>
+        <button id="coop-btn" class="floating-btn pos-coop" aria-label="Toggle Co-op Story Mode" onclick="toggleCoopMode()">🤝</button>
+        <button id="contrast-btn" class="floating-btn pos-contrast" aria-label="Toggle High Contrast" onclick="toggleHighContrast()">🌓</button>
+        <button id="motion-btn" class="floating-btn pos-motion" aria-label="Toggle Reduced Motion" onclick="toggleReducedMotion()">🎞️</button>
+        <script>
+        // Dynamic Animated Background
+        const bgCanvas = document.getElementById('dynamic-bg');
+        if(bgCanvas) {
+            const ctx = bgCanvas.getContext('2d');
+            function resizeBg() {
+                bgCanvas.width = window.innerWidth;
+                bgCanvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resizeBg);
+            resizeBg();
+            let t = 0;
+            function animateBg() {
+                ctx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+                for(let i=0;i<18;i++){
+                    const x = Math.sin(t/40+i)*bgCanvas.width*0.4+bgCanvas.width/2;
+                    const y = Math.cos(t/30+i*1.2)*bgCanvas.height*0.3+bgCanvas.height/2;
+                    ctx.beginPath();
+                    ctx.arc(x,y,38+18*Math.sin(t/20+i),0,2*Math.PI);
+                    ctx.fillStyle = `rgba(${180+60*Math.sin(i)},${220+20*Math.cos(i)},${255-40*i},0.08)`;
+                    ctx.fill();
+                }
+                t+=1;
+                requestAnimationFrame(animateBg);
+            }
+            animateBg();
+        }
+        // Ambient Music
+        const music = document.getElementById('ambient-music');
+        if(music) { music.volume = 0.35; music.play().catch(()=>{}); }
+        // Achievements Modal Logic
+        function openAchievements() {
+            document.getElementById('achievements-modal').style.display = 'flex';
+            // Example achievements
+            document.getElementById('achievements-list').innerHTML = '<li>First World Complete</li><li>Challenge Master</li><li>All Worlds Unlocked</li>';
+        }
+        function closeAchievements() { document.getElementById('achievements-modal').style.display = 'none'; }
+        // Cutscene Modal Logic
+        function closeCutscene() { document.getElementById('cutscene-modal').style.display = 'none'; }
+        </script>
+        <!-- Main Menu Screen -->
+        <div class="screen active" id="mainMenuScreen">
+            <h1>🎮 STORY MODE</h1>
+            <button class="menu-button" onclick="goToCharacterSelection()">
+                START ADVENTURE
+            </button>
+        </div>
+
+        <!-- Character Selection Screen -->
+        <div class="screen" id="characterScreen">
+            <div class="character-layout">
+                <div class="character-topbar">
+                    <p class="eyebrow">Sector Selection</p>
+                    <h2>Choose Your Operator</h2>
+                </div>
+
+                <div class="character-grid" id="characterGrid">
+                    <!-- Character cards will be generated here -->
+                </div>
+
+                <div class="featured-panel" id="featuredPanel">
+                    <div class="featured-media" id="featuredMedia"></div>
+                    <div class="featured-content">
+                        <div class="featured-meta">
+                            <span class="class-pill" id="featuredClass"></span>
+                            <span class="difficulty-pill" id="featuredDifficulty"></span>
+                        </div>
+                        <p id="selectedAvatarBadge" class="selected-avatar-badge">Avatar: Loading...</p>
+                        <h3 id="featuredName"></h3>
+                        <p id="featuredDescription"></p>
+                        <div class="ability-grid" id="abilityGrid"></div>
+                        <div class="featured-actions">
+                            <button class="journey-button" id="journeyButton" onclick="proceedToMissionSelection()">BEGIN JOURNEY</button>
+                            <button class="ghost-button" onclick="backToMenu()">BACK TO HUB</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mission Selection Screen -->
+        <div class="screen" id="missionScreen">
+            <div class="mission-layout">
+                <div class="mission-header">
+                    <div>
+                        <p class="eyebrow">Narrative Route</p>
+                        <h2>Choose Your Reality</h2>
+                        <p class="mission-subtitle">Step into landmark-inspired South African worlds and choose where your journey begins.</p>
+                        <div class="selected-info" id="selectedCharacterInfo"></div>
+                        <div class="selected-info coop-status-info" id="coopStatusInfo">Co-op Story Mode: Off</div>
+                    </div>
+                    <div class="progress-widget">
+                        <p>Total Progress</p>
+                        <div class="progress-widget-row">
+                            <strong id="missionProgressValue">64%</strong>
+                            <div class="progress-widget-track">
+                                <span id="missionProgressFill"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                                <div class="mission-grid" id="missionGrid" aria-label="World Selection" tabindex="0">
+                                        <!-- World cards will be generated here -->
+                                    <!-- World facts info button will be added to each card via JS -->
+                                </div>
+
+                                <!-- Prof Byte Mascot Floating Guide -->
+                                <div id="prof-byte-guide" class="prof-byte-guide" aria-live="polite" tabindex="0">
+                                    <div class="prof-byte-avatar-wrap">
+                                        <svg width="56" height="56" viewBox="0 0 64 64" fill="none" aria-label="Prof Byte Mascot" focusable="false">
+                                            <ellipse cx="32" cy="40" rx="22" ry="18" fill="#23243a"/>
+                                            <ellipse cx="32" cy="28" rx="18" ry="18" fill="#ffd86b"/>
+                                            <ellipse cx="24" cy="26" rx="3.5" ry="4.5" fill="#23243a"/>
+                                            <ellipse cx="40" cy="26" rx="3.5" ry="4.5" fill="#23243a"/>
+                                            <ellipse cx="32" cy="36" rx="7" ry="3" fill="#fff"/>
+                                            <ellipse cx="32" cy="37.5" rx="3.5" ry="1.5" fill="#ffd86b"/>
+                                            <rect x="18" y="12" width="28" height="8" rx="4" fill="#23243a"/>
+                                            <rect x="22" y="8" width="20" height="6" rx="3" fill="#6be0ff"/>
+                                        </svg>
+                                    </div>
+                                    <div id="prof-byte-tip" class="prof-byte-tip" aria-label="Prof Byte's Tip"></div>
+                                </div>
+<style>
+@keyframes bounceByte {
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-10px);}
+}
+.world-card[tabindex="0"]:focus {
+    outline: 2px solid #ffd86b;
+    box-shadow: 0 0 0 4px #ffd86b55;
+}
+.world-card {
+    transition: transform 0.18s cubic-bezier(.4,1.4,.6,1), box-shadow 0.18s, filter 0.18s;
+    will-change: transform, box-shadow, filter;
+}
+.world-card:hover, .world-card:focus {
+    transform: scale(1.035) translateY(-2px);
+    box-shadow: 0 8px 32px #00d9ff44, 0 0 0 2px #ffd86b55;
+    filter: brightness(1.08);
+    z-index: 2;
+}
+.badge-progress {
+    position: absolute; top: 18px; right: 18px; z-index: 2;
+    background: linear-gradient(90deg,#6be0ff,#ffd86b);
+    color: #23243a; font-size: 0.98rem; font-weight: 700;
+    border-radius: 999px; padding: 4px 14px; box-shadow: 0 2px 8px #0003;
+    letter-spacing: 0.5px;
+    border: 2px solid #fff2;
+}
+.badge-progress.locked {
+    background: #444a5a; color: #aaa; border: 2px solid #222;
+}
+.badge-progress.complete {
+    background: linear-gradient(90deg,#baff6b,#6be0ff);
+    color: #23243a;
+}
+.badge-progress.inprogress {
+    background: linear-gradient(90deg,#ffd86b,#ff2f7d);
+    color: #23243a;
+}
+</style>
+<script>
+// Prof Byte tips (rotating)
+const profByteTips = [
+    "Tip: Worlds with a green badge are 100% complete!",
+    "Locked worlds show a gray badge. Complete others to unlock.",
+    "Use Tab to navigate cards. Press Enter to select a world.",
+    "Hover a card for more info. Try them all!",
+    "Prof Byte is here to help. Good luck, agent!"
+];
+let tipIdx = 0;
+function rotateProfByteTip() {
+    document.getElementById('prof-byte-tip').textContent = profByteTips[tipIdx % profByteTips.length];
+    tipIdx++;
+}
+setInterval(rotateProfByteTip, 6000);
+rotateProfByteTip();
+</script>
+
+                <div class="mission-footer-actions">
+                    <button class="ghost-button" onclick="openBranchingPrompt()">Story Choice</button>
+                    <button class="back-button" onclick="backToCharacterSelection()">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Loading Screen -->
+        <div class="screen" id="gameLoadingScreen">
+            <div class="game-loading">
+                <h1>LOADING GAME</h1>
+                <div class="loading-info" id="loadingInfo"></div>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <p class="loading-note">Get ready for an epic adventure...</p>
+            </div>
+        </div>
+
+        <aside id="debug-panel" class="debug-panel">
+            <strong class="debug-panel-title">DEV ANALYTICS</strong>
+            <div id="debug-panel-content" class="debug-panel-content"></div>
+        </aside>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+    // Placeholder modal open/close functions
+    function openLeaderboard() { window.openModalWithFocus ? openModalWithFocus('leaderboard-modal') : document.getElementById('leaderboard-modal').style.display = 'flex'; }
+    function closeLeaderboard() { window.closeModalWithFocus ? closeModalWithFocus('leaderboard-modal') : document.getElementById('leaderboard-modal').style.display = 'none'; }
+    function openShare() { window.openModalWithFocus ? openModalWithFocus('share-modal') : document.getElementById('share-modal').style.display = 'flex'; }
+    function closeShare() { window.closeModalWithFocus ? closeModalWithFocus('share-modal') : document.getElementById('share-modal').style.display = 'none'; }
+    async function copyProgressLink() {
+        const link = document.getElementById('progress-link');
+        const text = link.value;
+        try {
+            await navigator.clipboard.writeText(text);
+            alert('Link copied!');
+        } catch (e) {
+            link.select();
+            document.execCommand('copy');
+            alert('Link copied!');
+        }
+    }
+    function openWorldFacts() { window.openModalWithFocus ? openModalWithFocus('world-facts-modal') : document.getElementById('world-facts-modal').style.display = 'flex'; }
+    function closeWorldFacts() { window.closeModalWithFocus ? closeModalWithFocus('world-facts-modal') : document.getElementById('world-facts-modal').style.display = 'none'; }
+    function openLanguage() { window.openModalWithFocus ? openModalWithFocus('language-modal') : document.getElementById('language-modal').style.display = 'flex'; }
+    function closeLanguage() { window.closeModalWithFocus ? closeModalWithFocus('language-modal') : document.getElementById('language-modal').style.display = 'none'; }
+    function openAvatar() { window.openModalWithFocus ? openModalWithFocus('avatar-modal') : document.getElementById('avatar-modal').style.display = 'flex'; window.renderAvatarPicker?.(); }
+    function closeAvatar() { window.closeModalWithFocus ? closeModalWithFocus('avatar-modal') : document.getElementById('avatar-modal').style.display = 'none'; }
+    function openSave() { window.openModalWithFocus ? openModalWithFocus('save-modal') : document.getElementById('save-modal').style.display = 'flex'; window.renderSaveSlots?.(); }
+    function closeSave() { window.closeModalWithFocus ? closeModalWithFocus('save-modal') : document.getElementById('save-modal').style.display = 'none'; }
+    function openHelp() { window.openModalWithFocus ? openModalWithFocus('help-modal') : document.getElementById('help-modal').style.display = 'flex'; }
+    function closeHelp() { window.closeModalWithFocus ? closeModalWithFocus('help-modal') : document.getElementById('help-modal').style.display = 'none'; }
+    function closeRewardBreakdown() { window.closeModalWithFocus ? closeModalWithFocus('reward-breakdown-modal') : document.getElementById('reward-breakdown-modal').style.display = 'none'; }
+    function closeBranchModal() { window.closeModalWithFocus ? closeModalWithFocus('branch-modal') : document.getElementById('branch-modal').style.display = 'none'; }
+    </script>
+</body>
+</html>

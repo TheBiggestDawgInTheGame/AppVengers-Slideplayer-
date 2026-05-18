@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Help | SlidePlay</title>
+    <link rel="stylesheet" href="help.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+  </head>
+
+  <body>
+    <!-- NAVBAR -->
+    <header class="navbar">
+      <h1 class="logo">SlidePlay</h1>
+
+      <nav class="nav-links">
+        <a href="../../index.html">Home</a>
+        <a href="features.html">Features</a>
+        <a href="about.html">About</a>
+        <a href="help.html" class="active">Help</a>
+      </nav>
+
+      <div class="auth">
+        <a href="../auth/SignUp.html" class="signup-btn">Sign Up</a>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="help-hero">
+      <h2>Help Center</h2>
+      <p>Everything you need to start learning like a game 🎮</p>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works">
+      <h2>How It Works ?</h2>
+
+      <div class="steps">
+        <div class="step">
+          <i class="fa-solid fa-user-plus"></i>
+          <h3>Create Account</h3>
+          <p>Sign up and start your learning journey.</p>
+        </div>
+
+        <div class="step">
+          <i class="fa-solid fa-book"></i>
+          <h3>Choose Topic</h3>
+          <p>Select what you want to learn.</p>
+        </div>
+
+        <div class="step">
+          <i class="fa-solid fa-gamepad"></i>
+          <h3>Play & Learn</h3>
+          <p>Answer quizzes and complete missions.</p>
+        </div>
+
+        <div class="step">
+          <i class="fa-solid fa-trophy"></i>
+          <h3>Earn Rewards</h3>
+          <p>Gain XP, badges, and level up.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq">
+      <h2>Frequently Asked Questions</h2>
+
+      <!-- 8 QUESTIONS -->
+
+      <div class="faq-item">
+        <button class="faq-question">1. How do I start learning?</button>
+        <div class="faq-answer">Click "Start Learning" and choose a topic.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">2. Is SlidePlay free?</button>
+        <div class="faq-answer">Yes, core features are free to use.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">3. How does XP work?</button>
+        <div class="faq-answer">
+          You earn XP by completing quizzes and missions.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">4. Can I retake quizzes?</button>
+        <div class="faq-answer">Yes, you can replay quizzes anytime.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">5. How do I track progress?</button>
+        <div class="faq-answer">Check your dashboard for progress stats.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">6. I forgot my password?</button>
+        <div class="faq-answer">Use the “Forgot Password” option on login.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">7. Can I compete with others?</button>
+        <div class="faq-answer">Yes, tournaments allow you to compete.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">8. What are rewards?</button>
+        <div class="faq-answer">Rewards include badges, XP, and rankings.</div>
+      </div>
+    </section>
+    <section class="contact">
+      <h2>Still need help?</h2>
+      <p>
+        Reach out to our team and we’ll get back to you as soon as possible.
+      </p>
+
+      <form id="contactForm" class="contact-form">
+        <div class="input-box">
+          <i class="fa-solid fa-user"></i>
+          <input type="text" id="name" placeholder="Your Name" required />
+        </div>
+
+        <div class="input-box">
+          <i class="fa-solid fa-envelope"></i>
+          <input type="email" id="email" placeholder="Your Email" required />
+        </div>
+
+        <div class="input-box">
+          <i class="fa-solid fa-message"></i>
+          <textarea
+            id="message"
+            placeholder="Your Message..."
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" class="contact-btn">
+          <i class="fa-solid fa-paper-plane"></i> Send Message
+        </button>
+      </form>
+    </section>
+      <footer>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+    </footer>
+
+    <!-- FAQ SCRIPT -->
+    <script>
+      const questions = document.querySelectorAll(".faq-question");
+
+      questions.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          btn.parentElement.classList.toggle("active");
+        });
+      });
+    </script>
+    <script src="contact.js"></script>
+  </body>
+</html>

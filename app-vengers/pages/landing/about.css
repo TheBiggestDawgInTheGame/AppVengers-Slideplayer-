@@ -1,0 +1,297 @@
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* BODY */
+body {
+  background: #0f0f1a;
+  color: white;
+  font-family: Arial, sans-serif;
+  padding-top: 80px;
+}
+
+/* NAVBAR */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 15px 40px;
+  background: #09000e;
+
+  border-bottom: 1px solid rgba(0, 247, 255, 0.2);
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: 70px;
+  z-index: 1000;
+}
+
+/* LOGO */
+.logo {
+  font-size: 1.6rem;
+  font-weight: 800;
+
+  background: linear-gradient(90deg, #ff4ecd, #8a2be2, #00c6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* NAV LINKS */
+.nav-links {
+  display: flex;
+  gap: 25px;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.nav-links a:hover {
+  color: #00f7ff;
+}
+
+.nav-links a.active {
+  color: #00f7ff;
+  border-bottom: 2px solid #00f7ff;
+}
+
+/* BUTTON */
+.signup-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #ff4ecd, #8a2be2, #00c6ff);
+  color: white;
+  text-decoration: none;
+}
+
+/* ABOUT SECTION */
+.about-dashboard {
+  padding: 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* TITLE */
+.page-title {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.page-title h1 {
+  text-align: center;
+  font-size: 36px;
+  color: #00f7ff;
+}
+
+.page-title p {
+  color: #aaa;
+}
+
+/* LAYOUT */
+.about-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 25px;
+}
+
+/* PANELS */
+.about-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel {
+  background: #151528;
+  padding: 25px;
+  border-radius: 15px;
+  border: 1px solid rgba(0, 247, 255, 0.15);
+  transition: 0.3s;
+}
+
+.panel:hover {
+  transform: translateY(-5px);
+  border-color: #00f7ff;
+  box-shadow: 0 0 20px rgba(0, 247, 255, 0.2);
+}
+
+.panel h2 {
+  color: #00f7ff;
+  margin-bottom: 10px;
+}
+
+.panel p {
+  color: #ccc;
+  font-size: 14px;
+}
+
+/* SIDE CARDS */
+.about-side {
+  display: grid;
+  gap: 15px;
+}
+
+.mini-card {
+  background: #0d0d1a;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 78, 205, 0.2);
+  transition: 0.3s;
+}
+
+.mini-card:hover {
+  transform: scale(1.05);
+  border-color: #ff4ecd;
+  box-shadow: 0 0 15px rgba(255, 78, 205, 0.3);
+}
+
+.mini-card h3 {
+  color: #ff4ecd;
+}
+
+.mini-card p {
+  color: #bbb;
+  font-size: 13px;
+}
+/* ===========================
+   TEAM SECTION
+=========================== */
+.team-section {
+  padding: 40px;
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* TITLE */
+.team-title {
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 36px;
+  color: #00f7ff;
+}
+
+/* GRID */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 per row */
+  gap: 25px;
+}
+/* CARD */
+.team-card {
+  background: #151528;
+  padding: 25px;
+  border-radius: 15px;
+  border: 1px solid rgba(0, 247, 255, 0.15);
+  text-align: center;
+  transition: 0.3s;
+}
+
+.team-card:hover {
+  transform: translateY(-6px);
+  border-color: #00f7ff;
+  box-shadow: 0 0 20px rgba(0, 247, 255, 0.3);
+}
+
+/* AVATAR */
+.avatar {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff4ecd, #8a2be2, #00c6ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+  color: white;
+}
+
+/* TEXT */
+.team-card h3 {
+  margin-bottom: 5px;
+}
+
+.role {
+  color: #00f7ff;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.desc {
+  color: #bbb;
+  font-size: 13px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 20px;
+  background: #141428;
+  color: #888;
+}
+
+/* -- Global Theme Sync: Settings Palette -- */
+:root {
+  --bg-color:
+    radial-gradient(circle at top center, rgba(255, 126, 209, 0.16), transparent 28%),
+    linear-gradient(180deg, #120617 0%, #100717 45%, #07050d 100%);
+  --card-color: rgba(255, 255, 255, 0.05);
+  --text-main: #ffffff;
+  --text-dim: #a0a0a0;
+  --accent: #5ce8ff;
+  --border: rgba(255, 255, 255, 0.1);
+
+  --bg: #100717;
+  --panel: rgba(255, 255, 255, 0.05);
+  --panel-soft: rgba(255, 255, 255, 0.05);
+  --panel-strong: rgba(7, 5, 13, 0.92);
+  --line: rgba(255, 255, 255, 0.1);
+  --line-pink: rgba(255, 126, 209, 0.3);
+  --text: #ffffff;
+  --muted: #a0a0a0;
+  --cyan: #5ce8ff;
+  --cyan-soft: rgba(92, 232, 255, 0.16);
+  --cyan-glow: rgba(92, 232, 255, 0.38);
+  --magenta: #ff7ed1;
+  --magenta-soft: rgba(255, 126, 209, 0.18);
+  --amber: #ff7ed1;
+  --amber-soft: rgba(255, 126, 209, 0.2);
+
+  --bg-main: #100717;
+  --bg-navbar: #0e0613;
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-card-alt: rgba(15, 10, 22, 0.9);
+  --neon-cyan: #5ce8ff;
+  --neon-pink: #ff7ed1;
+  --neon-purple: #a257ff;
+  --gradient-main: linear-gradient(90deg, #ff7ed1, #a257ff, #5ce8ff);
+}
+
+body {
+  background: var(--bg-color) !important;
+  color: var(--text-main);
+}

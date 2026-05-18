@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gemma2 Learning Assistant</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Learning Studio with Gemma2</h1>
+        <p>One guided workflow for upload, extraction, quiz creation, and tutoring</p>
+      </header>
+
+      <main>
+        <section class="studio-nav" aria-label="Learning Studio Steps">
+          <button class="studio-step active" data-step-target="step-upload">1. Upload</button>
+          <button class="studio-step" data-step-target="step-extract">2. Extract Key Points</button>
+          <button class="studio-step" data-step-target="step-quiz">3. Generate Quiz</button>
+          <button class="studio-step" data-step-target="step-chat">4. Ask Follow-up</button>
+        </section>
+
+        <section class="studio-content">
+          <section class="studio-panel active" id="step-upload">
+            <h2>Upload Learning Materials</h2>
+            <p class="panel-subtitle">Start by adding study files. Best extraction support: TXT, MD, CSV, JSON, HTML.</p>
+
+            <div class="upload-section">
+              <div class="drop-area" id="dropArea">
+                <div class="upload-icon">📁</div>
+                <h3>Drop learning files here</h3>
+                <p>All file types are accepted. Best extraction support: text files, PDF, DOCX, and images via OCR (English + French).</p>
+                <button id="browseBtn">Browse Files</button>
+                <input
+                  type="file"
+                  id="fileInput"
+                  aria-label="Upload learning files"
+                  accept="*/*"
+                  multiple
+                  class="hidden"
+                />
+              </div>
+              <div class="file-list" id="fileList"></div>
+            </div>
+          </section>
+
+          <section class="studio-panel" id="step-extract">
+            <h2>Extract Key Points</h2>
+            <p class="panel-subtitle">Generate a concise learning map from your uploaded content.</p>
+            <div class="tool-actions">
+              <button id="extractBtn">Extract Key Ideas</button>
+            </div>
+            <section class="analysis-panel" id="analysisPanel">
+              <h3>Extracted Learning Map</h3>
+              <p class="analysis-placeholder" id="analysisPlaceholder">
+                Upload files first, then click Extract Key Ideas.
+              </p>
+              <div id="summaryBlock" class="hidden"></div>
+              <ul id="keyPointsList"></ul>
+            </section>
+          </section>
+
+          <section class="studio-panel" id="step-quiz">
+            <h2>Generate Quiz</h2>
+            <p class="panel-subtitle">Create a question bank from extracted key points and launch a knowledge check.</p>
+            <div class="tool-actions">
+              <button id="generateBtn">Generate Questions</button>
+              <button id="launchQuizBtn" disabled>Start Quiz</button>
+            </div>
+            <section class="analysis-panel">
+              <h3>Quiz Status</h3>
+              <p id="quizSummary" class="analysis-placeholder">No quiz generated yet.</p>
+            </section>
+          </section>
+
+          <section class="studio-panel" id="step-chat">
+            <h2>Ask Follow-up Questions</h2>
+            <p class="panel-subtitle">Use tutor chat to clarify concepts from your extracted material and quiz results.</p>
+
+            <div class="chat-container">
+              <div class="chat-header">
+                <h2>Learning Assistant</h2>
+                <div class="status-indicator">
+                  <span class="status-dot" id="statusDot"></span>
+                  <span class="status-text" id="statusText">Checking Ollama...</span>
+                </div>
+              </div>
+              <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">
+                  <div class="avatar">🤖</div>
+                  <div class="content">
+                    <p>Hello! I am your local study assistant powered by Gemma2.</p>
+                    <p>Follow the studio steps: upload files, extract key points, generate a quiz, then ask follow-up questions here.</p>
+                    <p>Make sure Ollama is running with a model like Gemma2.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="chat-input">
+                <textarea id="userInput" placeholder="Ask follow-up questions about your extracted learning content..."></textarea>
+                <button id="sendBtn">Send</button>
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <div class="quiz-modal" id="quizModal">
+        <div class="quiz-content">
+          <h3>Knowledge Check</h3>
+          <div class="quiz-question" id="quizQuestion"></div>
+          <div class="quiz-options" id="quizOptions"></div>
+          <div class="quiz-feedback" id="quizFeedback"></div>
+          <div class="quiz-progress" id="quizProgress"></div>
+          <div class="quiz-actions">
+            <button id="nextQuizBtn">Next Question</button>
+            <button id="closeQuizBtn">Close Quiz</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.min.js"></script>
+    <script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

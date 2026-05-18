@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pacman Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <div class="header-top">
+                <h1 class="logo">Slide<span class="logo-play">Play</span></h1>
+                <div class="header-buttons">
+                    <button class="btn-header">About</button>
+                    <button class="btn-header">Guest</button>
+                </div>
+            </div>
+            <div class="header-middle">
+                <h2 id="gameTitle">Pacman Game</h2>
+                <div class="game-status" id="gameStatus">Ready to Start</div>
+            </div>
+            <div class="game-info">
+                <div class="score">Score: <span id="score">0</span></div>
+                <div class="lives">Lives: <span id="lives">3</span></div>
+                <div class="level">Level: <span id="level">1</span></div>
+                <div class="pellets-left">Pellets: <span id="pelletsLeft">0</span></div>
+                <div class="combo">Combo: x<span id="combo">1</span></div>
+                <div class="high-score">Best: <span id="highScore">0</span></div>
+            </div>
+        </div>
+
+        <div class="game-wrapper">
+            <div id="gameContainer" class="game-container"></div>
+            <div id="countdownOverlay" class="countdown-overlay hidden">
+                <span id="countdownText"></span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="controls-info">
+                <p><strong>Controls:</strong> Arrow Keys or WASD to move</p>
+            </div>
+            <div class="study-panel" aria-live="polite">
+                <div class="study-panel-label">Slide Challenge</div>
+                <div class="study-panel-text" id="studyBrief">Launch from the upload flow to bring slide prompts into the maze.</div>
+            </div>
+            <button class="btn btn-primary" data-start-game="true" type="button">Start Game</button>
+            <button class="btn btn-secondary" data-reset-game="true" type="button">Reset</button>
+        </div>
+
+        <div id="gameOverModal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="modalTitle">Game Over!</h2>
+                <p id="modalMessage"></p>
+                <div class="modal-info">
+                    <p>Final Score: <span id="finalScore">0</span></p>
+                </div>
+                <button class="btn btn-primary" data-start-game="true" type="button">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../shared/game-modes.js"></script>
+    <script src="../../shared/progress-tracker.js"></script>
+    <script src="../../shared/adventure-layer.js"></script>
+    <script src="../../shared/mode-environment.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

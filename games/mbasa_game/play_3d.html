@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Road Runner 3D</title>
+  <link rel="stylesheet" href="play_3d.css">
+</head>
+<body>
+  <div id="app">
+    <div id="stage" aria-label="3D game stage"></div>
+
+    <!-- Quiz panel -->
+    <div id="quizPanel" class="hidden" aria-live="polite">
+      <div id="quizQuestionText">Run into the block that matches the definition!</div>
+      <div id="quizFeedback"></div>
+    </div>
+
+    <div id="hud">
+      <span id="score">Score: 0</span>
+      <span id="lives">Lives: 3</span>
+      <span id="speed">Speed: 1.0x</span>
+      <span id="mode">Mode: Solo</span>
+        <span id="combo">x1</span>
+      <span id="topic">Source: built-in track</span>
+      <span id="tuning">Tuning: --</span>
+    </div>
+
+    <div id="hitFlash" aria-hidden="true"></div>
+
+    <div id="startOverlay" class="overlay">
+      <h1>Road Runner 3D</h1>
+      <p>Use Left and Right Arrow keys (or swipe) to change lanes.</p>
+      <p id="sourceInfo">No uploaded slide data found. Running default challenge track.</p>
+      <div class="mode-select" role="group" aria-label="Play mode">
+        <button type="button" class="mode-btn active" data-mode="solo">Solo</button>
+        <button type="button" class="mode-btn" data-mode="multiplayer">2 Players</button>
+        <button type="button" class="mode-btn" data-mode="tournament">Tournament</button>
+      </div>
+      <button id="startBtn" type="button">Start Run</button>
+    </div>
+
+    <div id="gameOverOverlay" class="overlay hidden">
+      <h2>Game Over</h2>
+      <p id="finalScore">Score: 0</p>
+      <p id="bestScore">Best: 0</p>
+      <button id="restartBtn" type="button">Run Again</button>
+    </div>
+  </div>
+
+    <!-- Countdown overlay -->
+    <div id="countdownOverlay" class="overlay hidden" aria-live="assertive">
+      <div id="countdownText" class="countdown-number">3</div>
+    </div>
+
+    <!-- Pause overlay -->
+    <div id="pauseOverlay" class="overlay hidden">
+      <h2>Paused</h2>
+      <p>Press <kbd>Esc</kbd> or <kbd>P</kbd> to resume</p>
+      <button id="resumeBtn" type="button">Resume</button>
+    </div>
+
+    <!-- Mobile on-screen controls -->
+    <div id="mobileControls" aria-hidden="true">
+      <button id="mobileLeft" type="button" aria-label="Move left">&#8592;</button>
+      <button id="mobileRight" type="button" aria-label="Move right">&#8594;</button>
+    </div>
+
+  <script type="module" src="play_3d.js"></script>
+</body>
+</html>

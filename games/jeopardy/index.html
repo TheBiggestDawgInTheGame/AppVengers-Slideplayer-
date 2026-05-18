@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Mode Selector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg0: #081521;
+      --bg1: #12243a;
+      --line: rgba(255,255,255,0.14);
+      --text: #f2f7ff;
+      --muted: #c4d5ea;
+      --accent: #ff9f2b;
+      --accent2: #26d0ce;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(38,208,206,0.22), transparent 38%),
+        radial-gradient(circle at 85% 10%, rgba(255,159,43,0.24), transparent 36%),
+        linear-gradient(155deg, var(--bg0), var(--bg1));
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+      mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+    }
+
+    .shell {
+      width: min(920px, 94vw);
+      padding: clamp(20px, 4vw, 36px);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(6, 15, 26, 0.72);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: 'Bungee', cursive;
+      letter-spacing: 0.04em;
+      font-size: clamp(1.5rem, 4.2vw, 2.7rem);
+      line-height: 1.1;
+    }
+
+    .sub {
+      margin: 12px 0 24px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      max-width: 62ch;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      text-decoration: none;
+      color: inherit;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+      display: grid;
+      gap: 10px;
+      min-height: 220px;
+      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    }
+
+    .card:hover,
+    .card:focus-visible {
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,0.35);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.28);
+      outline: none;
+    }
+
+    .card-emoji { font-size: 2rem; }
+
+    .pill {
+      justify-self: start;
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .pill.two-d { border-color: rgba(255,159,43,0.55); color: #ffd8a8; background: rgba(255,159,43,0.1); }
+    .pill.three-d { border-color: rgba(38,208,206,0.55); color: #b7f7f5; background: rgba(38,208,206,0.1); }
+
+    .title {
+      margin: 0;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.93rem;
+      line-height: 1.45;
+    }
+
+    .cta {
+      margin-top: auto;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .back {
+      display: inline-flex;
+      margin-top: 18px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+    }
+
+    .back:hover { color: #fff; }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <h1>Quiz Mode Selection</h1>
+    <p class="sub">Choose the quiz presentation style. Both options use your uploaded or demo material to generate gameplay content.</p>
+
+    <section class="grid" aria-label="Quiz version choices">
+      <a id="quiz-2d-link" class="card" href="../jeopardy-quiz/index.html">
+        <span class="card-emoji">🧾</span>
+        <span class="pill two-d">2D Quiz</span>
+        <h2 class="title">Classic 2D</h2>
+        <p class="desc">Clean, direct quiz layout focused on questions, answers, and quick progression.</p>
+        <span class="cta">Launch 2D</span>
+      </a>
+
+      <a id="quiz-3d-link" class="card" href="../jeopardy-3d/index.html?game=quiz">
+        <span class="card-emoji">🎬</span>
+        <span class="pill three-d">3D Quiz Show</span>
+        <h2 class="title">Immersive 3D</h2>
+        <p class="desc">Game-show style experience with 3D stage visuals and richer presentation.</p>
+        <span class="cta">Launch 3D</span>
+      </a>
+    </section>
+
+    <a id="back-link" class="back" href="../../slide_upload/games.html">← Back to game list</a>
+  </main>
+
+  <script>
+    (function configureLinks() {
+      var params = new URLSearchParams(window.location.search);
+      var source = params.get('source') || '';
+      var from = params.get('from') || '';
+      if (!from) {
+        params.set('from', 'quiz-selector');
+      }
+
+      var paramsFor2D = new URLSearchParams(params.toString());
+      paramsFor2D.delete('game');
+
+      var paramsFor3D = new URLSearchParams(params.toString());
+      paramsFor3D.set('game', 'quiz');
+
+      var twoD = document.getElementById('quiz-2d-link');
+      var threeD = document.getElementById('quiz-3d-link');
+      var back = document.getElementById('back-link');
+
+      if (twoD) twoD.href = '../jeopardy-quiz/index.html' + (paramsFor2D.toString() ? '?' + paramsFor2D.toString() : '');
+      if (threeD) threeD.href = '../jeopardy-3d/index.html' + (paramsFor3D.toString() ? '?' + paramsFor3D.toString() : '');
+
+      if (back && source === 'upload') {
+        back.href = '../../slide_upload/games.html';
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Chain Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="game-header">
+      <div class="header-title-group">
+        <h1>Memory Chain</h1>
+        <p>Rebuild process steps from your slide content in the right order.</p>
+      </div>
+      <div class="difficulty-panel" role="group" aria-label="Difficulty">
+        <button class="difficulty-btn active" data-difficulty="easy" type="button">Easy</button>
+        <button class="difficulty-btn" data-difficulty="medium" type="button">Medium</button>
+        <button class="difficulty-btn" data-difficulty="hard" type="button">Hard</button>
+      </div>
+    </header>
+
+    <main class="game-main">
+      <section class="board-panel" aria-label="Sequence board">
+        <div class="board-header">
+          <h2>Arrange The Steps</h2>
+          <p id="sourceSummary">Loading slide steps...</p>
+        </div>
+
+        <ul id="sequenceBoard" class="sequence-board" aria-live="polite"></ul>
+
+        <div class="controls-row">
+          <button id="shuffleBtn" class="action-btn secondary" type="button">Shuffle</button>
+          <button id="checkBtn" class="action-btn primary" type="button">Check Sequence</button>
+          <button id="nextRoundBtn" class="action-btn tertiary" type="button" disabled>Next Round</button>
+        </div>
+
+        <p id="feedbackText" class="feedback-text" aria-live="polite"></p>
+      </section>
+
+      <aside class="stats-panel" aria-label="Game stats">
+        <h3>Round Stats</h3>
+        <div class="stat-row"><span>Difficulty</span><strong id="difficultyValue">Easy</strong></div>
+        <div class="stat-row"><span>Round</span><strong id="roundValue">1</strong></div>
+        <div class="stat-row"><span>Time</span><strong id="timeValue">00:00</strong></div>
+        <div class="stat-row"><span>Accuracy</span><strong id="accuracyValue">0%</strong></div>
+        <div class="stat-row"><span>Round Points</span><strong id="roundPointsValue">0</strong></div>
+        <div class="stat-row"><span>Total Score</span><strong id="totalScoreValue">0</strong></div>
+        <div class="stat-row"><span>Streak</span><strong id="streakValue">0</strong></div>
+
+        <div class="legend-box">
+          <h4>Feedback Legend</h4>
+          <p><span class="dot correct"></span> Green: correct position</p>
+          <p><span class="dot misplaced"></span> Red: misplaced step</p>
+        </div>
+
+        <div class="tips-box">
+          <h4>Controls</h4>
+          <p>Drag and drop cards to reorder.</p>
+          <p>Or click one card, then click another to swap.</p>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="../../shared/game-modes.js"></script>
+  <script src="../../shared/progress-tracker.js"></script>
+  <script src="../../shared/adventure-layer.js"></script>
+  <script src="../../shared/mode-environment.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

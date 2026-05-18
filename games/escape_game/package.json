@@ -1,0 +1,13 @@
+{
+  "name": "escape-game-live-multiplayer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Live multiplayer relay for 3D escape game",
+  "main": "multiplayer-server.js",
+  "scripts": {
+    "start:mp": "node multiplayer-server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Typing Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="game-header">
+            <div class="header-top">
+                <h1 class="logo">Slide<span class="logo-play">Play</span></h1>
+                <div class="header-buttons">
+                    <button class="btn-header">About</button>
+                    <button class="btn-header">Guest</button>
+                </div>
+            </div>
+            <div class="header-middle">
+                <h2>Speed Typing Challenge</h2>
+                <p>Type the words as fast as you can before time runs out.</p>
+            </div>
+            <div class="difficulty-select">
+                <button class="btn-difficulty active" data-difficulty="easy">Easy</button>
+                <button class="btn-difficulty" data-difficulty="medium">Medium</button>
+                <button class="btn-difficulty" data-difficulty="hard">Hard</button>
+            </div>
+        </header>
+
+        <main class="game-panel">
+            <div class="game-layout">
+                <aside class="stats-card" aria-label="Live game metrics">
+                    <h3 class="panel-title">Live Metrics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-row stat-tile">
+                            <span>Time left</span>
+                            <div class="stat-value-wrap"><strong id="timeLeft" aria-live="polite">60</strong><em>s</em></div>
+                        </div>
+                        <div class="stat-row stat-tile">
+                            <span>Current score</span>
+                            <strong id="score">0</strong>
+                        </div>
+                        <div class="stat-row stat-tile">
+                            <span>Words typed</span>
+                            <strong id="typedCount">0</strong>
+                        </div>
+                        <div class="stat-row stat-tile">
+                            <span>WPM</span>
+                            <strong id="wpm">0</strong>
+                        </div>
+                        <div class="stat-row stat-tile">
+                            <span>Accuracy</span>
+                            <strong id="accuracy">100%</strong>
+                        </div>
+                        <div class="stat-row stat-tile">
+                            <span>Best score</span>
+                            <strong id="bestScore">0</strong>
+                        </div>
+                    </div>
+                </aside>
+
+                <section class="typing-card">
+                    <div class="typing-head">
+                        <h3 class="panel-title">Typing Arena</h3>
+                        <p>Match the sentence exactly and keep momentum.</p>
+                    </div>
+
+                    <div class="task-box">
+                        <p id="challengeText">Press Start to begin!</p>
+                    </div>
+
+                    <div class="input-box">
+                        <label for="typingInput" class="sr-only">Type the challenge text</label>
+                        <input id="typingInput" type="text" placeholder="Type here..." autocomplete="off" disabled>
+                    </div>
+
+                    <div class="controls-row">
+                        <button class="btn btn-primary" id="startBtn">Start</button>
+                        <button class="btn btn-secondary" id="resetBtn">Reset</button>
+                    </div>
+
+                    <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal-overlay hidden" id="summaryModal" role="dialog" aria-modal="true" aria-labelledby="summaryTitle">
+        <div class="modal-card">
+            <h3 id="summaryTitle">Game Summary</h3>
+            <div class="modal-stats">
+                <div class="stat-row">
+                    <span>Final score</span>
+                    <strong id="finalScore">0</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Final WPM</span>
+                    <strong id="finalWpm">0</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Final accuracy</span>
+                    <strong id="finalAccuracy">100%</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Best score</span>
+                    <strong id="finalBestScore">0</strong>
+                </div>
+            </div>
+            <div class="controls-row modal-controls">
+                <button class="btn btn-primary" id="playAgainBtn">Play Again</button>
+                <button class="btn btn-secondary" id="closeSummaryBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../shared/game-modes.js"></script>
+    <script src="../../shared/progress-tracker.js"></script>
+    <script src="../../shared/adventure-layer.js"></script>
+    <script src="../../shared/mode-environment.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

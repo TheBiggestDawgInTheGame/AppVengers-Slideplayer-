@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slide Puzzle Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="game-header">
+      <div>
+        <h1>Slide Puzzle</h1>
+        <p>Rebuild slide structure by placing shuffled fragments into the correct positions.</p>
+      </div>
+      <div class="difficulty-controls" role="group" aria-label="Difficulty">
+        <button class="difficulty-btn active" data-level="easy" type="button">Easy</button>
+        <button class="difficulty-btn" data-level="medium" type="button">Medium</button>
+        <button class="difficulty-btn" data-level="hard" type="button">Hard</button>
+      </div>
+    </header>
+
+    <main class="game-main">
+      <section class="board-panel" aria-label="Puzzle board">
+        <div class="board-head">
+          <h2>Puzzle Board</h2>
+          <p id="sourceInfo">Loading slide fragments...</p>
+        </div>
+
+        <div id="slotGrid" class="slot-grid" aria-live="polite"></div>
+
+        <h3 class="pool-title">Shuffled Pieces</h3>
+        <div id="piecePool" class="piece-pool" aria-live="polite"></div>
+
+        <div class="action-row">
+          <button id="shuffleBtn" class="action-btn secondary" type="button">Shuffle Pieces</button>
+          <button id="checkBtn" class="action-btn primary" type="button">Check Puzzle</button>
+          <button id="nextBtn" class="action-btn tertiary" type="button" disabled>Next Round</button>
+        </div>
+
+        <p id="feedbackText" class="feedback-text" aria-live="polite"></p>
+      </section>
+
+      <aside class="stats-panel" aria-label="Puzzle stats">
+        <h3>Round Stats</h3>
+        <div class="stat-row"><span>Difficulty</span><strong id="difficultyValue">Easy</strong></div>
+        <div class="stat-row"><span>Round</span><strong id="roundValue">1</strong></div>
+        <div class="stat-row"><span>Pieces</span><strong id="pieceCountValue">6</strong></div>
+        <div class="stat-row"><span>Time</span><strong id="timeValue">00:00</strong></div>
+        <div class="stat-row"><span>Accuracy</span><strong id="accuracyValue">0%</strong></div>
+        <div class="stat-row"><span>Round Points</span><strong id="roundPointsValue">0</strong></div>
+        <div class="stat-row"><span>Total Score</span><strong id="totalScoreValue">0</strong></div>
+        <div class="stat-row"><span>Streak</span><strong id="streakValue">0</strong></div>
+
+        <div class="legend-box">
+          <h4>Placement Feedback</h4>
+          <p><span class="dot correct"></span> Correct placement</p>
+          <p><span class="dot wrong"></span> Incorrect placement</p>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="../../shared/game-modes.js"></script>
+  <script src="../../shared/progress-tracker.js"></script>
+  <script src="../../shared/adventure-layer.js"></script>
+  <script src="../../shared/mode-environment.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

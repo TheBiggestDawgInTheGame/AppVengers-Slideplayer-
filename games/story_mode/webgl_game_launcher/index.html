@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Mode WebGL Launcher</title>
+    <style>
+        :root {
+            --bg-a: #070a17;
+            --bg-b: #141c3b;
+            --card: #171f43;
+            --line: #33407a;
+            --ink: #e9edff;
+            --muted: #aeb8de;
+            --accent: #00d9ff;
+            --accent-2: #ff2f7d;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background:
+                radial-gradient(900px 520px at 82% -20%, rgba(0, 217, 255, 0.22), transparent 65%),
+                radial-gradient(780px 500px at -20% 112%, rgba(255, 47, 125, 0.2), transparent 62%),
+                linear-gradient(145deg, var(--bg-a), var(--bg-b));
+            color: var(--ink);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        #game-container {
+            width: min(1100px, 100%);
+            aspect-ratio: 16 / 9;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 24px 52px rgba(0, 0, 0, 0.45);
+            background: #0a1026;
+        }
+
+        #webgl-frame {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            display: block;
+            background: #05070f;
+        }
+
+        .briefing {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 18px;
+            background: rgba(7, 10, 23, 0.86);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            z-index: 4;
+        }
+
+        .briefing-card {
+            width: min(620px, 100%);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)), var(--card);
+            padding: 22px;
+        }
+
+        .briefing-title {
+            margin: 0;
+            font-size: clamp(1.2rem, 2.8vw, 2rem);
+            letter-spacing: 0.7px;
+            text-transform: uppercase;
+        }
+
+        .briefing-subtitle {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .briefing-grid {
+            margin-top: 16px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .briefing-item {
+            border: 1px solid #2f3a6f;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: rgba(8, 13, 33, 0.8);
+        }
+
+        .briefing-label {
+            color: #7deeff;
+            font-size: 0.72rem;
+            letter-spacing: 0.9px;
+            text-transform: uppercase;
+        }
+
+        .briefing-value {
+            margin-top: 3px;
+            font-size: 1rem;
+            color: #f1f4ff;
+        }
+
+        .briefing-actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .gate-quiz {
+            margin-top: 14px;
+            border: 1px solid #32407a;
+            border-radius: 10px;
+            padding: 10px;
+            background: rgba(11, 17, 40, 0.78);
+        }
+
+        .gate-quiz h3 {
+            margin: 0;
+            font-size: 0.82rem;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #7ceaff;
+        }
+
+        .gate-quiz p {
+            margin: 8px 0 10px;
+            font-size: 0.88rem;
+            color: #e2e9ff;
+        }
+
+        .gate-options {
+            display: grid;
+            gap: 8px;
+        }
+
+        .gate-option {
+            border: 1px solid #3d4c88;
+            background: #16214a;
+            color: #dce6ff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .gate-option:hover {
+            border-color: #68ddff;
+        }
+
+        .gate-feedback {
+            margin-top: 8px;
+            min-height: 20px;
+            font-size: 0.8rem;
+            color: #ffd86b;
+        }
+
+        .status-line {
+            margin-top: 12px;
+            color: #c7d5ff;
+            font-size: 0.84rem;
+        }
+
+        .loader {
+            margin-top: 10px;
+            width: 100%;
+            height: 6px;
+            border-radius: 99px;
+            background: #121a39;
+            overflow: hidden;
+        }
+
+        .loader > span {
+            display: block;
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        }
+
+        .result-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .result-actions button {
+            border: 1px solid #41508f;
+            background: #17214a;
+            color: #dce7ff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .fallback-panel {
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            z-index: 6;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border: 1px solid #3c4a84;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: rgba(7, 12, 30, 0.92);
+        }
+
+        .fallback-note {
+            color: #d4e0ff;
+            font-size: 0.8rem;
+            line-height: 1.35;
+        }
+
+        .launch-btn,
+        .back-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 0.8rem;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .launch-btn {
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            color: #061026;
+        }
+
+        .back-btn {
+            background: transparent;
+            color: #d4ddff;
+            border: 1px solid #44518f;
+        }
+
+        .external-btn {
+            border: 1px solid #3f7fb8;
+            background: #11345c;
+            color: #d8eeff;
+            border-radius: 9px;
+            padding: 8px 12px;
+            font-size: 0.76rem;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        @media (max-width: 720px) {
+            #game-container {
+                aspect-ratio: auto;
+                min-height: 70vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <iframe
+            id="webgl-frame"
+            title="Story Mode WebGL"
+            data-src="https://play.unity.com/en/games/609641f1-b052-4e29-b1aa-aab2ab34b098/webgl-builds"
+            allowfullscreen>
+        </iframe>
+
+        <section class="briefing" id="briefing-overlay" aria-label="Mission briefing">
+            <div class="briefing-card">
+                <h1 class="briefing-title">Mission Briefing</h1>
+                <p class="briefing-subtitle">Story handoff complete. Confirm your run to enter the simulation.</p>
+                <div class="briefing-grid">
+                    <div class="briefing-item">
+                        <div class="briefing-label">Operator</div>
+                        <div class="briefing-value" id="briefing-character">Unknown Operator</div>
+                    </div>
+                    <div class="briefing-item">
+                        <div class="briefing-label">Mission</div>
+                        <div class="briefing-value" id="briefing-mission">Unassigned</div>
+                    </div>
+                    <div class="briefing-item">
+                        <div class="briefing-label">Launch Source</div>
+                        <div class="briefing-value" id="briefing-source">Story Mode</div>
+                    </div>
+                    <div class="briefing-item">
+                        <div class="briefing-label">Challenge</div>
+                        <div class="briefing-value" id="briefing-challenge">Theme | Easy</div>
+                    </div>
+                    <div class="briefing-item">
+                        <div class="briefing-label">Slide Intelligence</div>
+                        <div class="briefing-value" id="briefing-slide">No slide data</div>
+                    </div>
+                </div>
+                <div class="briefing-actions">
+                    <button class="launch-btn" id="launch-btn" type="button">Start Mission</button>
+                    <button class="launch-btn" id="skip-intro-btn" type="button">Skip Intro</button>
+                    <button class="back-btn" id="back-btn" type="button">Back to Story Hub</button>
+                    <button class="external-btn" id="open-external-btn" type="button">Open Externally</button>
+                </div>
+                <section class="gate-quiz" id="gate-quiz" aria-live="polite">
+                    <h3>Slide Checkpoint Required</h3>
+                    <p id="gate-question">Loading checkpoint...</p>
+                    <div id="gate-options" class="gate-options"></div>
+                    <div id="gate-feedback" class="gate-feedback"></div>
+                </section>
+                <div class="status-line" id="status-line">Preparing simulation intro...</div>
+                <div class="loader"><span id="loader-fill"></span></div>
+                <div class="result-actions">
+                    <button id="finish-win-btn" type="button">Finish Mission (Win)</button>
+                    <button id="finish-lose-btn" type="button">Finish Mission (Lose)</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="fallback-panel" id="fallback-panel" aria-live="polite">
+            <span class="fallback-note">Embedded Unity may be blocked by browser privacy settings. Open in a new tab for reliable launch.</span>
+            <button class="external-btn" id="open-external-inline-btn" type="button">Open in New Tab</button>
+        </div>
+    </div>
+
+    <script>
+        function readLaunchContext() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                characterName: params.get('characterName') || 'Unknown Operator',
+                missionTitle: params.get('missionTitle') || 'Unassigned',
+                source: params.get('source') || 'story_mode',
+                challengeType: params.get('challengeType') || 'theme',
+                challengeDifficulty: params.get('challengeDifficulty') || 'Easy',
+                challengeReward: Number(params.get('challengeReward') || 0),
+                pointsSnapshot: Number(params.get('pointsSnapshot') || 0),
+                coop: params.get('coop') === '1',
+                branch: params.get('branch') || 'balanced',
+                slideDeckLabel: params.get('slideDeckLabel') || 'Unknown deck',
+                slideQuizCount: Number(params.get('slideQuizCount') || 0),
+                slideFileCount: Number(params.get('slideFileCount') || 0),
+                slideSampleQuestion: params.get('slideSampleQuestion') || '',
+                preStartQuestion: params.get('preStartQuestion') || '',
+                preStartOptions: params.get('preStartOptions') || '[]',
+                preStartCorrect: Number(params.get('preStartCorrect') || -1),
+                returnUrl: params.get('returnUrl') || '../index.html'
+            };
+        }
+
+        function toTitleCase(value) {
+            return String(value)
+                .replace(/[_-]+/g, ' ')
+                .replace(/\b\w/g, function (m) { return m.toUpperCase(); });
+        }
+
+        function populateBriefing() {
+            const launch = readLaunchContext();
+            document.getElementById('briefing-character').textContent = launch.characterName;
+            document.getElementById('briefing-mission').textContent = launch.missionTitle;
+            document.getElementById('briefing-source').textContent = toTitleCase(launch.source);
+            document.getElementById('briefing-challenge').textContent = `${toTitleCase(launch.challengeType)} | ${launch.challengeDifficulty} | +${launch.challengeReward} pts | ${launch.coop ? 'Co-op' : 'Solo'} | ${toTitleCase(launch.branch)}`;
+            const sample = launch.slideSampleQuestion ? `Sample: ${launch.slideSampleQuestion}` : 'Sample: unavailable';
+            document.getElementById('briefing-slide').textContent = `${launch.slideDeckLabel} | Files: ${launch.slideFileCount} | Questions: ${launch.slideQuizCount} | ${sample}`;
+        }
+
+        let introProgress = 0;
+        let introTimer = null;
+        let embedTimeout = null;
+        let gateUnlocked = false;
+
+        function getGameUrl() {
+            const frame = document.getElementById('webgl-frame');
+            return frame?.dataset?.src || 'https://play.unity.com/en/games/609641f1-b052-4e29-b1aa-aab2ab34b098/webgl-builds';
+        }
+
+        function openExternalGame() {
+            const statusLine = document.getElementById('status-line');
+            const gameUrl = getGameUrl();
+            window.open(gameUrl, '_blank', 'noopener');
+            if (statusLine) {
+                statusLine.textContent = 'Opened Unity Play in a new tab.';
+            }
+        }
+
+        function setLaunchButtonsEnabled(enabled) {
+            const launchBtn = document.getElementById('launch-btn');
+            const skipBtn = document.getElementById('skip-intro-btn');
+            if (launchBtn) {
+                launchBtn.disabled = !enabled;
+                launchBtn.style.opacity = enabled ? '1' : '0.55';
+                launchBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+            }
+            if (skipBtn) {
+                skipBtn.disabled = !enabled;
+                skipBtn.style.opacity = enabled ? '1' : '0.55';
+                skipBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+            }
+        }
+
+        function parseGateOptions(serialized) {
+            try {
+                const parsed = JSON.parse(serialized || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (_error) {
+                return [];
+            }
+        }
+
+        function unlockGate() {
+            gateUnlocked = true;
+            setLaunchButtonsEnabled(true);
+        }
+
+        function setupPreStartQuizGate() {
+            const launch = readLaunchContext();
+            const gate = document.getElementById('gate-quiz');
+            const questionEl = document.getElementById('gate-question');
+            const optionsEl = document.getElementById('gate-options');
+            const feedbackEl = document.getElementById('gate-feedback');
+            if (!gate || !questionEl || !optionsEl || !feedbackEl) {
+                return;
+            }
+
+            const question = launch.preStartQuestion || launch.slideSampleQuestion || '';
+            const options = parseGateOptions(launch.preStartOptions);
+            const correct = launch.preStartCorrect;
+
+            if (!question || options.length === 0 || correct < 0 || correct >= options.length) {
+                gate.style.display = 'none';
+                unlockGate();
+                return;
+            }
+
+            setLaunchButtonsEnabled(false);
+            questionEl.textContent = question;
+            optionsEl.innerHTML = '';
+            feedbackEl.textContent = 'Answer correctly to unlock mission launch.';
+
+            options.forEach(function (option, index) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'gate-option';
+                btn.textContent = option;
+                btn.addEventListener('click', function () {
+                    if (index === correct) {
+                        feedbackEl.textContent = 'Correct. Mission launch unlocked.';
+                        unlockGate();
+                    } else {
+                        feedbackEl.textContent = 'Incorrect. Review your slides and try again.';
+                    }
+                });
+                optionsEl.appendChild(btn);
+            });
+        }
+
+        function runIntro() {
+            if (!gateUnlocked) {
+                const statusLine = document.getElementById('status-line');
+                if (statusLine) {
+                    statusLine.textContent = 'Complete the slide checkpoint first.';
+                }
+                return;
+            }
+
+            const statusLine = document.getElementById('status-line');
+            const fill = document.getElementById('loader-fill');
+            const frame = document.getElementById('webgl-frame');
+            if (!statusLine || !fill || !frame) {
+                return;
+            }
+
+            if (introTimer) {
+                clearInterval(introTimer);
+            }
+
+            introProgress = 0;
+            statusLine.textContent = 'Preparing simulation intro...';
+            fill.style.width = '0%';
+
+            introTimer = setInterval(function () {
+                introProgress += 4;
+                fill.style.width = `${introProgress}%`;
+                if (introProgress >= 100) {
+                    clearInterval(introTimer);
+                    statusLine.textContent = 'Simulation ready. Loading WebGL...';
+                    startMission();
+                }
+            }, 120);
+        }
+
+        function startMission() {
+            if (!gateUnlocked) {
+                const statusLine = document.getElementById('status-line');
+                if (statusLine) {
+                    statusLine.textContent = 'Complete the slide checkpoint first.';
+                }
+                return;
+            }
+
+            const frame = document.getElementById('webgl-frame');
+            const overlay = document.getElementById('briefing-overlay');
+            const statusLine = document.getElementById('status-line');
+            const fallbackPanel = document.getElementById('fallback-panel');
+            if (frame && !frame.src) {
+                frame.src = frame.dataset.src;
+            }
+            if (statusLine) {
+                statusLine.textContent = 'WebGL session running...';
+            }
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+
+            if (embedTimeout) {
+                clearTimeout(embedTimeout);
+            }
+            embedTimeout = setTimeout(function () {
+                if (fallbackPanel) {
+                    fallbackPanel.style.display = 'flex';
+                }
+            }, 7000);
+        }
+
+        function returnToStory(resultStatus) {
+            const launch = readLaunchContext();
+            const score = Math.floor(Math.random() * 500) + (resultStatus === 'win' ? 600 : 200);
+            const time = Math.floor(Math.random() * 360) + 90;
+            const collectibles = resultStatus === 'win' ? (Math.floor(Math.random() * 4) + 1) : 0;
+            const params = new URLSearchParams({
+                from: 'webgl_launcher',
+                resultStatus,
+                resultScore: String(score),
+                resultTime: String(time),
+                resultCollectibles: String(collectibles)
+            });
+            window.location.href = `${launch.returnUrl}?${params.toString()}`;
+        }
+
+        function backToStoryHub() {
+            window.location.href = '../index.html';
+        }
+
+        function setupFrameFallback() {
+            const frame = document.getElementById('webgl-frame');
+            if (!frame) {
+                return;
+            }
+
+            frame.addEventListener('load', function () {
+                const fallbackPanel = document.getElementById('fallback-panel');
+                if (fallbackPanel) {
+                    fallbackPanel.style.display = 'none';
+                }
+            });
+
+            frame.addEventListener('error', function () {
+                const overlay = document.getElementById('briefing-overlay');
+                const statusLine = document.getElementById('status-line');
+                const fallbackPanel = document.getElementById('fallback-panel');
+                if (overlay) {
+                    overlay.style.display = 'grid';
+                }
+                if (statusLine) {
+                    statusLine.textContent = 'WebGL failed to load. You can still return with a mission result.';
+                }
+                if (fallbackPanel) {
+                    fallbackPanel.style.display = 'flex';
+                }
+            });
+        }
+
+        document.getElementById('launch-btn').addEventListener('click', runIntro);
+        document.getElementById('skip-intro-btn').addEventListener('click', startMission);
+        document.getElementById('back-btn').addEventListener('click', backToStoryHub);
+        document.getElementById('open-external-btn').addEventListener('click', openExternalGame);
+        document.getElementById('open-external-inline-btn').addEventListener('click', openExternalGame);
+        document.getElementById('finish-win-btn').addEventListener('click', function () { returnToStory('win'); });
+        document.getElementById('finish-lose-btn').addEventListener('click', function () { returnToStory('lose'); });
+        populateBriefing();
+        setupPreStartQuizGate();
+        setupFrameFallback();
+    </script>
+</body>
+</html>

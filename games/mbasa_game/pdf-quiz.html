@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Quiz Player</title>
+  <link rel="stylesheet" href="pdf-quiz.css">
+  <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>PDF Quiz Player</h1>
+      <p>Select a PDF and answer questions generated from the document.</p>
+    </header>
+
+    <section id="uploadSection">
+      <label for="pdfFile">Upload PDF file</label>
+      <input id="pdfFile" type="file" accept="application/pdf">
+      <button id="loadBtn" disabled>Load PDF</button>
+      <p id="status">PDF only. Choose a file to begin.</p>
+    </section>
+
+    <section id="quizArea" class="hidden">
+      <div id="questionCard">
+        <div id="questionText"></div>
+        <div id="answerButtons"></div>
+      </div>
+      <div id="quizControls">
+        <button id="nextQuestionBtn" class="hidden">Next Question</button>
+        <button id="playGameBtn" class="hidden">Play 3D Game with These Questions</button>
+        <button id="restartQuizBtn">Load another PDF</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="pdf-quiz.js"></script>
+</body>
+</html>

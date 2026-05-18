@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | SlidePlay</title>
+    <link rel="stylesheet" href="login.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+  </head>
+
+  <body class="auth-page">
+    <div id="particles"></div>
+    <div class="login-box">
+      <div class="login-header">
+        <h2>Welcome Back to SlidePlay</h2>
+      </div>
+
+      <form id="loginForm">
+        <div class="input-box">
+          <i class="fa-solid fa-envelope"></i>
+          <input
+            type="email"
+            id="email"
+            class="input-field"
+            placeholder="Enter your email"
+            autocomplete="off"
+            required
+          />
+        </div>
+
+        <div class="input-box">
+          <i class="fa-solid fa-lock"></i>
+          <input
+            type="password"
+            id="password"
+            class="input-field"
+            placeholder="Enter your password"
+            autocomplete="off"
+            required
+          />
+        </div>
+
+        <div class="forgot">
+          <section>
+            <input type="checkbox" id="check" />
+            <label for="check">Remember me</label>
+          </section>
+
+          <section>
+            <a href="reset.html">Forgot password?</a>
+          </section>
+        </div>
+
+        <div class="input-submit">
+          <button class="submit-btn" type="submit">Sign In</button>
+        </div>
+      </form>
+
+      <div class="sign-up-link">
+        <p>
+          Don't have an account?
+          <a href="signup.html">Sign Up</a>
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const container = document.getElementById("particles");
+
+      function createParticle() {
+        const particle = document.createElement("div");
+        particle.classList.add("particle");
+
+        // random position
+        particle.style.left = Math.random() * 100 + "vw";
+
+        // random size
+        const size = Math.random() * 6 + 2;
+        particle.style.width = size + "px";
+        particle.style.height = size + "px";
+
+        // random speed
+        const duration = Math.random() * 5 + 5;
+        particle.style.animationDuration = duration + "s";
+
+        container.appendChild(particle);
+
+        // remove after animation
+        setTimeout(() => {
+          particle.remove();
+        }, duration * 1000);
+      }
+
+      // generate particles continuously
+      setInterval(createParticle, 150);
+    </script>
+    <script src="login.js"></script>
+  </body>
+</html>

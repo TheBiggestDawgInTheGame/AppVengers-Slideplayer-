@@ -1,0 +1,20 @@
+{
+  "name": "voxel-classroom",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "browserify browser.js -o bundle.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "voxel-engine": "^0.20.2"
+  },
+  "devDependencies": {
+    "browserify": "^17.0.1"
+  }
+}
