@@ -618,6 +618,7 @@ function endGame(won) {
         localStorage.setItem('pacmanHighScore', String(highScore));
     }
     if (window.GameModes) GameModes.roundEnd(score);
+    if (typeof window.saveLeaderboardScore === 'function') window.saveLeaderboardScore('pacman', score);
     const modal = document.getElementById('gameOverModal');
     document.getElementById('modalTitle').textContent = won ? 'You Won! 🎉' : 'Game Over!';
     document.getElementById('modalMessage').textContent = won 

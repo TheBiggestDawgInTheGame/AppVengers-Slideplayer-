@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Help | SlidePlay</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #0b1020;
+        color: white;
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      .logo,
+      .signup-btn,
+      .contact-btn {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* VIDEO BACKGROUND */
+      .video-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -3;
+      }
+
+      .video-bg video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(7, 10, 20, 0.78);
+      }
+
+      /* PARTICLES */
+      #particles {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+      }
+
+      .particle {
+        position: absolute;
+        background: rgba(139, 92, 246, 0.7);
+        border-radius: 50%;
+        animation: float linear infinite;
+      }
+
+      @keyframes float {
+        from {
+          transform: translateY(100vh);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(-100px);
+          opacity: 1;
+        }
+      }
+
+      /* NAVBAR */
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 25px 8%;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        backdrop-filter: blur(12px);
+        background: rgba(10, 10, 20, 0.4);
+      }
+
+      .logo {
+        font-size: 2rem;
+        color: #8b5cf6;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 30px;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+        color: white;
+        font-weight: 600;
+      }
+
+      .nav-links a:hover,
+      .nav-links .active {
+        color: #8b5cf6;
+      }
+
+      .signup-btn {
+        padding: 14px 28px;
+        border-radius: 14px;
+        text-decoration: none;
+        color: white;
+        font-weight: 700;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.35);
+      }
+
+      section {
+        padding: 100px 8%;
+      }
+
+      /* HERO */
+      .help-hero {
+        text-align: center;
+      }
+
+      .help-hero h2 {
+        font-size: 3rem;
+        margin-bottom: 15px;
+      }
+
+      .help-hero p {
+        color: #d1d5db;
+      }
+
+      /* HOW IT WORKS */
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 25px;
+        margin-top: 50px;
+      }
+
+      .step {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 30px;
+        border-radius: 20px;
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: center;
+      }
+
+      .step i {
+        font-size: 2rem;
+        color: #8b5cf6;
+        margin-bottom: 15px;
+      }
+
+      /* FAQ */
+      .faq h2,
+      .contact h2,
+      .how-it-works h2 {
+        text-align: center;
+        margin-bottom: 40px;
+        font-size: 2.5rem;
+      }
+
+      .faq-item {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 25px;
+        border-radius: 18px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .faq-question {
+        width: 100%;
+        background: none;
+        border: none;
+        color: white;
+        text-align: left;
+        font-size: 1rem;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .faq-answer {
+        display: none;
+        margin-top: 15px;
+        color: #d1d5db;
+      }
+
+      .faq-item.active .faq-answer {
+        display: block;
+      }
+
+      /* CONTACT */
+      .contact {
+        text-align: center;
+      }
+
+      .contact p {
+        color: #d1d5db;
+        margin-bottom: 30px;
+      }
+
+      .contact-form {
+        max-width: 650px;
+        margin: auto;
+      }
+
+      .input-box {
+        position: relative;
+        margin-bottom: 20px;
+      }
+
+      .input-box i {
+        position: absolute;
+        left: 18px;
+        top: 20px;
+        color: #8b5cf6;
+        font-size: 1rem;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 18px 18px 18px 50px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        font-family: "Poppins", sans-serif;
+        font-size: 1rem;
+        outline: none;
+      }
+
+      textarea {
+        min-height: 150px;
+        resize: none;
+      }
+
+      .contact-btn {
+        padding: 16px 30px;
+        border: none;
+        border-radius: 14px;
+        color: white;
+        cursor: pointer;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.35);
+      }
+
+      #formMessage {
+        margin-top: 15px;
+        font-size: 0.95rem;
+        font-weight: 500;
+      }
+
+      footer {
+        padding: 30px;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.4);
+      }
+
+      @media (max-width: 900px) {
+        .steps {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .navbar {
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .nav-links {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .steps {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="particles"></div>
+
+    <div class="video-bg">
+      <video autoplay muted loop playsinline>
+        <source src="walker.mp4" type="video/mp4" />
+      </video>
+      <div class="overlay"></div>
+    </div>
+
+    <header class="navbar">
+      <h1 class="logo">SlidePlay</h1>
+
+      <nav class="nav-links">
+        <a href="main.html">Home</a>
+        <a href="features.html">Features</a>
+        <a href="about.html">About</a>
+        <a href="help.html" class="active">Help</a>
+      </nav>
+
+      <a href="signup.html" class="signup-btn">Sign Up</a>
+    </header>
+
+    <section class="help-hero">
+      <h2>Help Center</h2>
+      <p>Everything you need to start learning like a game 🎮</p>
+    </section>
+
+    <section class="how-it-works">
+      <h2>How It Works?</h2>
+
+      <div class="steps">
+        <div class="step">
+          <i class="fa-solid fa-user-plus"></i>
+          <h3>Create Account</h3>
+          <p>Sign up and begin your journey.</p>
+        </div>
+
+        <div class="step">
+          <i class="fa-solid fa-book"></i>
+          <h3>Choose Topic</h3>
+          <p>Select what you want to study.</p>
+        </div>
+
+        <div class="step">
+          <i class="fa-solid fa-gamepad"></i>
+          <h3>Play & Learn</h3>
+          <p>Complete missions and quizzes.</p>
+        </div>
+
+        <div class="step">
+          <i class="fa-solid fa-trophy"></i>
+          <h3>Earn Rewards</h3>
+          <p>Gain XP and level up.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq">
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="faq-item">
+        <button class="faq-question">How do I start learning?</button>
+        <div class="faq-answer">Create an account and choose a topic.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Is SlidePlay free?</button>
+        <div class="faq-answer">Yes, core features are free.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Can I replay quizzes?</button>
+        <div class="faq-answer">Yes, anytime.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">How do I track progress?</button>
+        <div class="faq-answer">Check your dashboard for progress stats.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">I forgot my password?</button>
+        <div class="faq-answer">Use the "Forgot Password" option on login.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">Can I compete with others?</button>
+        <div class="faq-answer">Yes, tournaments allow you to complete.</div>
+      </div>
+    </section>
+
+    <section class="contact">
+      <h2>Still Need Help?</h2>
+      <p>Reach out and our team will assist you.</p>
+
+      <form id="contactForm" class="contact-form">
+        <div class="input-box">
+          <i class="fa-solid fa-user"></i>
+          <input type="text" id="name" placeholder="Your Name" />
+        </div>
+
+        <div class="input-box">
+          <i class="fa-solid fa-envelope"></i>
+          <input type="email" id="email" placeholder="Your Email" />
+        </div>
+
+        <div class="input-box">
+          <i class="fa-solid fa-message"></i>
+          <textarea id="message" placeholder="Your Message"></textarea>
+        </div>
+
+        <button class="contact-btn" type="submit">
+          <i class="fa-solid fa-paper-plane"></i> Send Message
+        </button>
+
+        <p id="formMessage"></p>
+      </form>
+    </section>
+
+    <footer>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+      // CONTACT FORM VALIDATION
+      const form = document.getElementById("contactForm");
+      const formMessage = document.getElementById("formMessage");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const message = document.getElementById("message").value.trim();
+
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        formMessage.textContent = "";
+
+        if (name === "") {
+          formMessage.textContent = "Please enter your name.";
+          formMessage.style.color = "#ff6b6b";
+          return;
+        }
+
+        if (!emailPattern.test(email)) {
+          formMessage.textContent = "Please enter a valid email.";
+          formMessage.style.color = "#ff6b6b";
+          return;
+        }
+
+        if (message.length < 10) {
+          formMessage.textContent =
+            "Message must be at least 10 characters long.";
+          formMessage.style.color = "#ff6b6b";
+          return;
+        }
+
+        formMessage.textContent =
+          "Message sent successfully! We’ll get back to you soon.";
+        formMessage.style.color = "#06d6a0";
+
+        form.reset();
+      });
+
+      // FAQ TOGGLE
+      const questions = document.querySelectorAll(".faq-question");
+
+      questions.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          btn.parentElement.classList.toggle("active");
+        });
+      });
+
+      // PARTICLES
+      const container = document.getElementById("particles");
+
+      function createParticle() {
+        const particle = document.createElement("div");
+        particle.classList.add("particle");
+
+        particle.style.left = Math.random() * 100 + "vw";
+
+        const size = Math.random() * 6 + 2;
+        particle.style.width = size + "px";
+        particle.style.height = size + "px";
+
+        const duration = Math.random() * 5 + 5;
+        particle.style.animationDuration = duration + "s";
+
+        container.appendChild(particle);
+
+        setTimeout(() => particle.remove(), duration * 1000);
+      }
+
+      setInterval(createParticle, 150);
+    </script>
+  </body>
+</html>

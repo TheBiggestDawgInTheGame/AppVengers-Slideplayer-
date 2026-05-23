@@ -338,6 +338,7 @@ function animateObj(el, idx) {
 <div id="crosshair"><div class="crosshair-line crosshair-h"></div><div class="crosshair-line crosshair-v"></div><div class="crosshair-dot"></div></div>
 <div id="interaction-hint">CLICK to examine</div>
 <div id="hint-btn">💡 Need a hint? (-30s)</div>
+<button id="ai-hint-btn" style="position:fixed;bottom:70px;left:20px;background:rgba(26,14,4,.95);border:2px solid #6be0ff;color:#6be0ff;padding:8px 14px;border-radius:6px;font-family:'Share Tech Mono',monospace;cursor:pointer;z-index:102;font-size:.8rem;display:none;animation:hintPulse 2s infinite">🤖 Ask AI Hint</button>
 <!-- GM speech bubble -->
 <div id="gm-bubble"><div id="gm-name">MR. NKOSI</div><span id="gm-text"></span></div>
 <!-- Door lock status indicators -->
@@ -432,6 +433,50 @@ function animateObj(el, idx) {
 <audio id="pickup-sound" src="pickup.mp3" preload="auto"></audio>
 <audio id="bg-music" src="bg-music.mp3" loop preload="auto"></audio>
 <script src="script-3d.js"></script>
+<script>
+// Show AI Hint button when hint is available
+function showAIHintBtn(show) {
+  var btn = document.getElementById('ai-hint-btn');
+  if (btn) btn.style.display = show ? 'block' : 'none';
+}
+// Listen for AI Hint button click
+document.addEventListener('DOMContentLoaded', function() {
+  var aiBtn = document.getElementById('ai-hint-btn');
+  if (aiBtn) {
+    aiBtn.addEventListener('click', async function() {
+      aiBtn.disabled = true;
+      aiBtn.textContent = '🤖 Thinking...';
+      try {
+        // Gather context (inventory, solved, time, level)
+        var context = {
+          inv: window.G && G.inv ? G.inv : [],
+          solved: window.G && G.solved ? Array.from(G.solved) : [],
+          secs: window.G && G.secs ? G.secs : 0,
+          level: window.G && G.level ? G.level : 1
+        };
+        // Call AI backend (replace URL with your endpoint)
+        const res = await fetch('/api/ai-hint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ game: 'escape3d', context })
+        });
+        const data = await res.json();
+        if (data && data.hint) {
+          showToast('🤖 ' + data.hint, 'ai-hint');
+          // Optionally log usage for adaptive coaching
+          if (window.logAIHintUsage) window.logAIHintUsage('escape3d', context);
+        } else {
+          showToast('🤖 AI could not generate a hint right now.', 'ai-hint');
+        }
+      } catch (e) {
+        showToast('🤖 AI error: ' + e.message, 'ai-hint');
+      }
+      aiBtn.disabled = false;
+      aiBtn.textContent = '🤖 Ask AI Hint';
+    });
+  }
+});
+</script>
 <script src="slide-learning.js"></script>
 <script src="../../shared/mode-environment.js"></script>
 </body>

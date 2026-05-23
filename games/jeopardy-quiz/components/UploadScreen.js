@@ -1,4 +1,35 @@
 function initializeUploadScreen() {
+  // If arriving from the main upload flow, use the pre-generated quiz directly
+  const source = new URLSearchParams(window.location.search).get("source");
+  if (source === "upload") {
+    try {
+      const stored = JSON.parse(localStorage.getItem("slidePlayGeneratedQuizData") || "null");
+      if (Array.isArray(stored) && stored.length > 0) {
+        quizData = stored
+          .map(function (item, idx) {
+            const opts = Array.isArray(item.options) ? item.options.map(String) : [];
+            const correctIdx = Number.isInteger(item.correct) ? item.correct : 0;
+            return {
+              id: idx,
+              question: String(item.question || item.questionText || "").trim(),
+              answers: opts,
+              correctAnswer: String(opts[correctIdx] || opts[0] || ""),
+              category: "Uploaded Content",
+              difficulty: "medium"
+            };
+          })
+          .filter(function (q) { return q.question.length > 5 && q.answers.length > 0; });
+
+        if (quizData.length > 0) {
+          document.getElementById("total-questions").textContent = quizData.length;
+          switchScreen("question-screen");
+          displayQuestion(0);
+          return;
+        }
+      }
+    } catch (_e) {}
+  }
+
   const fileInput = document.getElementById("file-input");
   const fileList = document.getElementById("file-list");
   const startGameBtn = document.getElementById("start-game-btn");

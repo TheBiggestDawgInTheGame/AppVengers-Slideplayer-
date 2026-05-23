@@ -2868,12 +2868,15 @@ function checkHintAvailability() {
   var elapsed = Math.round((Date.now() - (G.startTime || Date.now())) / 1000);
   var timeSinceSolve = elapsed - lastSolveTime;
   var hintBtn = document.getElementById('hint-btn');
-  if (!hintBtn) return;
+  var aiHintBtn = document.getElementById('ai-hint-btn');
+  if (!hintBtn || !aiHintBtn) return;
 
   if (timeSinceSolve >= HINT_DELAY && !G.over) {
     hintBtn.style.display = 'block';
+    aiHintBtn.style.display = 'block';
   } else {
     hintBtn.style.display = 'none';
+    aiHintBtn.style.display = 'none';
   }
 }
 

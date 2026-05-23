@@ -390,6 +390,9 @@
       if (window.GameModes && typeof window.GameModes.roundEnd === "function") {
         window.GameModes.roundEnd(this.currentRoundPoints);
       }
+      if (typeof window.saveLeaderboardScore === "function") {
+        window.saveLeaderboardScore("memory", this.totalScore);
+      }
     }
 
     bumpDifficulty() {

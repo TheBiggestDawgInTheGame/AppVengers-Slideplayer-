@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Quests</title>
+    <link rel="stylesheet" href="StudentDashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #181c2f; color: #fff; font-family: 'Poppins', sans-serif; margin: 0; }
+        .quests-container { max-width: 540px; margin: 48px auto; background: rgba(34,40,60,0.98); border-radius: 18px; box-shadow: 0 0 32px #8b5cf655; padding: 32px 28px; }
+        h1 { font-family: 'Orbitron', sans-serif; color: #ffd700; margin-bottom: 18px; }
+        .quest-list { list-style: none; padding: 0; margin: 0; }
+        .quest-item { background: #23284a; border-radius: 12px; margin-bottom: 16px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 12px #8b5cf655; }
+        .quest-title { font-size: 1.1rem; font-weight: 600; color: #ffd700; }
+        .quest-status { font-size: 0.98rem; color: #06b6d4; margin-left: 12px; }
+        .quest-xp { color: #ffd700; font-weight: 700; margin-left: 18px; }
+        .no-quests { color: #aaa; text-align: center; margin-top: 32px; }
+        .back-btn { margin-top: 24px; background: linear-gradient(90deg,#8b5cf6,#06b6d4); color: #fff; border: none; border-radius: 10px; padding: 10px 28px; font-family: 'Orbitron',sans-serif; font-size: 1rem; cursor: pointer; box-shadow: 0 2px 8px #ffd70055; transition: background 0.3s, color 0.3s; }
+        .back-btn:hover { background: linear-gradient(90deg,#ffd700,#8b5cf6); color: #222; }
+    </style>
+</head>
+<body>
+    <div class="quests-container">
+        <h1><i class="fa-solid fa-bolt"></i> Your Quests</h1>
+        <ul class="quest-list" id="questList"></ul>
+        <div class="no-quests" id="noQuestsMsg" style="display:none;">You have not started any quests yet.</div>
+        <button class="back-btn" onclick="window.location.href='Studentdashboard.html'"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</button>
+    </div>
+    <script>
+        // Example: Replace with your real quest loading logic
+        const quests = JSON.parse(localStorage.getItem('storyModeQuests') || '[]');
+        const questList = document.getElementById('questList');
+        const noQuestsMsg = document.getElementById('noQuestsMsg');
+        if (quests.length === 0) {
+            noQuestsMsg.style.display = 'block';
+        } else {
+            quests.forEach(q => {
+                const li = document.createElement('li');
+                li.className = 'quest-item';
+                li.innerHTML = `<span class='quest-title'>${q.title}</span> <span class='quest-status'>${q.status}</span> <span class='quest-xp'><i class='fa-solid fa-coins'></i> ${q.xp} XP</span>`;
+                questList.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>

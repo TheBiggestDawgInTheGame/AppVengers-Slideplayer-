@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <meta charset="UTF-8" />
+
+    <title>Access And Discipline Grid</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="AcessControl.css" />
+    <link rel="stylesheet" href="page-transition.css" />
+    <style>
+      /* GLOBAL FONT SYSTEM */
+      body {
+        font-family: "Poppins", sans-serif;
+      }
+
+      /* HEADINGS + BRAND ELEMENTS */
+      h1,
+      h2,
+      h3,
+      h4,
+      .logo,
+      .hero-title {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* BUTTONS */
+      button,
+      .signup-btn,
+      .start-btn {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* TEXT ELEMENTS */
+      p,
+      a,
+      input,
+      textarea,
+      label {
+        font-family: "Poppins", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hud-grid"></div>
+
+    <header class="top-bar">
+      <div class="left-status">
+        <span class="pulse-dot"></span>
+        <span>Access Control Online</span>
+      </div>
+
+      <div class="search-panel">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search students, actions..." />
+      </div>
+
+      <div class="bar-actions">
+        <button class="icon-btn" aria-label="Notifications">
+          <i class="fa-solid fa-bell"></i>
+        </button>
+        <a class="icon-btn" href="settings.html" aria-label="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </a>
+        <div class="teacher-pill">
+          <img src="https://i.pravatar.cc/80?img=47" alt="Teacher avatar" />
+          <div>
+            <strong>Dr. M. Stark</strong>
+            <span>Physics Department</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-layout">
+      <aside class="side-nav">
+        <div class="brand">
+          <div class="reactor-core"><i class="fa-solid fa-atom"></i></div>
+          <div>
+            <h2>SlidePlay</h2>
+            <p>EDU DEFENSE GRID</p>
+          </div>
+        </div>
+
+        <nav>
+          <a href="teacher.html"
+            ><i class="fa-solid fa-gauge-high"></i> Teacher Dashboard</a
+          >
+          <a href="curriculum.html"
+            ><i class="fa-solid fa-book"></i> Curriculum Library</a
+          >
+          <a href="loading.html?target=AnalyticsPage.html"
+            ><i class="fa-solid fa-chart-line"></i> Performance Analytics</a
+          >
+          <a href="UploadPage.html"
+            ><i class="fa-solid fa-cloud-arrow-up"></i> Resource Upload</a
+          >
+          <a href="AccessControl.html" class="active"
+            ><i class="fa-solid fa-user-shield"></i> Student Access Grid</a
+          >
+          <a href="payment.html"
+            ><i class="fa-solid fa-credit-card"></i> Billing &amp; Plans</a
+          >
+          <a href="settings.html"
+            ><i class="fa-solid fa-shield"></i> Admin Controls</a
+          >
+        </nav>
+
+        <button
+          class="launch-btn"
+          onclick="window.location.href = 'UploadPage.html'"
+        >
+          <i class="fa-solid fa-rocket"></i> Deploy Lesson Mode
+        </button>
+      </aside>
+
+      <section class="main-zone">
+        <div class="hero-card card">
+          <div class="hero-copy">
+            <p class="chip">Access Control Center</p>
+            <h1>Student Access Grid</h1>
+            <p>
+              Manage student permissions, apply disciplinary actions, and
+              monitor access logs in real-time.
+            </p>
+            <span id="teacherStatus" class="status-pill"
+              >Teacher session active</span
+            >
+          </div>
+          <div class="hero-metrics">
+            <article>
+              <span>Active Students</span>
+              <strong>247</strong>
+            </article>
+            <article>
+              <span>Pending Actions</span>
+              <strong>12</strong>
+            </article>
+            <article>
+              <span>Suspensions</span>
+              <strong>3</strong>
+            </article>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <article class="card">
+            <div class="card-head">
+              <h3><span class="paid-badge">PAID <span class="lock-icon">🔒</span></span> Grant Access</h3>
+              <span>Single Or Bulk</span>
+            </div>
+            <div class="section-divider"></div>
+            <p class="hint">
+              Use comma separated emails to grant permissions to one or more
+              students.
+            </p>
+            <label class="label" for="grantEmails">Student Emails</label>
+            <textarea
+              id="grantEmails"
+              class="field"
+              rows="3"
+              placeholder="student1@mail.com, student2@mail.com"
+              disabled
+            ></textarea>
+
+            <label class="label">Permissions</label>
+            <div class="check-grid">
+              <label><input type="checkbox" value="upload" disabled /> Upload Resources</label>
+              <label><input type="checkbox" value="view_analytics" disabled /> View Analytics</label>
+              <label><input type="checkbox" value="deploy_lesson" disabled /> Deploy Lessons</label>
+              <label><input type="checkbox" value="manage_library" disabled /> Manage Library</label>
+            </div>
+
+            <button class="btn primary" id="grantBtn" disabled title="Paid feature. Upgrade to access.">
+              <i class="fa-solid fa-bolt"></i> Grant Access
+            </button>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h3><span class="paid-badge">PAID <span class="lock-icon">🔒</span></span> Penalty Engine</h3>
+              <span>Behavior Actions</span>
+            </div>
+            <div class="section-divider"></div>
+            <label class="label" for="penaltyEmail">Student Email</label>
+            <input
+              id="penaltyEmail"
+              class="field"
+              type="email"
+              placeholder="student@mail.com"
+              disabled
+            />
+
+            <div class="inline-grid">
+              <div>
+                <label class="label" for="penaltyPoints">Penalty Points</label>
+                <input
+                  id="penaltyPoints"
+                  class="field"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value="5"
+                  disabled
+                />
+              </div>
+              <div>
+                <label class="label" for="penaltyReason">Reason</label>
+                <input
+                  id="penaltyReason"
+                  class="field"
+                  type="text"
+                  placeholder="Late submission"
+                  disabled
+                />
+              </div>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn danger" id="penalizeBtn" disabled title="Paid feature. Upgrade to access.">
+                <i class="fa-solid fa-triangle-exclamation"></i> Apply Penalty
+              </button>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h3><span class="paid-badge">PAID <span class="lock-icon">🔒</span></span> Other Actions</h3>
+              <span>Moderation</span>
+            </div>
+            <div class="section-divider"></div>
+            <label class="label" for="modEmail">Student Email</label>
+            <input
+              id="modEmail"
+              class="field"
+              type="email"
+              placeholder="student@mail.com"
+              disabled
+            />
+            <label class="label" for="modReason">Action Note</label>
+            <input
+              id="modReason"
+              class="field"
+              type="text"
+              placeholder="Temporary restriction for misconduct"
+              disabled
+            />
+
+            <div class="btn-row">
+              <button class="btn warning" id="suspendBtn" disabled title="Paid feature. Upgrade to access.">
+                <i class="fa-solid fa-user-lock"></i> Suspend
+              </button>
+              <button class="btn ok" id="restoreBtn" disabled title="Paid feature. Upgrade to access.">
+                <i class="fa-solid fa-user-check"></i> Restore
+              </button>
+              <button class="btn secondary" id="warnBtn" disabled title="Paid feature. Upgrade to access.">
+                <i class="fa-solid fa-bullhorn"></i> Issue Warning
+              </button>
+            </div>
+          </article>
+
+          <article class="card list-card">
+            <div class="card-head">
+              <h3><span class="paid-badge">PAID <span class="lock-icon">🔒</span></span> Granted Privileges</h3>
+              <span id="grantCount">0</span>
+            </div>
+            <div class="section-divider"></div>
+            <div id="grantList" class="list-wrap"></div>
+          </article>
+
+          <article class="card list-card">
+            <div class="card-head">
+              <h3><span class="paid-badge">PAID <span class="lock-icon">🔒</span></span> Penalty Log</h3>
+              <span id="penaltyCount">0</span>
+            </div>
+            <div class="section-divider"></div>
+            <div id="penaltyList" class="list-wrap"></div>
+          </article>
+
+          <article class="card list-card">
+            <div class="card-head">
+              <h3><span class="paid-badge">PAID <span class="lock-icon">🔒</span></span> Suspension Board</h3>
+              <span id="suspendCount">0</span>
+            </div>
+            <div class="section-divider"></div>
+            <div id="suspendList" class="list-wrap"></div>
+          </article>
+        </div>
+      </section>
+
+      <aside class="right-zone">
+        <article class="card live-card">
+          <div class="card-head">
+            <h3>Access Snapshot</h3>
+            <span>Realtime status</span>
+          </div>
+          <div class="session-item">
+            <h4>Current Session</h4>
+            <p>
+              Monitoring permissions and disciplinary actions across active
+              student zones.
+            </p>
+          </div>
+          <div class="session-item">
+            <h4>Alert Queue</h4>
+            <p>3 critical events waiting for review.</p>
+          </div>
+          <button
+            class="session-cta"
+            onclick="
+              document
+                .getElementById('grantEmails')
+                .scrollIntoView({ behavior: 'smooth' })
+            "
+          >
+            Review Requests
+          </button>
+        </article>
+
+        <article class="card ring-card">
+          <div class="card-head">
+            <h3>Security Integrity</h3>
+          </div>
+          <div class="score-ring" data-chart="score">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle cx="60" cy="60" r="48"></circle>
+              <circle cx="60" cy="60" r="48" class="progress"></circle>
+            </svg>
+            <div>
+              <strong>91%</strong>
+              <span>Access stability</span>
+            </div>
+          </div>
+          <p class="ring-note">
+            Keep permission flows tight to maintain system confidence.
+          </p>
+        </article>
+      </aside>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="AccessControl.js"></script>
+    <script src="page-transition.js"></script>
+  </body>
+</html>

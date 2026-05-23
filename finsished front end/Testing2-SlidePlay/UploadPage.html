@@ -1,0 +1,256 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Session — SlidePlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="UploadPage.css" />
+  </head>
+  <body>
+    <!-- PDF.js (for PDF text extraction) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+    <script>
+      // PDF.js non-module shim so ai-processor.js can access pdfjsLib
+      import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs").then(m => { window.pdfjsLib = m; pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs"; }).catch(()=>{});
+    </script>
+    <!-- JSZip (for PPTX / DOCX extraction) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <a class="up-back-btn" href="teacher.html"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+
+    <div class="up-page">
+
+      <div class="up-header">
+        <h1><i class="fa-solid fa-satellite-dish"></i> Create Class Session</h1>
+        <p>Upload your slides &rarr; configure the quiz &rarr; pick a game &rarr; go live</p>
+      </div>
+
+      <div class="up-steps-row">
+        <div class="up-step active" id="upDot1"><div class="up-dot"><i class="fa-solid fa-upload"></i></div><span>Upload</span></div>
+        <div class="up-line" id="upLine1"></div>
+        <div class="up-step" id="upDot2"><div class="up-dot"><i class="fa-solid fa-sliders"></i></div><span>Configure</span></div>
+        <div class="up-line" id="upLine2"></div>
+        <div class="up-step" id="upDot3"><div class="up-dot"><i class="fa-solid fa-gamepad"></i></div><span>Game</span></div>
+        <div class="up-line" id="upLine3"></div>
+        <div class="up-step" id="upDot4"><div class="up-dot"><i class="fa-solid fa-layer-group"></i></div><span>Mode</span></div>
+        <div class="up-line" id="upLine4"></div>
+        <div class="up-step" id="upDot5"><div class="up-dot"><i class="fa-solid fa-rocket"></i></div><span>Launch</span></div>
+      </div>
+
+      <!-- STEP 1: Upload -->
+      <div class="up-panel" id="upStep1">
+        <div class="up-panel-head">
+          <h2>Upload Your Slides</h2>
+          <p>Drop your presentation or notes — AI will generate quiz questions from the content</p>
+        </div>
+        <div class="up-dropzone" id="upDropzone">
+          <div class="udz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+          <p class="udz-title">Drop your file here or <span class="udz-browse" id="upBrowseLink">browse</span></p>
+          <div class="udz-types">
+            <span><i class="fa-solid fa-file-pdf" style="color:#f87171"></i> PDF</span>
+            <span><i class="fa-solid fa-file-powerpoint" style="color:#fb923c"></i> PPTX</span>
+            <span><i class="fa-brands fa-microsoft" style="color:#60a5fa"></i> DOCX</span>
+          </div>
+          <input type="file" id="upFileInput" accept=".pdf,.pptx,.ppt,.docx,.doc" hidden />
+        </div>
+        <div class="up-file-picked hidden" id="upFilePicked">
+          <div class="ufp-icon"><i class="fa-solid fa-file-circle-check"></i></div>
+          <div class="ufp-meta">
+            <span class="ufp-name" id="upFileName">document.pdf</span>
+            <span class="ufp-size" id="upFileSize">2.4 MB</span>
+          </div>
+          <button class="ufp-remove" onclick="upResetFile()" title="Remove file"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="up-processing hidden" id="upProcessing">
+          <div class="up-spin-wrap"><div class="up-spinner"></div></div>
+          <p class="up-process-text" id="upProcessText">Analysing slides&#8230;</p>
+          <div class="up-prog-bar"><div class="up-prog-fill" id="upProgFill"></div></div>
+        </div>
+        <div class="up-success hidden" id="upSuccess">
+          <div class="us-check"><i class="fa-solid fa-circle-check"></i></div>
+          <div>
+            <p class="us-title">Quiz ready!</p>
+            <p class="us-sub"><strong id="upQCount">12</strong> questions generated from your slides</p>
+          </div>
+          <button class="us-redo" onclick="upResetFile()"><i class="fa-solid fa-rotate"></i> Change file</button>
+        </div>
+        <div class="up-nav">
+          <span></span>
+          <button class="up-btn-next" id="upNext1" disabled onclick="upGoStep(2)">Configure Session <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Configure -->
+      <div class="up-panel hidden" id="upStep2">
+        <div class="up-panel-head">
+          <h2>Configure Quiz &amp; Session</h2>
+          <p>Set quiz parameters and session details &mdash; your unique code is ready below</p>
+        </div>
+        <div class="up-code-box">
+          <span class="up-code-label">SESSION CODE</span>
+          <div class="up-code-val" id="upCodeVal">------</div>
+          <button class="up-copy-btn" id="upCopyCode"><i class="fa-solid fa-copy"></i> Copy</button>
+        </div>
+        <div class="up-fields-row">
+          <div class="up-field">
+            <label><i class="fa-solid fa-tag"></i> Session Name</label>
+            <input type="text" id="upSessName" placeholder="e.g. Physics Chapter 4 Review" />
+          </div>
+          <div class="up-field">
+            <label><i class="fa-solid fa-users"></i> Max Students</label>
+            <input type="number" id="upMaxStudents" value="30" min="1" max="200" />
+          </div>
+        </div>
+        <div class="up-quiz-grid">
+          <div class="up-setting-block">
+            <label class="usb-label"><i class="fa-solid fa-gauge-high"></i> Difficulty</label>
+            <div class="diff-pills" id="upDiffPills">
+              <button class="diff-pill diff-easy active" data-diff="easy">Easy</button>
+              <button class="diff-pill diff-medium" data-diff="medium">Medium</button>
+              <button class="diff-pill diff-hard" data-diff="hard">Hard</button>
+            </div>
+          </div>
+          <div class="up-setting-block">
+            <label class="usb-label"><i class="fa-solid fa-list-ol"></i> Questions</label>
+            <div class="q-count-row">
+              <input type="number" id="upQCountInput" value="10" min="1" max="50" class="q-count-input" />
+              <span class="q-ai-hint">AI suggested: <strong id="upQAISuggested">&mdash;</strong></span>
+            </div>
+          </div>
+          <div class="up-setting-block">
+            <label class="usb-label"><i class="fa-solid fa-circle-question"></i> Question Type</label>
+            <select class="up-select" id="upQType">
+              <option value="mixed" selected>Mixed</option>
+              <option value="mcq">Multiple Choice</option>
+              <option value="true-false">True / False</option>
+              <option value="short">Short Answer</option>
+            </select>
+          </div>
+          <div class="up-setting-block">
+            <label class="usb-label"><i class="fa-regular fa-clock"></i> Time per Question</label>
+            <div class="diff-pills" id="upTimePills">
+              <button class="diff-pill active" data-time="20">20s</button>
+              <button class="diff-pill" data-time="30">30s</button>
+              <button class="diff-pill" data-time="45">45s</button>
+              <button class="diff-pill" data-time="60">60s</button>
+            </div>
+          </div>
+          <div class="up-setting-block up-toggles-block">
+            <label class="usb-label"><i class="fa-solid fa-sliders"></i> Options</label>
+            <div class="up-toggle-row">
+              <label class="up-chk"><input type="checkbox" id="upShuffle" /> Shuffle questions</label>
+              <label class="up-chk"><input type="checkbox" id="upShowTimer" checked /> Show timer</label>
+            </div>
+          </div>
+        </div>
+        <div class="up-nav">
+          <button class="up-btn-back" onclick="upGoStep(1)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+          <button class="up-btn-next" onclick="upGoStep(3)">Pick a Game <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Game Picker -->
+      <div class="up-panel hidden" id="upStep3">
+        <div class="up-panel-head">
+          <h2>Pick a Game</h2>
+          <p>Choose the game your students will play this session</p>
+        </div>
+        <div class="up-game-grid" id="upGameGrid"></div>
+        <div class="up-nav">
+          <button class="up-btn-back" onclick="upGoStep(2)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+          <button class="up-btn-next" id="upNext3" disabled onclick="upGoStep(4)">Choose Mode <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Mode -->
+      <div class="up-panel hidden" id="upStep4">
+        <div class="up-panel-head">
+          <h2>Session Mode</h2>
+          <p>How will your students experience this session?</p>
+        </div>
+        <div class="up-mode-grid">
+          <div class="up-mode-card active" data-mode="individual">
+            <div class="umc-icon" style="color:#22d3ee"><i class="fa-solid fa-user-graduate"></i></div>
+            <h4>Individual Play</h4>
+            <p>Each student plays at their own pace independently</p>
+            <span class="umc-free-badge">FREE</span>
+          </div>
+          <div class="up-mode-card umc-gated" data-mode="groups" onclick="upShowPaidGate(this)">
+            <div class="up-paid-overlay"><i class="fa-solid fa-lock"></i><span>Upgrade to Unlock</span></div>
+            <div class="umc-icon" style="color:#34d399"><i class="fa-solid fa-people-group"></i></div>
+            <h4>Group Play</h4>
+            <p>Students compete in teams &mdash; share a combined score</p>
+            <span class="umc-paid-badge"><i class="fa-solid fa-crown"></i> PREMIUM</span>
+          </div>
+          <div class="up-mode-card umc-gated" data-mode="tournament" onclick="upShowPaidGate(this)">
+            <div class="up-paid-overlay"><i class="fa-solid fa-lock"></i><span>Upgrade to Unlock</span></div>
+            <div class="umc-icon" style="color:#fbbf24"><i class="fa-solid fa-trophy"></i></div>
+            <h4>Tournament Mode</h4>
+            <p>Students compete live &mdash; real-time leaderboard &amp; instant scoring</p>
+            <span class="umc-paid-badge"><i class="fa-solid fa-crown"></i> PREMIUM</span>
+          </div>
+        </div>
+        <div class="up-addon-row">
+          <div class="up-addon-info">
+            <i class="fa-solid fa-user-shield" style="color:#c084fc"></i>
+            <div>
+              <span class="uad-title">Delegated Moderation</span>
+              <span class="uad-desc">Let a trusted student moderate the session on your behalf</span>
+            </div>
+            <span class="umc-paid-badge uad-badge"><i class="fa-solid fa-crown"></i> PREMIUM</span>
+          </div>
+          <div class="uad-toggle-wrap" onclick="upShowAddonGate(this)">
+            <div class="uad-lock-hint"><i class="fa-solid fa-lock"></i> Upgrade</div>
+            <label class="uad-toggle disabled">
+              <input type="checkbox" id="upDelegateToggle" disabled />
+              <span class="uad-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="up-nav">
+          <button class="up-btn-back" onclick="upGoStep(3)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+          <button class="up-btn-next" onclick="upGoStep(5)"><i class="fa-solid fa-rocket"></i> Go Live</button>
+        </div>
+      </div>
+
+      <!-- STEP 5: Waiting Room -->
+      <div class="up-panel hidden" id="upStep5">
+        <div class="up-live-bar">
+          <div class="up-live-dot"><span class="up-pulse-dot"></span> LIVE</div>
+          <div class="up-live-meta">
+            <span id="upLiveName">Session</span>
+            <span>&middot;</span>
+            <span id="upLiveGame"><i class="fa-solid fa-gamepad"></i> No game</span>
+            <span>&middot;</span>
+            <span id="upLiveMode"><i class="fa-solid fa-user"></i> Individual</span>
+          </div>
+        </div>
+        <div class="up-code-hero">
+          <p>Share this code with your students</p>
+          <div class="up-big-code" id="upBigCode">------</div>
+          <button class="up-copy-btn" id="upBigCopyCode"><i class="fa-solid fa-copy"></i> Copy Code</button>
+        </div>
+        <div class="up-waitroom">
+          <div class="uwr-bar">
+            <span class="uwr-title"><i class="fa-solid fa-signal"></i> Waiting Room</span>
+            <span class="uwr-counter"><span id="upJoinedCount">0</span> / <span id="upMaxCount">30</span> joined</span>
+          </div>
+          <div class="uwr-list" id="upRosterList">
+            <div class="uwr-placeholder">Waiting for students to join&#8230;</div>
+          </div>
+        </div>
+        <div class="up-action-row">
+          <button class="up-start-btn" id="upStartBtn"><i class="fa-solid fa-play"></i> Start Session</button>
+          <button class="up-end-btn" id="upEndBtn"><i class="fa-solid fa-xmark"></i> End &amp; Cancel</button>
+        </div>
+      </div>
+
+    </div>
+
+    <script src="firebase-session.js"></script>
+    <script src="ai-processor.js"></script>
+    <script src="UploadPage.js"></script>
+  </body>
+</html>

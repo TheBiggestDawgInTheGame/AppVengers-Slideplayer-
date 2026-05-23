@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About | SlidePlay</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        color: white;
+        background: #0b1020;
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      h1,
+      h2,
+      h3,
+      .logo,
+      .signup-btn {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* VIDEO BACKGROUND */
+      .video-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -3;
+      }
+
+      .video-bg video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 10, 20, 0.82);
+        z-index: -2;
+      }
+
+      /* PARTICLES */
+      #particles {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+      }
+
+      .particle {
+        position: absolute;
+        background: rgba(139, 92, 246, 0.7);
+        border-radius: 50%;
+        animation: float linear infinite;
+      }
+
+      @keyframes float {
+        from {
+          transform: translateY(100vh);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(-100px);
+          opacity: 1;
+        }
+      }
+
+      /* NAVBAR */
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 25px 8%;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        backdrop-filter: blur(14px);
+        background: rgba(10, 10, 20, 0.35);
+      }
+
+      .logo {
+        font-size: 2rem;
+        color: #8b5cf6;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 30px;
+      }
+
+      .nav-links a {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: 0.3s;
+      }
+
+      .nav-links a:hover,
+      .nav-links .active {
+        color: #8b5cf6;
+      }
+
+      .signup-btn {
+        padding: 14px 28px;
+        border-radius: 14px;
+        text-decoration: none;
+        color: white;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.35);
+        font-weight: 700;
+      }
+
+      /* PAGE */
+      section {
+        padding: 90px 8%;
+      }
+
+      .page-title {
+        text-align: center;
+        margin-bottom: 60px;
+      }
+
+      .page-title h1 {
+        font-size: 3rem;
+        margin-bottom: 10px;
+      }
+
+      .page-title p {
+        color: #d1d5db;
+        font-size: 1.1rem;
+      }
+
+      /* ABOUT GRID */
+      .about-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-bottom: 80px;
+      }
+
+      .panel,
+      .mini-card,
+      .team-card {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 30px;
+        border-radius: 22px;
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .panel {
+        margin-bottom: 25px;
+      }
+
+      .panel h2 {
+        margin-bottom: 15px;
+        color: #8b5cf6;
+      }
+
+      .panel p {
+        color: #d1d5db;
+        line-height: 1.8;
+      }
+
+      .about-side {
+        display: grid;
+        gap: 20px;
+      }
+
+      .mini-card h3 {
+        margin-bottom: 10px;
+        color: #8b5cf6;
+      }
+
+      .mini-card p {
+        color: #d1d5db;
+      }
+
+      /* TEAM */
+      .team-title {
+        text-align: center;
+        font-size: 2.4rem;
+        margin-bottom: 40px;
+      }
+
+      .team-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+      }
+
+      .team-card {
+        text-align: center;
+        transition: 0.3s;
+      }
+
+      .team-card:hover {
+        transform: translateY(-8px);
+      }
+
+      .avatar {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 18px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Orbitron", sans-serif;
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+
+      .role {
+        color: #8b5cf6;
+        margin: 10px 0;
+        font-weight: 600;
+      }
+
+      .desc {
+        color: #d1d5db;
+        font-size: 0.95rem;
+      }
+
+      footer {
+        padding: 30px;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.4);
+        margin-top: 80px;
+      }
+
+      /* RESPONSIVE */
+      @media (max-width: 950px) {
+        .about-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .team-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 700px) {
+        .navbar {
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .nav-links {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .team-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .page-title h1 {
+          font-size: 2.2rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- VIDEO -->
+    <div class="video-bg">
+      <video autoplay muted loop playsinline>
+        <source src="walker.mp4" type="video/mp4" />
+      </video>
+    </div>
+    <div class="overlay"></div>
+
+    <!-- PARTICLES -->
+    <div id="particles"></div>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+      <h1 class="logo">SlidePlay</h1>
+
+      <nav class="nav-links">
+        <a href="main.html">Home</a>
+        <a href="features.html">Features</a>
+        <a href="about.html" class="active">About</a>
+        <a href="help.html">Help</a>
+      </nav>
+
+      <a href="signup.html" class="signup-btn">Sign Up</a>
+    </header>
+
+    <!-- ABOUT -->
+    <section>
+      <div class="page-title">
+        <h1>About SlidePlay</h1>
+        <p>Learn. Play. Level Up.</p>
+      </div>
+
+      <div class="about-layout">
+        <div>
+          <div class="panel">
+            <h2>📖 Our Story</h2>
+            <p>
+              SlidePlay was created to solve one simple problem: studying often
+              feels repetitive and boring. We transformed traditional learning
+              into an engaging, game-like experience where students can stay
+              motivated.
+            </p>
+          </div>
+
+          <div class="panel">
+            <h2>🚀 Our Mission</h2>
+            <p>
+              Our mission is to make education interactive, rewarding, and fun
+              by combining learning with gamification through XP systems,
+              challenges, rewards, and levels.
+            </p>
+          </div>
+
+          <div class="panel">
+            <h2>💡 Why SlidePlay?</h2>
+            <p>
+              Traditional study methods can feel draining. SlidePlay turns
+              lessons into missions, quizzes into games, and progress into
+              achievements students actually enjoy tracking.
+            </p>
+          </div>
+        </div>
+
+        <div class="about-side">
+          <div class="mini-card">
+            <h3>🎮 Gamified Learning</h3>
+            <p>Lessons feel like missions instead of tasks.</p>
+          </div>
+
+          <div class="mini-card">
+            <h3>⚡ XP Rewards</h3>
+            <p>Earn experience points while learning.</p>
+          </div>
+
+          <div class="mini-card">
+            <h3>🏆 Level System</h3>
+            <p>Unlock harder challenges as you improve.</p>
+          </div>
+
+          <div class="mini-card">
+            <h3>📊 Progress Tracking</h3>
+            <p>Monitor growth and consistency.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEAM -->
+      <h2 class="team-title">👥 Meet The Team</h2>
+
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="avatar">Z</div>
+          <h3>Zandile</h3>
+          <p class="role">Frontend Developer</p>
+          <p class="desc">UI design and user experience.</p>
+        </div>
+
+        <div class="team-card">
+          <div class="avatar">S</div>
+          <h3>Sanami</h3>
+          <p class="role">Frontend Developer</p>
+          <p class="desc">Responsive design and styling.</p>
+        </div>
+
+        <div class="team-card">
+          <div class="avatar">K</div>
+          <h3>Karabo</h3>
+          <p class="role">Backend Developer</p>
+          <p class="desc">Application logic and APIs.</p>
+        </div>
+
+        <div class="team-card">
+          <div class="avatar">M</div>
+          <h3>Mbasa</h3>
+          <p class="role">Backend Developer</p>
+          <p class="desc">Server-side functionality.</p>
+        </div>
+
+        <div class="team-card">
+          <div class="avatar">A</div>
+          <h3>Ano</h3>
+          <p class="role">Database Developer</p>
+          <p class="desc">Database design and management.</p>
+        </div>
+
+        <div class="team-card">
+          <div class="avatar">M</div>
+          <h3>Mo</h3>
+          <p class="role">Database Developer</p>
+          <p class="desc">Queries and data structure.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+      const container = document.getElementById("particles");
+
+      function createParticle() {
+        const particle = document.createElement("div");
+        particle.classList.add("particle");
+
+        particle.style.left = Math.random() * 100 + "vw";
+
+        const size = Math.random() * 6 + 2;
+        particle.style.width = size + "px";
+        particle.style.height = size + "px";
+
+        const duration = Math.random() * 5 + 5;
+        particle.style.animationDuration = duration + "s";
+
+        container.appendChild(particle);
+
+        setTimeout(() => {
+          particle.remove();
+        }, duration * 1000);
+      }
+
+      setInterval(createParticle, 150);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reset Password | SlidePlay</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        color: white;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      /* VIDEO BACKGROUND */
+      .video-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -3;
+      }
+
+      .video-bg video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: brightness(25%);
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 10, 20, 0.78);
+        z-index: -2;
+      }
+
+      /* PARTICLES */
+      #particles {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+      }
+
+      .particle {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background: rgba(139, 92, 246, 0.7);
+        border-radius: 50%;
+        animation: float linear infinite;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(100vh);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-100px);
+          opacity: 0;
+        }
+      }
+
+      /* RESET CARD */
+      .reset-box {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 360px;
+        padding: 35px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(18px);
+        text-align: center;
+      }
+
+      .reset-box h2 {
+        font-family: "Orbitron", sans-serif;
+        margin-bottom: 10px;
+      }
+
+      .reset-box p {
+        font-size: 0.9rem;
+        color: #cbd5e1;
+        margin-bottom: 20px;
+      }
+
+      /* INPUT */
+      .input-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 15px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 15px;
+      }
+
+      .input-box i {
+        color: #8b5cf6;
+      }
+
+      input {
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: white;
+      }
+
+      /* BUTTON */
+      button {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        color: white;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        transition: 0.3s;
+      }
+
+      button:hover {
+        transform: translateY(-3px);
+      }
+
+      /* MESSAGE */
+      .message {
+        margin-top: 12px;
+        font-size: 0.85rem;
+        min-height: 18px;
+      }
+
+      .success {
+        color: #22c55e;
+      }
+
+      .error {
+        color: #ef4444;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- VIDEO -->
+    <div class="video-bg">
+      <video autoplay muted loop playsinline>
+        <source src="walker.mp4" type="video/mp4" />
+      </video>
+    </div>
+
+    <div class="overlay"></div>
+    <div id="particles"></div>
+
+    <!-- RESET CARD -->
+    <div class="reset-box">
+      <h2>Reset Password</h2>
+      <p>Enter your email and we’ll send you a reset link</p>
+
+      <form id="resetForm">
+        <div class="input-box">
+          <i class="fa-solid fa-envelope"></i>
+          <input type="email" id="email" placeholder="Enter email" required />
+        </div>
+
+        <button type="submit">Send Reset Email</button>
+
+        <div class="message" id="message"></div>
+      </form>
+    </div>
+
+    <!-- PARTICLES -->
+    <script>
+      const container = document.getElementById("particles");
+
+      function createParticle() {
+        const p = document.createElement("div");
+        p.classList.add("particle");
+
+        p.style.left = Math.random() * 100 + "vw";
+        p.style.width = p.style.height = Math.random() * 6 + 2 + "px";
+        p.style.animationDuration = Math.random() * 5 + 5 + "s";
+
+        container.appendChild(p);
+        setTimeout(() => p.remove(), 6000);
+      }
+
+      setInterval(createParticle, 150);
+    </script>
+
+    <!-- FIREBASE RESET -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+      import {
+        getAuth,
+        sendPasswordResetEmail,
+      } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAhxLX6fffl9477tNoqlmQomr51oL-6PDM",
+        authDomain: "slideplayer-d024f.firebaseapp.com",
+        projectId: "slideplayer-d024f",
+        storageBucket: "slideplayer-d024f.appspot.com",
+        messagingSenderId: "59789322114",
+        appId: "1:59789322114:web:99b1546f1a9040ca9ad19b",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      const form = document.getElementById("resetForm");
+      const email = document.getElementById("email");
+      const message = document.getElementById("message");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        message.textContent = "";
+        message.className = "message";
+
+        try {
+          await sendPasswordResetEmail(auth, email.value);
+
+          message.textContent = "Reset email sent! Check your inbox.";
+          message.classList.add("success");
+        } catch (error) {
+          message.textContent = error.message;
+          message.classList.add("error");
+        }
+      });
+    </script>
+  </body>
+</html>

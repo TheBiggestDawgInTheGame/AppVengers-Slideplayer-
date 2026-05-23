@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | SlidePlay</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #0b1020;
+        color: white;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      h1,
+      h2,
+      h3,
+      button {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* VIDEO BACKGROUND */
+      .video-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -3;
+      }
+
+      .video-bg video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 10, 20, 0.82);
+        z-index: -2;
+      }
+
+      /* PARTICLES */
+      #particles {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+      }
+
+      .particle {
+        position: absolute;
+        background: rgba(139, 92, 246, 0.7);
+        border-radius: 50%;
+        animation: float linear infinite;
+      }
+
+      @keyframes float {
+        from {
+          transform: translateY(100vh);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(-100px);
+          opacity: 1;
+        }
+      }
+
+      /* LOGIN BOX */
+      .login-box {
+        width: 420px;
+        padding: 40px 32px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+        text-align: center;
+      }
+
+      .login-header h2 {
+        font-size: 1.8rem;
+      }
+
+      .login-header p {
+        color: #d1d5db;
+        margin-top: 8px;
+        margin-bottom: 25px;
+        font-size: 0.9rem;
+      }
+
+      /* INPUT */
+      .input-group {
+        margin-bottom: 18px;
+        text-align: left;
+      }
+
+      .input-box {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .input-box.error {
+        border-color: #ff6b6b;
+      }
+
+      .input-box i {
+        color: #8b5cf6;
+      }
+
+      .input-field {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: white;
+      }
+
+      .error-text {
+        font-size: 0.8rem;
+        color: #ff6b6b;
+        margin-top: 5px;
+        min-height: 16px;
+      }
+
+      /* FORGOT PASSWORD */
+      .forgot-password {
+        text-align: right;
+        margin-bottom: 18px;
+      }
+
+      .forgot-password a {
+        color: #8b5cf6;
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: 0.3s;
+      }
+
+      .forgot-password a:hover {
+        color: #06b6d4;
+      }
+
+      /* BUTTON */
+      .submit-btn {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 14px;
+        font-weight: 700;
+        color: white;
+        cursor: pointer;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        transition: 0.3s;
+      }
+
+      .submit-btn:hover {
+        transform: translateY(-3px);
+      }
+
+      /* SUCCESS */
+      .success-box {
+        margin-top: 15px;
+        font-size: 0.9rem;
+        color: #06d6a0;
+        display: none;
+      }
+
+      /* SIGN UP LINK */
+      .sign-up-link {
+        margin-top: 20px;
+        font-size: 0.9rem;
+        color: #d1d5db;
+      }
+
+      .sign-up-link a {
+        color: #8b5cf6;
+        text-decoration: none;
+      }
+
+      /* DIVIDER */
+      .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 16px 0;
+        color: #94a3b8;
+        font-size: 0.75rem;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .divider span {
+        padding: 0 12px;
+      }
+
+      /* GOOGLE BUTTON */
+      .google-btn {
+        width: 100%;
+        padding: 12px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: 0.3s;
+        font-family: "Orbitron", sans-serif;
+      }
+
+      .google-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-2px);
+      }
+
+      .google-btn img {
+        width: 18px;
+        height: 18px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- VIDEO -->
+    <div class="video-bg">
+      <video autoplay muted loop playsinline>
+        <source src="walker.mp4" type="video/mp4" />
+      </video>
+    </div>
+
+    <div class="overlay"></div>
+    <div id="particles"></div>
+
+    <!-- LOGIN -->
+    <div class="login-box">
+      <div class="login-header">
+        <h2>Welcome Back</h2>
+        <p>Continue your learning journey</p>
+      </div>
+
+      <form id="loginForm">
+        <!-- EMAIL -->
+        <div class="input-group">
+          <div class="input-box" id="emailBox">
+            <i class="fa-solid fa-envelope"></i>
+            <input
+              type="email"
+              id="email"
+              class="input-field"
+              placeholder="Enter email"
+            />
+          </div>
+          <div class="error-text" id="emailError"></div>
+        </div>
+
+        <!-- PASSWORD -->
+        <div class="input-group">
+          <div class="input-box" id="passwordBox">
+            <i class="fa-solid fa-lock"></i>
+            <input
+              type="password"
+              id="password"
+              class="input-field"
+              placeholder="Enter password"
+            />
+          </div>
+          <div class="error-text" id="passwordError"></div>
+        </div>
+
+        <!-- FORGOT PASSWORD -->
+        <div class="forgot-password">
+          <a href="#" id="forgotPassword">Forgot Password?</a>
+        </div>
+
+        <button class="submit-btn" type="submit">SIGN IN</button>
+
+        <div class="success-box" id="successBox"></div>
+
+        <div class="divider"><span>OR</span></div>
+
+        <button type="button" id="googleLoginBtn" class="google-btn">
+          <img src="google.png" alt="Google" />
+          Sign in with Google
+        </button>
+      </form>
+
+      <div class="sign-up-link">
+        Don't have an account? <a href="signup.html">Sign Up</a>
+      </div>
+    </div>
+
+    <!-- PARTICLES -->
+    <script>
+      const container = document.getElementById("particles");
+
+      function createParticle() {
+        const p = document.createElement("div");
+        p.classList.add("particle");
+        p.style.left = Math.random() * 100 + "vw";
+        p.style.width = Math.random() * 6 + 2 + "px";
+        p.style.height = p.style.width;
+        p.style.animationDuration = Math.random() * 5 + 5 + "s";
+        container.appendChild(p);
+        setTimeout(() => p.remove(), 6000);
+      }
+
+      setInterval(createParticle, 150);
+    </script>
+
+    <!-- FORGOT PASSWORD -->
+    <script>
+      document
+        .getElementById("forgotPassword")
+        .addEventListener("click", (e) => {
+          e.preventDefault();
+          window.location.href = "reset.html";
+        });
+    </script>
+
+    <script type="module" src="authentication.js"></script>
+  </body>
+</html>

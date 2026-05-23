@@ -1,0 +1,532 @@
+<!doctype html>
+<html>
+  <head>
+    <title>SlidePlay</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+
+    <!-- UPDATED FONTS ONLY -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #0b1020;
+        color: white;
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      /* HEADING FONT */
+      .logo,
+      h1,
+      h2,
+      h3,
+      h4,
+      .signup-btn,
+      .start-btn,
+      .stat-number {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* VIDEO BACKGROUND */
+      .video-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -3;
+      }
+
+      .video-bg video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(7, 10, 20, 0.78);
+      }
+
+      /* PARTICLES */
+      #particles {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+      }
+
+      .particle {
+        position: absolute;
+        background: rgba(139, 92, 246, 0.7);
+        border-radius: 50%;
+        animation: float linear infinite;
+      }
+
+      @keyframes float {
+        from {
+          transform: translateY(100vh);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(-100px);
+          opacity: 1;
+        }
+      }
+
+      /* NAVBAR */
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 25px 8%;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        backdrop-filter: blur(12px);
+        background: rgba(10, 10, 20, 0.4);
+      }
+
+      .logo {
+        font-size: 2rem;
+        color: #8b5cf6;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 30px;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+        color: white;
+        font-weight: 500;
+        transition: 0.3s;
+      }
+
+      .nav-links a:hover,
+      .nav-links .active {
+        color: #8b5cf6;
+      }
+
+      /* BUTTONS */
+      .signup-btn,
+      .start-btn {
+        padding: 14px 28px;
+        border-radius: 14px;
+        text-decoration: none;
+        color: white;
+        font-weight: 700;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.35);
+        transition: 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .signup-btn:hover,
+      .start-btn:hover {
+        transform: translateY(-4px);
+      }
+
+      /* HERO */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 0 10%;
+      }
+
+      .hero-title {
+        font-size: 4rem;
+        line-height: 1.2;
+        margin-bottom: 25px;
+      }
+
+      .hero p {
+        max-width: 850px;
+        font-size: 1.15rem;
+        line-height: 1.8;
+        margin-bottom: 35px;
+        color: #d1d5db;
+      }
+
+      /* GLOBAL SECTION */
+      section {
+        padding: 100px 8%;
+      }
+
+      section h2 {
+        text-align: center;
+        font-size: 2.7rem;
+        margin-bottom: 20px;
+      }
+
+      section > p {
+        text-align: center;
+        color: #d1d5db;
+        margin-bottom: 50px;
+      }
+
+      /* STATS */
+      .stats {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        flex-wrap: wrap;
+        margin-top: 60px;
+      }
+
+      .stat-box {
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 2rem;
+        color: #8b5cf6;
+      }
+
+      .stat-box p {
+        color: #d1d5db;
+      }
+
+      /* GRIDS */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+        margin-top: 40px;
+      }
+      .steps-container,
+      .testimonial-grid,
+      .mode-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 25px;
+      }
+
+      /* CARDS */
+      .card,
+      .step,
+      .testimonial-card,
+      .mode-card {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 30px;
+        border-radius: 20px;
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: 0.3s;
+      }
+
+      .card:hover,
+      .step:hover,
+      .testimonial-card:hover,
+      .mode-card:hover {
+        transform: translateY(-8px);
+      }
+
+      .card i {
+        font-size: 2rem;
+        color: #8b5cf6;
+        margin-bottom: 15px;
+      }
+
+      .card h3,
+      .step h3,
+      .mode-card h3 {
+        margin-bottom: 10px;
+      }
+
+      .card p,
+      .step p,
+      .mode-card p,
+      .testimonial-card p {
+        line-height: 1.7;
+        color: #d1d5db;
+      }
+
+      .step span {
+        display: inline-flex;
+        width: 50px;
+        height: 50px;
+        align-items: center;
+        justify-content: center;
+        background: #8b5cf6;
+        border-radius: 50%;
+        font-weight: bold;
+        margin-bottom: 15px;
+      }
+
+      .testimonial-card h4 {
+        margin-top: 15px;
+        color: #8b5cf6;
+      }
+
+      /* CTA */
+      .cta {
+        text-align: center;
+      }
+
+      .cta p {
+        margin: 20px 0 30px;
+        color: #d1d5db;
+      }
+
+      footer {
+        padding: 30px;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.4);
+      }
+
+      /* MOBILE */
+      @media (max-width: 768px) {
+        .navbar {
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .hero-title {
+          font-size: 2.5rem;
+        }
+
+        .nav-links {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="particles"></div>
+
+    <div class="video-bg">
+      <video autoplay muted loop playsinline>
+        <source src="walker.mp4" type="video/mp4" />
+      </video>
+      <div class="overlay"></div>
+    </div>
+
+    <header class="navbar">
+      <h1 class="logo">SlidePlay</h1>
+
+      <nav class="nav-links">
+        <a href="index.html" class="active">Home</a>
+        <a href="features.html">Features</a>
+        <a href="about.html">About</a>
+        <a href="help.html">Help</a>
+      </nav>
+
+      <div style="display: flex; gap: 12px;">
+        <a href="login.html" class="signup-btn" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Login</a>
+        <a href="signup.html" class="signup-btn">Sign Up</a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h1 class="hero-title">
+        Learning is a SUPERPOWER. <br />
+        We make it feel like one.
+      </h1>
+
+      <p>
+        SlidePlay transforms dry slides and lecture notes into living, breathing
+        game worlds. Upload your content, and turn studying into an immersive
+        experience.
+      </p>
+
+      <a href="login.html" class="start-btn">
+        <i class="fa-solid fa-play"></i> Start Playing
+      </a>
+
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-number">50K+</div>
+          <p>Students</p>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-number">120K+</div>
+          <p>Games Played</p>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-number">95%</div>
+          <p>Engagement</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Explore Features</h2>
+      <p>Everything you need to turn studying into a game.</p>
+
+      <div class="features-grid">
+        <div class="card">
+          <i class="fa-solid fa-gamepad"></i>
+          <h3>Real Games</h3>
+          <p>Learn through gameplay, not boring memorisation.</p>
+        </div>
+
+        <div class="card">
+          <i class="fa-solid fa-robot"></i>
+          <h3>AI Quiz Engine</h3>
+          <p>Smart quizzes generated from your content.</p>
+        </div>
+
+        <div class="card">
+          <i class="fa-solid fa-coffee"></i>
+          <h3>Study Modes</h3>
+          <p>Competitive or chill learning modes.</p>
+        </div>
+
+        <div class="card">
+          <i class="fa-solid fa-chart-line"></i>
+          <h3>Progress Tracking</h3>
+          <p>Monitor growth, mastery, and streaks.</p>
+        </div>
+
+        <div class="card">
+          <i class="fa-solid fa-trophy"></i>
+          <h3>Tournaments</h3>
+          <p>Compete with classmates in challenges.</p>
+        </div>
+
+        <div class="card">
+          <i class="fa-solid fa-crown"></i>
+          <h3>Rewards</h3>
+          <p>Unlock perks, badges, and privileges.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>How It Works</h2>
+
+      <div class="steps-container">
+        <div class="step">
+          <span>1</span>
+          <h3>Upload Content</h3>
+          <p>Add your notes, slides, or learning material.</p>
+        </div>
+
+        <div class="step">
+          <span>2</span>
+          <h3>Generate Games</h3>
+          <p>Convert material into quizzes and missions.</p>
+        </div>
+
+        <div class="step">
+          <span>3</span>
+          <h3>Play & Learn</h3>
+          <p>Earn XP and level up while mastering content.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Choose Your Mode</h2>
+
+      <div class="mode-grid">
+        <div class="mode-card">
+          <h3>🎯 Study Mode</h3>
+          <p>Competitive learning with streaks and leaderboards.</p>
+        </div>
+
+        <div class="mode-card">
+          <h3>🌙 Chill Mode</h3>
+          <p>Relaxed learning at your own pace.</p>
+        </div>
+
+        <div class="mode-card">
+          <h3>🏆 Tournament Mode</h3>
+          <p>Battle classmates in real-time.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>What Students Say</h2>
+
+      <div class="testimonial-grid">
+        <div class="testimonial-card">
+          <p>"SlidePlay made studying addictive. I finally enjoy revision."</p>
+          <h4>- Sarah, Computer Science</h4>
+        </div>
+
+        <div class="testimonial-card">
+          <p>"My grades improved because I actually wanted to revise daily."</p>
+          <h4>- David, Engineering</h4>
+        </div>
+
+        <div class="testimonial-card">
+          <p>
+            "Turning slides into games is genius. Exam prep feels less
+            stressful."
+          </p>
+          <h4>- Amanda, Law</h4>
+        </div>
+
+        <div class="testimonial-card">
+          <p>
+            "The tournaments keep me motivated. Studying finally feels
+            competitive."
+          </p>
+          <h4>- Daniel, Information Systems</h4>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>Ready to Level Up?</h2>
+      <p>Join SlidePlay and transform your study experience.</p>
+
+      <a href="signup.html" class="start-btn">Create Account</a>
+    </section>
+
+    <footer>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+      const container = document.getElementById("particles");
+
+      function createParticle() {
+        const particle = document.createElement("div");
+        particle.classList.add("particle");
+
+        particle.style.left = Math.random() * 100 + "vw";
+
+        const size = Math.random() * 6 + 2;
+        particle.style.width = size + "px";
+        particle.style.height = size + "px";
+
+        const duration = Math.random() * 5 + 5;
+        particle.style.animationDuration = duration + "s";
+
+        container.appendChild(particle);
+
+        setTimeout(() => {
+          particle.remove();
+        }, duration * 1000);
+      }
+
+      setInterval(createParticle, 150);
+    </script>
+  </body>
+</html>

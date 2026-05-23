@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Features | SlidePlay</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        color: white;
+        background: #0b1020;
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      h1,
+      h2,
+      h3,
+      .logo,
+      .signup-btn {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* VIDEO BACKGROUND */
+      .video-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -3;
+      }
+
+      .video-bg video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 10, 20, 0.82);
+        z-index: -2;
+      }
+
+      /* PARTICLES */
+      #particles {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+      }
+
+      .particle {
+        position: absolute;
+        background: rgba(139, 92, 246, 0.7);
+        border-radius: 50%;
+        animation: float linear infinite;
+      }
+
+      @keyframes float {
+        from {
+          transform: translateY(100vh);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(-100px);
+          opacity: 1;
+        }
+      }
+
+      /* NAVBAR */
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 25px 8%;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        backdrop-filter: blur(14px);
+        background: rgba(10, 10, 20, 0.35);
+      }
+
+      .logo {
+        font-size: 2rem;
+        color: #8b5cf6;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 30px;
+      }
+
+      .nav-links a {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: 0.3s;
+      }
+
+      .nav-links a:hover,
+      .nav-links .active {
+        color: #8b5cf6;
+      }
+
+      .signup-btn {
+        padding: 14px 28px;
+        border-radius: 14px;
+        text-decoration: none;
+        color: white;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.35);
+        font-weight: 700;
+      }
+
+      section {
+        padding: 90px 8%;
+      }
+
+      /* HERO */
+      .features-hero {
+        text-align: center;
+        margin-bottom: 80px;
+      }
+
+      .features-hero h1 {
+        font-size: 3rem;
+        margin-bottom: 15px;
+      }
+
+      .features-hero p {
+        color: #d1d5db;
+        font-size: 1.1rem;
+      }
+
+      /* SECTION TITLES */
+      .section-title {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .section-title h2 {
+        font-size: 2.3rem;
+      }
+
+      /* HOW IT WORKS */
+      .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 25px;
+        margin-bottom: 80px;
+      }
+
+      .step-card,
+      .feature-card {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 30px;
+        border-radius: 22px;
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: 0.3s;
+      }
+
+      .step-card:hover,
+      .feature-card:hover {
+        transform: translateY(-8px);
+      }
+
+      .step-card {
+        text-align: center;
+      }
+
+      .icon {
+        width: 55px;
+        height: 55px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Orbitron", sans-serif;
+        font-weight: bold;
+        font-size: 1.2rem;
+      }
+
+      .step-card p,
+      .feature-card p {
+        color: #d1d5db;
+        line-height: 1.7;
+        margin-top: 12px;
+      }
+
+      /* FEATURES GRID 3 X 2 */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+      }
+
+      .feature-card h3 {
+        color: #8b5cf6;
+        margin-bottom: 15px;
+      }
+
+      footer {
+        padding: 30px;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.4);
+        margin-top: 80px;
+      }
+
+      /* RESPONSIVE */
+      @media (max-width: 1000px) {
+        .steps-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .features-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 700px) {
+        .navbar {
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .nav-links {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .steps-grid,
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .features-hero h1 {
+          font-size: 2.2rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- VIDEO -->
+    <div class="video-bg">
+      <video autoplay muted loop playsinline>
+        <source src="walker.mp4" type="video/mp4" />
+      </video>
+    </div>
+
+    <div class="overlay"></div>
+
+    <!-- PARTICLES -->
+    <div id="particles"></div>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+      <h1 class="logo">SlidePlay</h1>
+
+      <nav class="nav-links">
+        <a href="main.html">Home</a>
+        <a href="features.html" class="active">Features</a>
+        <a href="about.html">About</a>
+        <a href="help.html">Help</a>
+      </nav>
+
+      <a href="signup.html" class="signup-btn">Sign Up</a>
+    </header>
+
+    <section>
+      <!-- HERO -->
+      <div class="features-hero">
+        <h1>⚡ Features Overview ⚡</h1>
+        <p>
+          Discover how SlidePlay transforms learning into a game experience.
+        </p>
+      </div>
+
+      <!-- HOW IT WORKS -->
+      <div class="section-title">
+        <h2>How It Works</h2>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="icon">1</div>
+          <h3>Choose Mission</h3>
+          <p>Select a learning topic or quiz challenge.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="icon">2</div>
+          <h3>Play & Learn</h3>
+          <p>Answer quizzes in a fun game format.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="icon">3</div>
+          <h3>Earn XP</h3>
+          <p>Gain experience points for correct answers.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="icon">4</div>
+          <h3>Level Up</h3>
+          <p>Unlock harder challenges and rewards.</p>
+        </div>
+      </div>
+
+      <!-- FEATURES -->
+      <div class="section-title">
+        <h2>Core Features</h2>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <h3>🎮 Gamified Learning</h3>
+          <p>Learning content feels like missions instead of boring lessons.</p>
+        </div>
+
+        <div class="feature-card">
+          <h3>⚡ XP Rewards</h3>
+          <p>Earn XP for every completed quiz and lesson.</p>
+        </div>
+
+        <div class="feature-card">
+          <h3>🏆 Level System</h3>
+          <p>Advance through levels as your skills improve.</p>
+        </div>
+
+        <div class="feature-card">
+          <h3>📊 Progress Tracking</h3>
+          <p>Track your performance and consistency over time.</p>
+        </div>
+
+        <div class="feature-card">
+          <h3>🎯 Interactive Quizzes</h3>
+          <p>Challenge yourself with engaging quiz missions.</p>
+        </div>
+
+        <div class="feature-card">
+          <h3>🧠 Smart Learning Flow</h3>
+          <p>Structured content improves focus, memory, and retention.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+      const container = document.getElementById("particles");
+
+      .
+      function createParticle() {
+        const particle = document.createElement("div");
+        particle.classList.add("particle");
+
+        particle.style.left = Math.random() * 100 + "vw";
+
+        const size = Math.random() * 6 + 2;
+        particle.style.width = size + "px";
+        particle.style.height = size + "px";
+
+        const duration = Math.random() * 5 + 5;
+        particle.style.animationDuration = duration + "s";
+
+        container.appendChild(particle);
+
+        setTimeout(() => {
+          particle.remove();
+        }, duration * 1000);
+      }
+
+      setInterval(createParticle, 150);
+    </script>
+  </body>
+</html>

@@ -442,7 +442,11 @@ function gameOver() {
     checkpointActive = false;
     hideCheckpoint();
     statusEl.textContent = `Game over. Score: ${score}. Press Start to play again.`;
-    // Submit to leaderboard
+    // Submit to Firebase leaderboard
+    if (typeof window.saveLeaderboardScore === 'function') {
+        window.saveLeaderboardScore('snake', score);
+    }
+    // Submit to local leaderboard (legacy)
     try {
         const session = JSON.parse(localStorage.getItem('sp_session') || 'null');
         const playerName = session?.username || session?.email?.split('@')[0] || 'Anonymous';

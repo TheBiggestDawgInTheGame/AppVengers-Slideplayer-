@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <meta charset="UTF-8" />
+
+    <title>Teacher Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="teacher.css" />
+    <link rel="stylesheet" href="page-transition.css" />
+    <style>
+      /* GLOBAL FONT SYSTEM */
+      body {
+        font-family: "Poppins", sans-serif;
+      }
+
+      /* HEADINGS + BRAND ELEMENTS */
+      h1,
+      h2,
+      h3,
+      h4,
+      .logo,
+      .hero-title {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* BUTTONS */
+      button,
+      .signup-btn,
+      .start-btn {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* TEXT ELEMENTS */
+      p,
+      a,
+      input,
+      textarea,
+      label {
+        font-family: "Poppins", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- AURORA BACKGROUND ORBS -->
+    <div class="aurora">
+      <div class="orb o1"></div>
+      <div class="orb o2"></div>
+      <div class="orb o3"></div>
+      <div class="orb o4"></div>
+    </div>
+
+    <div class="hud-grid"></div>
+
+    <header class="top-bar">
+      <div class="left-status">
+        <span class="pulse-dot"></span>
+        <span>Jarvis Node Online</span>
+      </div>
+
+      <div class="search-panel">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search class, student, module..." />
+      </div>
+
+      <div class="bar-actions">
+        <button class="icon-btn" aria-label="Notifications">
+          <i class="fa-solid fa-bell"></i>
+        </button>
+        <a class="icon-btn" href="settings.html" aria-label="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </a>
+        <div class="teacher-pill">
+          <img src="https://i.pravatar.cc/80?img=47" alt="Teacher avatar" />
+          <div>
+            <strong>Dr. M. Stark</strong>
+            <span>Physics Department</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-layout">
+      <aside class="side-nav">
+        <div class="brand">
+          <div class="reactor-core"><i class="fa-solid fa-atom"></i></div>
+          <div>
+            <h2>SlidePlay</h2>
+            <p>EDU DEFENSE GRID</p>
+          </div>
+        </div>
+
+        <nav>
+          <a href="#" class="active"
+            ><i class="fa-solid fa-gauge-high"></i> Teacher Dashboard</a
+          >
+          <a href="curriculum.html"
+            ><i class="fa-solid fa-book"></i> Curriculum Library</a
+          >
+          <div class="locked-link-wrap" title="Paid feature. Upgrade to access.">
+            <a href="#" class="locked-link" tabindex="-1" aria-disabled="true">
+              <span><i class="fa-solid fa-chart-line"></i> Performance Analytics</span>
+              <span class="paid-badge paid-right"><span class="lock-icon gold">🔒</span> PAID</span>
+            </a>
+          </div>
+          <a href="UploadPage.html"
+            ><i class="fa-solid fa-cloud-arrow-up"></i> Resource Upload</a
+          >
+          <div class="locked-link-wrap" title="Paid feature. Upgrade to access.">
+            <a href="#" class="locked-link" tabindex="-1" aria-disabled="true">
+              <span><i class="fa-solid fa-user-shield"></i> Student Access Grid</span>
+              <span class="paid-badge paid-right"><span class="lock-icon gold">🔒</span> PAID</span>
+            </a>
+          </div>
+          <a href="payment.html"
+            ><i class="fa-solid fa-credit-card"></i> Billing &amp; Plans</a
+          >
+          <div class="locked-link-wrap" title="Paid feature. Upgrade to access.">
+            <a href="#" class="locked-link" tabindex="-1" aria-disabled="true">
+              <span><i class="fa-solid fa-shield"></i> Admin Controls</span>
+              <span class="paid-badge paid-right"><span class="lock-icon gold">🔒</span> PAID</span>
+            </a>
+          </div>
+        </nav>
+
+        <button
+          class="launch-btn"
+          onclick="window.location.href='UploadPage.html'"
+        >
+          <i class="fa-solid fa-rocket"></i> Start Quiz
+        </button>
+      </aside>
+
+      <section class="main-zone">
+        <div class="hero-card card">
+          <div class="hero-copy">
+            <p class="chip">Faculty Command Center</p>
+            <h1>Teacher Dashboard</h1>
+            <p>
+              Real-time classroom intelligence, student tracking, and module
+              readiness in one tactical display.
+            </p>
+          </div>
+          <div class="hero-metrics">
+            <article>
+              <span>Attendance</span>
+              <strong data-target="96" data-suffix="%">96%</strong>
+            </article>
+            <article>
+              <span>Avg. Grade</span>
+              <strong data-target="84.2" data-suffix="%">84.2%</strong>
+            </article>
+            <article>
+              <span>Assignments Pending</span>
+              <strong data-target="18" data-suffix="">18</strong>
+            </article>
+          </div>
+        </div>
+
+        <!-- SESSION LAUNCHER CARD -->
+        <div class="card session-launcher-card">
+          <div class="slc-body">
+            <div class="slc-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+            <div>
+              <h3>Deploy Class Session</h3>
+              <p>Generate a live code, pick a game, and have students join in seconds</p>
+            </div>
+          </div>
+          <div class="slc-actions">
+            <span class="slc-stat"><i class="fa-solid fa-users"></i> Up to 200 students</span>
+            <button class="slc-launch-btn" id="openSessBtn" onclick="window.location.href='UploadPage.html'">
+              <i class="fa-solid fa-rocket"></i> Create Session
+            </button>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <article class="card chart-card">
+            <div class="card-head">
+              <h3><span class="paid-badge">PAID <span class="lock-icon">🔒</span></span> Weekly Engagement Waveform</h3>
+              <span class="live-feed-label">Live Feed</span>
+            </div>
+            <div class="bar-chart" aria-hidden="true" data-chart="engagement">
+              <span class="bar b1"></span>
+              <span class="bar b2"></span>
+              <span class="bar b3"></span>
+              <span class="bar b4"></span>
+              <span class="bar b5"></span>
+              <span class="bar b6"></span>
+            </div>
+            <div class="chart-labels">
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+            </div>
+          </article>
+
+          <article class="card roster-card">
+            <div class="card-head">
+              <h3><span class="paid-badge">PAID <span class="lock-icon">🔒</span></span> Student Tracker</h3>
+              <span>Class 11 - A</span>
+            </div>
+            <ul class="student-list">
+              <li>
+                <span>Ava Bennett</span><small>Present | Quiz 1: 91%</small>
+              </li>
+              <li>
+                <span>Jayden Kim</span><small>Present | Quiz 1: 86%</small>
+              </li>
+              <li>
+                <span>Marcus Thorne</span><small>Late | Quiz 1: 72%</small>
+              </li>
+              <li>
+                <span>Sana Yusuf</span><small>Present | Quiz 1: 95%</small>
+              </li>
+            </ul>
+          </article>
+
+          <article class="card modules-card">
+            <div class="card-head">
+              <h3><span class="paid-badge">PAID <span class="lock-icon">🔒</span></span> Active Modules</h3>
+              <span>4 Running</span>
+            </div>
+            <div class="module-item">
+              <div>
+                <strong>Quantum Mechanics</strong>
+                <p>7 tasks remaining</p>
+              </div>
+              <button disabled title="Paid feature. Upgrade to access.">Open</button>
+            </div>
+            <div class="module-item">
+              <div>
+                <strong>Vector Calculus</strong>
+                <p>2 tasks remaining</p>
+              </div>
+              <button disabled title="Paid feature. Upgrade to access.">Open</button>
+            </div>
+          </article>
+
+          <article class="card access-grid-card">
+            <div class="card-head">
+              <h3><span class="paid-badge">PAID <span class="lock-icon">🔒</span></span> <i class="fa-solid fa-user-shield"></i> EDU Defense Grid</h3>
+              <span>Control Center</span>
+            </div>
+            <p class="access-copy">
+              Manage student permissions, apply penalties, suspend access, and
+              run moderation actions from one dedicated command page.
+            </p>
+            <a class="access-open-btn" href="#" tabindex="-1" aria-disabled="true" style="pointer-events:none;opacity:0.6;" title="Paid feature. Upgrade to access."><i class="fa-solid fa-up-right-from-square"></i> Open Access & Discipline Page</a>
+          </article>
+        </div>
+      </section>
+
+      <aside class="right-zone">
+        <article class="card live-card">
+          <div class="card-head">
+            <h3>Live Sessions</h3>
+            <span>2 Active</span>
+          </div>
+          <div class="session-item">
+            <h4>PHY-904</h4>
+            <p>23/31 present</p>
+          </div>
+          <div class="session-item">
+            <h4>CHE-112</h4>
+            <p>19/25 present</p>
+          </div>
+          <button class="session-cta" onclick="window.location.href='UploadPage.html'">Start Broadcasting</button>
+        </article>
+
+        <article class="card ring-card">
+          <div class="card-head">
+            <h3>Score Distribution</h3>
+          </div>
+          <div class="score-ring" data-chart="score">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <defs>
+                <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#30e8ff"/>
+                  <stop offset="100%" stop-color="#ff53cf"/>
+                </linearGradient>
+              </defs>
+              <circle cx="60" cy="60" r="48"></circle>
+              <circle cx="60" cy="60" r="48" class="progress"></circle>
+            </svg>
+            <div>
+              <strong>8.2</strong>
+              <span>Class Avg</span>
+            </div>
+          </div>
+          <p class="ring-note">Top bracket (A): 34 students</p>
+        </article>
+      </aside>
+    </main>
+    <!-- ── SESSION CREATION MODAL ─────────────────────────────── -->
+    <div class="sess-overlay" id="sessModal">
+      <div class="sess-box">
+        <button class="sess-close" id="sessClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+
+        <!-- Step indicator -->
+        <div class="sess-steps-row">
+          <div class="s-dot active" id="sdot1"><span>1</span></div>
+          <div class="s-line" id="sline1"></div>
+          <div class="s-dot" id="sdot2"><span>2</span></div>
+          <div class="s-line" id="sline2"></div>
+          <div class="s-dot" id="sdot3"><span>3</span></div>
+          <div class="s-line" id="sline3"></div>
+          <div class="s-dot" id="sdot4"><span>4</span></div>
+          <div class="s-line" id="sline4"></div>
+          <div class="s-dot" id="sdot5"><span>5</span></div>
+        </div>
+        <div class="sess-step-labels-row">
+          <span>Upload</span><span>Setup</span><span>Game</span><span>Mode</span><span>Launch</span>
+        </div>
+
+        <!-- STEP 1: Upload Slides -->
+        <div class="sess-panel" id="ssStep1">
+          <div class="sess-panel-head">
+            <h2>Upload Slides</h2>
+            <p>Upload your lesson content and we’ll auto-generate a quiz from it</p>
+          </div>
+
+          <!-- Drop zone -->
+          <div class="upload-dropzone" id="sessDropzone">
+            <input type="file" id="sessFileInput" accept=".pdf,.pptx,.ppt,.docx,.doc" hidden />
+            <div class="udz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <p class="udz-title">Drop your file here or <span class="udz-browse">browse</span></p>
+            <div class="udz-types">
+              <span><i class="fa-solid fa-file-pdf"></i> PDF</span>
+              <span><i class="fa-solid fa-file-powerpoint"></i> PPTX</span>
+              <span><i class="fa-solid fa-file-word"></i> DOCX</span>
+            </div>
+          </div>
+
+          <!-- File picked -->
+          <div class="upload-file-picked hidden" id="sessFilePicked">
+            <div class="ufp-icon"><i class="fa-solid fa-file-circle-check"></i></div>
+            <div class="ufp-meta">
+              <span class="ufp-name" id="sessFileName">file.pdf</span>
+              <span class="ufp-size" id="sessFileSize">0 MB</span>
+            </div>
+            <button class="ufp-remove" onclick="sessRemoveUpload()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+
+          <!-- Processing -->
+          <div class="upload-processing hidden" id="sessProcessing">
+            <div class="up-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+            <p class="up-text" id="sessProcessText">Analysing slides…</p>
+            <div class="up-bar"><div class="up-fill" id="sessProgressFill"></div></div>
+          </div>
+
+          <!-- Success -->
+          <div class="upload-success hidden" id="sessUploadSuccess">
+            <div class="us-check"><i class="fa-solid fa-circle-check"></i></div>
+            <div>
+              <p class="us-title">Quiz ready!</p>
+              <p class="us-sub"><strong id="sessQCount">12</strong> questions generated from your slides</p>
+            </div>
+            <button class="us-redo" onclick="sessRemoveUpload()" title="Upload different file"><i class="fa-solid fa-rotate-left"></i></button>
+          </div>
+
+          <div class="sess-nav">
+            <span></span>
+            <button class="sess-btn-next" id="sessUploadNext" disabled onclick="sessGoStep(2)">Configure Session <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </div>
+
+        <!-- STEP 2: Session Setup -->
+        <div class="sess-panel hidden" id="ssStep2">
+          <div class="sess-panel-head">
+            <h2>Configure Quiz</h2>
+            <p>Your session code is ready — fine-tune the quiz settings before going live</p>
+          </div>
+          <div class="sess-code-box">
+            <span class="sess-code-label">SESSION CODE</span>
+            <div class="sess-code-value" id="sessCodeVal">------</div>
+            <button class="sess-copy-btn" id="sessCodeCopy"><i class="fa-solid fa-copy"></i> Copy Code</button>
+          </div>
+          <div class="sess-fields">
+            <div class="sess-field">
+              <label><i class="fa-solid fa-tag"></i> Session Name</label>
+              <input type="text" id="sessName" placeholder="e.g. Physics Chapter 4 Review" />
+            </div>
+            <div class="sess-field">
+              <label><i class="fa-solid fa-users"></i> Max Students</label>
+              <input type="number" id="sessMax" value="30" min="1" max="200" />
+            </div>
+          </div>
+
+          <!-- Quiz settings row -->
+          <div class="sess-quiz-settings">
+            <!-- Difficulty -->
+            <div class="sess-setting-block">
+              <label class="ssb-label"><i class="fa-solid fa-gauge-high"></i> Difficulty</label>
+              <div class="diff-pills" id="sessDiffPills">
+                <button class="diff-pill diff-easy active" data-diff="easy">Easy</button>
+                <button class="diff-pill diff-medium" data-diff="medium">Medium</button>
+                <button class="diff-pill diff-hard" data-diff="hard">Hard</button>
+              </div>
+            </div>
+            <!-- Question count -->
+            <div class="sess-setting-block">
+              <label class="ssb-label"><i class="fa-solid fa-list-ol"></i> Questions</label>
+              <div class="q-count-row">
+                <input type="number" id="sessQCountInput" value="10" min="1" max="50" class="q-count-input" />
+                <span class="q-ai-hint">AI suggested: <strong id="sessQAISuggested">—</strong></span>
+              </div>
+            </div>
+            <!-- Time per question -->
+            <div class="sess-setting-block">
+              <label class="ssb-label"><i class="fa-regular fa-clock"></i> Time per Question</label>
+              <div class="diff-pills" id="sessTimePills">
+                <button class="diff-pill active" data-time="20">20s</button>
+                <button class="diff-pill" data-time="30">30s</button>
+                <button class="diff-pill" data-time="45">45s</button>
+                <button class="diff-pill" data-time="60">60s</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sess-nav">
+            <button class="sess-btn-back" onclick="sessGoStep(1)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            <button class="sess-btn-next" onclick="sessGoStep(3)">Pick a Game <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Game Selection -->
+        <div class="sess-panel hidden" id="ssStep3">
+          <div class="sess-panel-head">
+            <h2>Pick a Game</h2>
+            <p>Choose the game your students will play this session</p>
+          </div>
+          <div class="sess-game-grid" id="sessGameGrid"></div>
+          <div class="sess-nav">
+            <button class="sess-btn-back" onclick="sessGoStep(2)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            <button class="sess-btn-next" id="sessNextToMode" disabled onclick="sessGoStep(4)">Choose Mode <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </div>
+
+        <!-- STEP 4: Session Mode -->
+        <div class="sess-panel hidden" id="ssStep4">
+          <div class="sess-panel-head">
+            <h2>Session Mode</h2>
+            <p>How will your students experience this session?</p>
+          </div>
+          <div class="sess-mode-grid">
+            <div class="sess-mode-card active" data-mode="individual">
+              <div class="smc-icon" style="color:#22d3ee"><i class="fa-solid fa-user-graduate"></i></div>
+              <h4>Individual Play</h4>
+              <p>Each student plays at their own pace independently</p>
+              <span class="smc-free-badge">FREE</span>
+            </div>
+            <div class="sess-mode-card smc-gated" data-mode="groups" onclick="sessShowPaidGate(this)">
+              <div class="paid-gate-overlay"><i class="fa-solid fa-lock"></i><span>Upgrade to Unlock</span></div>
+              <div class="smc-icon" style="color:#34d399"><i class="fa-solid fa-people-group"></i></div>
+              <h4>Group Play</h4>
+              <p>Students compete in teams — share a combined score and collaborate</p>
+              <span class="smc-paid-badge"><i class="fa-solid fa-crown"></i> PREMIUM</span>
+            </div>
+            <div class="sess-mode-card smc-gated" data-mode="tournament" onclick="sessShowPaidGate(this)">
+              <div class="paid-gate-overlay"><i class="fa-solid fa-lock"></i><span>Upgrade to Unlock</span></div>
+              <div class="smc-icon" style="color:#fbbf24"><i class="fa-solid fa-trophy"></i></div>
+              <h4>Tournament Mode</h4>
+              <p>Students compete live — real-time leaderboard &amp; instant scoring</p>
+              <span class="smc-paid-badge"><i class="fa-solid fa-crown"></i> PREMIUM</span>
+            </div>
+          </div>
+
+          <!-- Delegated Moderation add-on toggle -->
+          <div class="sess-addon-row">
+            <div class="sess-addon-info">
+              <i class="fa-solid fa-user-shield" style="color:#c084fc"></i>
+              <div>
+                <span class="sad-title">Delegated Moderation</span>
+                <span class="sad-desc">Let a trusted student moderate the session on your behalf</span>
+              </div>
+              <span class="smc-paid-badge sad-badge"><i class="fa-solid fa-crown"></i> PREMIUM</span>
+            </div>
+            <div class="sad-toggle-wrap" onclick="sessShowAddonGate(this)">
+              <div class="sad-lock-hint"><i class="fa-solid fa-lock"></i> Upgrade</div>
+              <label class="sad-toggle disabled">
+                <input type="checkbox" id="sessDelegateToggle" disabled />
+                <span class="sad-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="sess-nav">
+            <button class="sess-btn-back" onclick="sessGoStep(3)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            <button class="sess-btn-next" onclick="sessGoStep(5)"><i class="fa-solid fa-rocket"></i> Go Live</button>
+          </div>
+        </div>
+
+        <!-- STEP 5: Live Waiting Room -->
+        <div class="sess-panel hidden" id="ssStep5">
+          <div class="sess-live-bar">
+            <div class="sess-live-dot"><span class="pulse-dot"></span> LIVE</div>
+            <div class="sess-live-meta">
+              <span id="ssLiveName">Session</span>
+              <span>&middot;</span>
+              <span id="ssLiveGame"><i class="fa-solid fa-gamepad"></i> No game</span>
+              <span>&middot;</span>
+              <span id="ssLiveMode"><i class="fa-solid fa-user"></i> Individual</span>
+            </div>
+          </div>
+          <div class="sess-code-hero">
+            <p>Share this code with your students</p>
+            <div class="sess-big-code" id="ssBigCode">------</div>
+            <button class="sess-copy-btn" id="ssBigCodeCopy"><i class="fa-solid fa-copy"></i> Copy Code</button>
+          </div>
+          <div class="sess-waitroom">
+            <div class="wr-bar">
+              <span class="wr-title"><i class="fa-solid fa-signal"></i> Waiting Room</span>
+              <span class="wr-counter"><span id="ssJoinedCount">0</span> / <span id="ssMaxCount">30</span> students</span>
+            </div>
+            <div class="wr-list" id="ssRosterList">
+              <div class="wr-placeholder">Waiting for students to join...</div>
+            </div>
+          </div>
+          <div class="sess-action-row">
+            <button class="sess-start-btn" id="ssStartBtn"><i class="fa-solid fa-play"></i> Start Session</button>
+            <button class="sess-end-btn" id="ssEndBtn"><i class="fa-solid fa-stop"></i> End Session</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script src="teacher.js"></script>
+    <script src="page-transition.js"></script>
+  </body>
+</html>

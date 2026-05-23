@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Mode Selection</title>
+  <link rel="stylesheet" href="games.css">
+  <style>
+    /* Extra: Center modal for demo if needed */
+    .mode-modal-demo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--bg);
+    }
+  </style>
+</head>
+<body>
+  <div class="mode-modal-demo">
+    <div class="psm-panel">
+      <div class="psm-game-label">Select Play Mode</div>
+      <h2>How do you want to play?</h2>
+      <div class="psm-sub">Choose your preferred play style for this game.</div>
+      <div class="psm-options">
+        <div class="psm-option" id="solo-mode">
+          <div class="psm-icon">🎮</div>
+          <span class="psm-opt-title">Solo</span>
+          <span class="psm-opt-desc">Play alone and challenge yourself.</span>
+        </div>
+        <div class="psm-option" id="multiplayer-mode">
+          <div class="psm-icon">👥</div>
+          <span class="psm-opt-title">Multiplayer</span>
+          <span class="psm-opt-desc">Play with a friend or classmate.</span>
+        </div>
+        <div class="psm-option" id="tournament-mode">
+          <div class="psm-icon">🏆</div>
+          <span class="psm-opt-title">Tournament</span>
+          <span class="psm-opt-desc">Compete in a tournament format.</span>
+        </div>
+      </div>
+      <button class="psm-launch-btn hidden" id="launch-btn">Start Game</button>
+    </div>
+  </div>
+  <script src="games-mode.js"></script>
+</body>
+</html>

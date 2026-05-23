@@ -1,0 +1,404 @@
+﻿// ── Session state ─────────────────────────────────────────────
+const UP_GAMES = [
+  { id: "quiz",     name: "Quiz Battle",    icon: "fa-circle-question",  color: "#8b5cf6" },
+  { id: "jeopardy", name: "Jeopardy",       icon: "fa-table-columns",    color: "#06b6d4" },
+  { id: "scramble", name: "Word Scramble",  icon: "fa-shuffle",          color: "#f59e0b" },
+  { id: "memory",   name: "Memory Chain",   icon: "fa-brain",            color: "#10b981" },
+  { id: "snake",    name: "Snake Quiz",     icon: "fa-worm",             color: "#84cc16" },
+  { id: "typing",   name: "Speed Typing",   icon: "fa-keyboard",         color: "#3b82f6" },
+  { id: "slide",    name: "Slide Puzzle",   icon: "fa-puzzle-piece",     color: "#ec4899" },
+  { id: "story",    name: "Story Mode",     icon: "fa-book-open",        color: "#f97316" },
+  { id: "pacman",   name: "Pac-Man Quiz",   icon: "fa-ghost",            color: "#eab308" },
+  { id: "mbasa",    name: "Mbasa Game",     icon: "fa-star",             color: "#a855f7" }
+];
+
+const UP_GAME_URLS = {
+  quiz:     "../../games/quiz_game/",
+  jeopardy: "../../games/jeopardy-quiz/",
+  scramble: "../../games/scramble_game/",
+  memory:   "../../games/memory_chain_game/",
+  snake:    "../../games/snake_game/",
+  typing:   "../../games/speed_typing_game/",
+  slide:    "../../games/slide_puzzle_game/",
+  story:    "../../games/story_mode/",
+  pacman:   "../../games/pacman_game/",
+  mbasa:    "../../games/mbasa_game/"
+};
+
+const UP_FAKE_NAMES = [
+  "Sipho M.","Ayanda K.","Thabo N.","Zanele D.","Lebo P.",
+  "Kagiso R.","Ntombi S.","Bongani T.","Naledi V.","Siyanda W.",
+  "Mpho L.","Dineo C.","Tebogo F.","Keabetswe H.","Vusi J."
+];
+
+const up = {
+  code: "",
+  name: "",
+  maxStudents: 30,
+  game: null,
+  mode: "individual",
+  difficulty: "easy",
+  timePerQ: 20,
+  questionType: "mixed",
+  questionCount: 10,
+  shuffle: false,
+  showTimer: true,
+  uploadedFile: null,
+  students: [],
+  joinTimer: null,
+  aiQuestions: null
+};
+
+// ── Utilities ─────────────────────────────────────────────────
+function upGenCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
+function upCopyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+    setTimeout(() => { btn.innerHTML = orig; }, 2000);
+  });
+}
+
+function upHidden(id, hide) {
+  const el = document.getElementById(id);
+  if (el) hide ? el.classList.add("hidden") : el.classList.remove("hidden");
+}
+
+// ── Step navigation ───────────────────────────────────────────
+function upGoStep(n) {
+  for (let i = 1; i <= 5; i++) {
+    const panel = document.getElementById("upStep" + i);
+    const dot   = document.getElementById("upDot" + i);
+    if (panel) panel.classList.toggle("hidden", i !== n);
+    if (dot) {
+      dot.classList.toggle("active", i === n);
+      dot.classList.toggle("done",   i < n);
+    }
+    if (i < 5) {
+      const line = document.getElementById("upLine" + i);
+      if (line) line.classList.toggle("filled", i < n);
+    }
+  }
+  if (n === 5) upActivateWaitroom();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ── Game grid ─────────────────────────────────────────────────
+function upBuildGameGrid() {
+  const grid = document.getElementById("upGameGrid");
+  if (!grid) return;
+  grid.innerHTML = UP_GAMES.map(g => `
+    <div class="up-game-card" data-gid="${g.id}" onclick="upPickGame('${g.id}')" style="--gc:${g.color}">
+      <div class="ugc-icon"><i class="fa-solid ${g.icon}"></i></div>
+      <span class="ugc-name">${g.name}</span>
+    </div>
+  `).join("");
+}
+
+function upPickGame(id) {
+  up.game = UP_GAMES.find(g => g.id === id) || null;
+  document.querySelectorAll(".up-game-card").forEach(c => c.classList.toggle("sel", c.dataset.gid === id));
+  const nb = document.getElementById("upNext3");
+  if (nb) nb.disabled = false;
+}
+
+// ── Paid gate ─────────────────────────────────────────────────
+function upShowPaidGate(el) {
+  el.classList.add("umc-shake");
+  setTimeout(() => el.classList.remove("umc-shake"), 400);
+}
+
+function upShowAddonGate(wrap) {
+  wrap.classList.add("umc-shake");
+  setTimeout(() => wrap.classList.remove("umc-shake"), 400);
+}
+
+// ── File upload ───────────────────────────────────────────────
+function upResetFile() {
+  up.uploadedFile = null;
+  upHidden("upFilePicked", true);
+  upHidden("upProcessing", true);
+  upHidden("upSuccess", true);
+  upHidden("upDropzone", false);
+  const nb = document.getElementById("upNext1");
+  if (nb) nb.disabled = true;
+  const fi = document.getElementById("upFileInput");
+  if (fi) fi.value = "";
+}
+
+function upHandleFile(file) {
+  up.uploadedFile = file;
+  upHidden("upDropzone", true);
+  upHidden("upFilePicked", false);
+  const nm = document.getElementById("upFileName");
+  const sz = document.getElementById("upFileSize");
+  if (nm) nm.textContent = file.name.length > 36 ? file.name.substring(0, 33) + "..." : file.name;
+  if (sz) sz.textContent = file.size > 1048576
+    ? (file.size / 1048576).toFixed(1) + " MB"
+    : Math.round(file.size / 1024) + " KB";
+  setTimeout(upStartProcessing, 700);
+}
+
+async function upStartProcessing() {
+  upHidden("upFilePicked", true);
+  upHidden("upProcessing", false);
+
+  const fill = document.getElementById("upProgFill");
+  const txt  = document.getElementById("upProcessText");
+
+  function setProgress(stage, pct) {
+    if (txt)  txt.textContent  = stage;
+    if (fill) fill.style.width = pct + "%";
+  }
+
+  // Determine settings from Step 2 controls (may not be set yet, use defaults)
+  const difficulty   = document.querySelector("#upDiffPills .diff-pill.active")?.dataset.diff || "medium";
+  const questionType = document.getElementById("upQType")?.value || "mcq";
+  const countHint    = parseInt(document.getElementById("upQCountInput")?.value) || 10;
+
+  let result = null;
+
+  if (window.AIProcessor && up.uploadedFile) {
+    try {
+      result = await AIProcessor.processFile(
+        up.uploadedFile,
+        { difficulty, count: countHint, questionType },
+        setProgress
+      );
+    } catch (e) {
+      console.warn("[UploadPage] AIProcessor error:", e.message);
+    }
+  }
+
+  // If AI returned questions, store them; otherwise use empty (firebase-session will generate)
+  if (result && result.questions && result.questions.length > 0) {
+    up.aiQuestions = result.questions;
+    up.questionCount = result.questions.length;
+    if (result.topic) {
+      // Pre-fill session name if empty
+      const nameEl = document.getElementById("upSessName");
+      if (nameEl && !nameEl.value.trim()) nameEl.value = result.topic;
+    }
+  } else {
+    up.aiQuestions = null;
+    // Fallback: keep a reasonable default count
+    if (!up.questionCount || up.questionCount === 0) up.questionCount = countHint || 10;
+  }
+
+  setProgress("Done!", 100);
+
+  upHidden("upProcessing", true);
+  upHidden("upSuccess", false);
+
+  const q = up.questionCount;
+  const qEl    = document.getElementById("upQCount");
+  const qInput = document.getElementById("upQCountInput");
+  const qHint  = document.getElementById("upQAISuggested");
+  if (qEl)    qEl.textContent  = q;
+  if (qInput) qInput.value     = q;
+  if (qHint)  qHint.textContent = (result?.source === "ai" ? q + " (AI-generated from your slides)" : q + " (estimated)");
+
+  const nb = document.getElementById("upNext1");
+  if (nb) nb.disabled = false;
+}
+
+// ── Waiting room ──────────────────────────────────────────────
+async function upActivateWaitroom() {
+  up.name = document.getElementById("upSessName")?.value.trim() || "Untitled Session";
+  up.maxStudents = parseInt(document.getElementById("upMaxStudents")?.value) || 30;
+  up.questionCount = parseInt(document.getElementById("upQCountInput")?.value) || 10;
+  up.difficulty = document.querySelector("#upDiffPills .diff-pill.active")?.dataset.diff || "easy";
+  up.timePerQ = parseInt(document.querySelector("#upTimePills .diff-pill.active")?.dataset.time) || 20;
+  up.questionType = document.getElementById("upQType")?.value || "mixed";
+
+  document.getElementById("upLiveName").textContent = up.name;
+  document.getElementById("upLiveGame").innerHTML =
+    up.game ? `<i class="fa-solid ${up.game.icon}"></i> ${up.game.name}` : "No game";
+  document.getElementById("upLiveMode").innerHTML =
+    `<i class="fa-solid fa-user"></i> ${up.mode.charAt(0).toUpperCase() + up.mode.slice(1)}`;
+  document.getElementById("upBigCode").textContent  = up.code;
+  document.getElementById("upMaxCount").textContent = up.maxStudents;
+  document.getElementById("upJoinedCount").textContent = "0";
+  document.getElementById("upRosterList").innerHTML =
+    '<div class="uwr-placeholder">Waiting for students to join\u2026</div>';
+
+  up.students = [];
+
+  // ── Write session to Firebase ─────────────────────────────
+  if (window.SessionDB) {
+    try {
+      await SessionDB.createSession(up.code, {
+        host: up.name,
+        game: up.game?.id || "quiz",
+        mode: up.mode,
+        difficulty: up.difficulty,
+        timePerQ: up.timePerQ,
+        questionCount: up.questionCount,
+        questionType: up.questionType,
+        shuffle: document.getElementById("upShuffle")?.checked || false,
+        showTimer: document.getElementById("upShowTimer")?.checked !== false,
+        questions: up.aiQuestions || null   // ← real AI questions (null = firebase generates from pool)
+      });
+
+      // Listen for real players joining
+      up._sessionListener = SessionDB.listenSession(up.code, (sess) => {
+        if (!sess || !sess.players) return;
+        const players = Object.values(sess.players);
+        up.students = players;
+        upRenderRoster();
+      });
+    } catch (e) {
+      console.warn("Firebase unavailable, falling back to offline mode:", e.message);
+      _upFakeJoins();
+    }
+  } else {
+    _upFakeJoins();
+  }
+
+  // Also keep localStorage for backward compat
+  localStorage.setItem("sp_active_session", JSON.stringify({
+    code: up.code, name: up.name,
+    game: up.game, mode: up.mode,
+    maxStudents: up.maxStudents, createdAt: Date.now(), status: "waiting"
+  }));
+}
+
+function _upFakeJoins() {
+  // Fallback: simulate fake joins if Firebase is unavailable
+  const fakeNames = [
+    "Sipho M.","Ayanda K.","Thabo N.","Zanele D.","Lebo P.",
+    "Kagiso R.","Ntombi S.","Bongani T.","Naledi V.","Siyanda W."
+  ];
+  const shuffled = [...fakeNames].sort(() => Math.random() - 0.5);
+  let idx = 0;
+  if (up.joinTimer) clearInterval(up.joinTimer);
+  up.joinTimer = setInterval(() => {
+    if (idx >= shuffled.length || up.students.length >= up.maxStudents) {
+      clearInterval(up.joinTimer); return;
+    }
+    up.students.push({ name: shuffled[idx++] });
+    upRenderRoster();
+  }, 2000);
+}
+
+function upRenderRoster() {
+  const list = document.getElementById("upRosterList");
+  const cnt  = document.getElementById("upJoinedCount");
+  if (cnt) cnt.textContent = up.students.length;
+  if (!list) return;
+  list.innerHTML = up.students.map(s => `
+    <div class="uwr-student">
+      <div class="uwr-avatar">${s.name.charAt(0)}</div>
+      <span class="uwr-name">${s.name}</span>
+      <span class="uwr-badge"><i class="fa-solid fa-circle-check"></i> Ready</span>
+    </div>
+  `).join("");
+}
+
+// ── DOMContentLoaded wiring ───────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  up.code = upGenCode();
+
+  upBuildGameGrid();
+
+  // File input
+  const fi = document.getElementById("upFileInput");
+  if (fi) fi.addEventListener("change", function () {
+    if (this.files[0]) upHandleFile(this.files[0]);
+  });
+
+  // Dropzone click
+  document.getElementById("upDropzone")?.addEventListener("click", () => fi?.click());
+  document.getElementById("upBrowseLink")?.addEventListener("click", e => { e.stopPropagation(); fi?.click(); });
+
+  // Drag and drop
+  const dz = document.getElementById("upDropzone");
+  if (dz) {
+    dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("dz-hover"); });
+    dz.addEventListener("dragleave", () => dz.classList.remove("dz-hover"));
+    dz.addEventListener("drop", e => {
+      e.preventDefault();
+      dz.classList.remove("dz-hover");
+      const file = e.dataTransfer.files[0];
+      if (file) upHandleFile(file);
+    });
+  }
+
+  // Session code copy
+  document.getElementById("upCopyCode")?.addEventListener("click", function () {
+    upCopyText(up.code, this);
+  });
+  document.getElementById("upBigCopyCode")?.addEventListener("click", function () {
+    upCopyText(up.code, this);
+  });
+
+  // Show code in Step 2
+  const codeEl = document.getElementById("upCodeVal");
+  if (codeEl) codeEl.textContent = up.code;
+
+  // Difficulty pills
+  document.querySelectorAll("#upDiffPills .diff-pill").forEach(btn => {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("#upDiffPills .diff-pill").forEach(b => b.classList.remove("active"));
+      this.classList.add("active");
+      up.difficulty = this.dataset.diff;
+    });
+  });
+
+  // Time pills
+  document.querySelectorAll("#upTimePills .diff-pill").forEach(btn => {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("#upTimePills .diff-pill").forEach(b => b.classList.remove("active"));
+      this.classList.add("active");
+      up.timePerQ = parseInt(this.dataset.time);
+    });
+  });
+
+  // Question count input
+  document.getElementById("upQCountInput")?.addEventListener("input", function () {
+    up.questionCount = Math.max(1, Math.min(50, parseInt(this.value) || 1));
+  });
+
+  // Mode cards
+  document.querySelectorAll(".up-mode-card:not(.umc-gated)").forEach(card => {
+    card.addEventListener("click", function () {
+      document.querySelectorAll(".up-mode-card:not(.umc-gated)").forEach(c => c.classList.remove("active"));
+      this.classList.add("active");
+      up.mode = this.dataset.mode;
+    });
+  });
+
+  // Start session → Firebase + redirect to live-game.html (teacher view)
+  document.getElementById("upStartBtn")?.addEventListener("click", async () => {
+    if (!up.game) { alert("Please go back and select a game first."); upGoStep(3); return; }
+    if (up.joinTimer) { clearInterval(up.joinTimer); up.joinTimer = null; }
+    if (up._sessionListener) { up._sessionListener.stop(); }
+
+    const startBtn = document.getElementById("upStartBtn");
+    if (startBtn) { startBtn.disabled = true; startBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Starting…'; }
+
+    try {
+      if (window.SessionDB) await SessionDB.startGame(up.code);
+    } catch (e) {
+      console.warn("Could not update Firebase session status:", e.message);
+    }
+
+    const teacherName = encodeURIComponent(up.name || "Teacher");
+    window.location.href = `live-game.html?session=${encodeURIComponent(up.code)}&role=teacher&name=${teacherName}`;
+  });
+
+  // End session
+  document.getElementById("upEndBtn")?.addEventListener("click", async () => {
+    if (up.joinTimer) { clearInterval(up.joinTimer); up.joinTimer = null; }
+    if (up._sessionListener) { up._sessionListener.stop(); }
+    try {
+      if (window.SessionDB) await SessionDB.endGame(up.code);
+    } catch (e) { /* ignore */ }
+    localStorage.removeItem("sp_active_session");
+    window.location.href = "teacher.html";
+  });
+});

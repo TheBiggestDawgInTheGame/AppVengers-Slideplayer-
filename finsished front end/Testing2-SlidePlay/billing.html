@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SlidePlay | Billing & Plans</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="payment.css?v=2.1" />
+    <link rel="stylesheet" href="page-transition.css" />
+    <style>
+      /* GLOBAL FONT SYSTEM */
+      body { font-family: "Poppins", sans-serif; }
+      h1, h2, h3, h4, .logo, .hero-title { font-family: "Orbitron", sans-serif; }
+      button, .signup-btn, .start-btn { font-family: "Orbitron", sans-serif; }
+      p, a, input, textarea, label { font-family: "Poppins", sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div class="hud-grid"></div>
+    <header class="top-bar">
+      <div class="left-status">
+        <span class="pulse-dot"></span>
+        <span>Jarvis Node Online</span>
+      </div>
+      <div class="search-panel">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search class, student, module..." />
+      </div>
+      <div class="bar-actions">
+        <button class="icon-btn" aria-label="Notifications">
+          <i class="fa-solid fa-bell"></i>
+        </button>
+        <a class="icon-btn" href="settings.html" aria-label="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </a>
+        <div class="teacher-pill">
+          <img src="https://i.pravatar.cc/80?img=47" alt="Teacher avatar" />
+          <div>
+            <strong>Dr. M. Stark</strong>
+            <span>Physics Department</span>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="dashboard-layout">
+      <aside class="side-nav">
+        <div class="brand">
+          <div class="reactor-core"><i class="fa-solid fa-atom"></i></div>
+          <div>
+            <h2>SlidePlay</h2>
+            <p>EDU DEFENSE GRID</p>
+          </div>
+        </div>
+        <nav>
+          <a href="teacher.html"><i class="fa-solid fa-gauge-high"></i> Teacher Dashboard</a>
+          <a href="library.html"><i class="fa-solid fa-book"></i> Curriculum Library</a>
+          <a href="AnalyticsPage.html"><i class="fa-solid fa-chart-line"></i> Performance Analytics</a>
+          <a href="UploadPage.html"><i class="fa-solid fa-cloud-arrow-up"></i> Resource Upload</a>
+          <a href="AccessControl.html"><i class="fa-solid fa-user-shield"></i> Student Access Grid</a>
+          <a href="billing.html" class="active"><i class="fa-solid fa-credit-card"></i> Billing &amp; Plans</a>
+          <a href="settings.html"><i class="fa-solid fa-gear"></i> Admin Controls</a>
+        </nav>
+        <button class="launch-btn" onclick="window.location.href = 'UploadPage.html'">
+          <i class="fa-solid fa-rocket"></i> Deploy Lesson Mode
+        </button>
+      </aside>
+      <section class="main-zone">
+        <div class="hero-card card">
+          <div class="hero-copy">
+            <p class="chip">SYSTEM › BILLING</p>
+            <h1>Upgrade Plan</h1>
+            <p>Choose the best plan for your classroom command center and manage your invoices from one secure portal.</p>
+          </div>
+          <div class="hero-metrics">
+            <article><span>Current Plan</span><strong>Free Tier Active</strong></article>
+            <article><span>Billing Cycle</span><strong>Monthly</strong></article>
+            <article><span>Invoices</span><strong id="invoiceCount">0</strong></article>
+          </div>
+        </div>
+        <article class="card">
+          <div class="page-context-header">
+            <div class="page-id">
+              <span class="page-tag">SYSTEM › BILLING</span>
+              <h1 class="page-title">Upgrade Plan</h1>
+            </div>
+            <div class="top-controls">
+              <span class="status-pill" id="currentPlanPill"><i class="fa-solid fa-circle-check"></i> <span id="activePlanLabel">Free Tier Active</span></span>
+            </div>
+          </div>
+          <div class="billing-toggle-wrap">
+            <span class="toggle-label">Monthly</span>
+            <label class="toggle-switch" aria-label="Billing period toggle">
+              <input type="checkbox" id="billingToggle" />
+              <span class="toggle-track"></span>
+            </label>
+            <span class="toggle-label">Yearly <span class="save-chip">Save 20%</span></span>
+          </div>
+          <div class="plans-grid" id="plansGrid">
+            <div class="plan-card" data-plan="free" data-monthly="0" data-yearly="0">
+              <div class="plan-title">Core Grid</div>
+              <div class="plan-price">R100 <span style="font-size:1rem; color:#aaa;">/mo</span></div>
+              <div class="plan-desc">Essential classroom tools for baseline performance tracking.<br>Up to 5 classes.</div>
+              <button class="plan-btn">Choose Starter</button>
+            </div>
+            <div class="plan-card popular" data-plan="pro" data-monthly="150" data-yearly="1440">
+              <div class="plan-badge">Most Popular</div>
+              <div class="plan-title">Tactical Pro</div>
+              <div class="plan-price">R150 <span style="font-size:1rem; color:#aaa;">/mo</span></div>
+              <div class="plan-desc">Full intelligence automation for highly competitive environments.</div>
+              <button class="plan-btn">Choose Pro</button>
+            </div>
+            <div class="plan-card" data-plan="elite" data-monthly="200" data-yearly="1920">
+              <div class="plan-title">Command Elite</div>
+              <div class="plan-price">R200 <span style="font-size:1rem; color:#aaa;">/mo</span></div>
+              <div class="plan-desc">Full custom access nodes built for complete campus control panels.</div>
+              <button class="plan-btn">Choose Elite</button>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

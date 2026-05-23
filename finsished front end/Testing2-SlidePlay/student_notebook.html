@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Student Notebook | SlidePlay</title>
+    <link rel="stylesheet" href="Choose_expo.css" />
+    <link rel="stylesheet" href="page-transition.css" />
+    <style>
+      .notebook-container {
+        max-width: 800px;
+        margin: 40px auto;
+        background: var(--panel, #181c2f);
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+        padding: 32px 24px;
+      }
+      .notebook-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: 2.2rem;
+        margin-bottom: 18px;
+        color: var(--cyan, #2de2ff);
+      }
+      .entry-list {
+        list-style: none;
+        padding: 0;
+      }
+      .entry-item {
+        background: var(--bg, #10131e);
+        margin-bottom: 18px;
+        border-left: 4px solid var(--cyan, #2de2ff);
+        padding: 18px 20px;
+        border-radius: 8px;
+        transition: box-shadow 0.2s;
+        cursor: pointer;
+      }
+      .entry-item:hover {
+        box-shadow: 0 2px 12px rgba(45,226,255,0.08);
+      }
+      .entry-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .entry-date {
+        font-size: 0.95rem;
+        color: var(--muted, #97a2c8);
+      }
+      .entry-content {
+        margin-top: 10px;
+        color: var(--text, #e9eeff);
+        display: none;
+      }
+      .entry-item.open .entry-content {
+        display: block;
+      }
+      .no-entries {
+        color: var(--muted, #97a2c8);
+        text-align: center;
+        margin-top: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="notebook-container">
+      <div class="notebook-title">Student Notebook</div>
+      <ul class="entry-list" id="entryList"></ul>
+      <div class="no-entries" id="noEntries">No previous work found.</div>
+    </div>
+    <script>
+      // Example: { title, content, date }
+      function getNotebookEntries() {
+        try {
+          return JSON.parse(localStorage.getItem('sp_notebook') || '[]');
+        } catch (e) {
+          return [];
+        }
+      }
+      function renderEntries() {
+        const entries = getNotebookEntries();
+        const list = document.getElementById('entryList');
+        const noEntries = document.getElementById('noEntries');
+        list.innerHTML = '';
+        if (!entries.length) {
+          noEntries.style.display = 'block';
+          return;
+        }
+        noEntries.style.display = 'none';
+        entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+        entries.forEach((entry, idx) => {
+          const li = document.createElement('li');
+          li.className = 'entry-item';
+          li.innerHTML = `
+            <div class="entry-title">${entry.title || 'Untitled Entry'}</div>
+            <div class="entry-date">${new Date(entry.date).toLocaleString()}</div>
+            <div class="entry-content">${entry.content || ''}</div>
+          `;
+          li.addEventListener('click', function() {
+            li.classList.toggle('open');
+          });
+          list.appendChild(li);
+        });
+      }
+      renderEntries();
+    </script>
+  </body>
+</html>

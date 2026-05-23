@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Game Format</title>
+  <link rel="stylesheet" href="games.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <a class="brand" href="index.html"><span>Slide</span>Play</a>
+    <div class="topbar-actions">
+      <a class="pill" href="index.html">Upload More</a>
+      <button type="button" class="pill active-pill">Guest</button>
+    </div>
+  </header>
+
+  <main class="games-shell">
+
+    <div class="page-header">
+      <h1>Select <span>Game Format</span></h1>
+      <p>Choose the architectural blueprint for your next session. Each format dictates
+        the physics engine and interaction model of the playfield.</p>
+    </div>
+
+    <!-- hidden data nodes kept for games.js -->
+    <span id="summaryTitle" hidden></span>
+    <span id="fileCount" hidden>0</span>
+    <span id="questionCount" hidden>0</span>
+
+    <section class="games-grid" aria-label="Game choices">
+
+<!-- Play Style Modal -->
+<div id="play-style-modal" class="psm-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="psm-title">
+  <div class="psm-panel">
+    <button id="psm-close" class="psm-close" aria-label="Cancel">✕</button>
+    <div class="psm-game-label" id="psm-game-name"></div>
+    <h2 id="psm-title">How do you want to play?</h2>
+    <p class="psm-sub">Choose a game mode before launching</p>
+    <div class="psm-options">
+      <button class="psm-option" data-style="solo">
+        <span class="psm-icon">🎮</span>
+        <span class="psm-opt-title">Solo</span>
+        <span class="psm-opt-desc">Play alone at your own pace</span>
+      </button>
+      <button class="psm-option" data-style="multiplayer">
+        <span class="psm-icon">👥</span>
+        <span class="psm-opt-title">Multiplayer</span>
+        <span class="psm-opt-desc">Take turns with friends, best score wins</span>
+      </button>
+      <button class="psm-option" data-style="tournament">
+        <span class="psm-icon">🏆</span>
+        <span class="psm-opt-title">Tournament</span>
+        <span class="psm-opt-desc">Bracket competition, leaderboard finale</span>
+      </button>
+    </div>
+    <!-- Player setup (shown for multiplayer/tournament) -->
+    <!-- Device choice (shown for multiplayer/tournament) -->
+    <div id="psm-device-section" class="psm-device-section hidden">
+      <h3 class="psm-section-title">How are you playing?</h3>
+      <div class="psm-device-options">
+        <button class="psm-device-option" data-device="same">
+          <span class="psm-icon">📱</span>
+          <span class="psm-opt-title">Same Device</span>
+          <span class="psm-opt-desc">Pass &amp; play — take turns on one screen</span>
+        </button>
+        <button class="psm-device-option" data-device="different">
+          <span class="psm-icon">🌐</span>
+          <span class="psm-opt-title">Different Devices</span>
+          <span class="psm-opt-desc">Each player joins on their own device via a room code</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Player setup (same device — shown after choosing same device) -->
+    <div id="psm-players-section" class="psm-players hidden">
+      <h3 class="psm-players-title">Add Players</h3>
+      <div id="psm-player-list"></div>
+      <button id="psm-add-player" type="button" class="psm-add-player-btn">+ Add Player</button>
+      <button id="psm-launch" type="button" class="psm-launch-btn" disabled>🚀 Launch Game</button>
+    </div>
+
+    <!-- Room code panel (different devices — shown after choosing different device) -->
+    <div id="psm-room-section" class="psm-room-section hidden">
+      <h3 class="psm-players-title">Room Code</h3>
+      <div class="psm-room-code-box">
+        <span id="psm-room-code" class="psm-room-code">------</span>
+        <button id="psm-copy-code" class="psm-copy-btn" title="Copy code">📋</button>
+      </div>
+      <p class="psm-room-hint">Share this code with other players. They visit <strong>this page</strong> and enter the code to join.</p>
+      <div class="psm-join-row hidden" id="psm-join-row">
+        <input id="psm-join-input" class="psm-player-input" type="text" maxlength="6" placeholder="Enter room code to join…" autocomplete="off" autocorrect="off" spellcheck="false">
+        <button id="psm-join-btn" type="button" class="psm-launch-btn psm-join-btn">Join Room</button>
+      </div>
+      <button id="psm-launch-room" type="button" class="psm-launch-btn psm-launch-room-btn">🚀 Start Game (Host)</button>
+    </div>
+
+    <button id="psm-launch-solo" type="button" class="psm-launch-btn hidden">🚀 Play Now</button>
+  </div>
+</div>
+
+      <!-- Row 1 -->
+      <a class="game-card" href="../games/scramble_game/scramble_game.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="abc-icon">abc</span>
+          <span class="badge badge-cat">LOGIC</span>
+        </div>
+        <h3>Word Scramble</h3>
+        <p>Lexical reorganization against a decaying temporal threshold.</p>
+      </a>
+
+      <a class="game-card" href="../games/memory_chain_game/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">🧠</span>
+          <span class="badge badge-cat">SEQUENCE</span>
+        </div>
+        <h3>Memory Chain</h3>
+        <p>Reconstruct slide workflows in the correct order using drag-and-drop sequence logic.</p>
+      </a>
+
+      <a class="game-card" href="../games/slide_puzzle_game/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">🧩</span>
+          <span class="badge badge-cat">PUZZLE</span>
+        </div>
+        <h3>Slide Puzzle</h3>
+        <p>Break slide content into fragments and rebuild the structure with drag-and-drop tiles.</p>
+      </a>
+
+      <a class="game-card" href="../games/slide_scenario_game/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">🎯</span>
+          <span class="badge badge-cat">SCENARIO</span>
+        </div>
+        <h3>Scenario Quest</h3>
+        <p>Use slide situations to pick the best learning decision and build decision-making skills.</p>
+      </a>
+
+      <a class="game-card" href="../games/jeopardy/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">📝</span>
+          <div class="card-badges">
+            <span class="badge badge-cat">QUIZ</span>
+            <span class="badge badge-dual">3D &amp; 2D</span>
+          </div>
+        </div>
+        <h3>Quiz</h3>
+        <p>Play slide-driven quiz challenges and choose your mode: classic 2D or immersive 3D game show.</p>
+      </a>
+
+      <a class="game-card" href="../games/jeopardy-3d/index.html?source=upload&game=millionaire" data-available>
+        <div class="card-top">
+          <span class="game-emoji">🏆</span>
+          <span class="badge badge-cat">QUIZ</span>
+        </div>
+        <h3>Millionaire Quiz</h3>
+        <p>Climb the question ladder with lifelines. One wrong answer and you're out.</p>
+      </a>
+
+      <!-- Row 2 -->
+      <a class="game-card" href="../games/speed_typing_game/speed_typing_game.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">⌨️</span>
+          <span class="badge badge-cat">TYPING</span>
+        </div>
+        <h3>Speed Typing</h3>
+        <p>Race against the clock to type out slide terms before your time runs out.</p>
+      </a>
+
+      <a class="game-card" href="../games/mbasa_game/selector.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">🏃</span>
+          <div class="card-badges">
+            <span class="badge badge-cat badge-physics">RUNNER</span>
+            <span class="badge badge-dual">3D &amp; 2D</span>
+          </div>
+        </div>
+        <h3>Road Runner 3D</h3>
+        <p>Sprint down a neon perspective highway and dodge obstacles flying at you from the horizon.</p>
+      </a>
+
+      <a class="game-card" href="../games/escape_game/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">🗝️</span>
+          <div class="card-badges">
+            <span class="badge badge-cat badge-physics">ESCAPE</span>
+            <span class="badge badge-dual">3D &amp; 2D</span>
+          </div>
+        </div>
+        <h3>Mzansi Escape Room</h3>
+        <p>Investigate a locked classroom, solve clue chains, and crack the door code. Choose between full 3D or classic 2D.</p>
+      </a>
+
+      <a class="game-card coming-soon" href="#" aria-disabled="true">
+        <div class="card-top">
+          <span class="game-emoji">🏓</span>
+          <span class="badge badge-cat badge-physics">PHYSICS</span>
+        </div>
+        <h3>Pong</h3>
+        <p>Pure binary competition using vector-based reflection logic.</p>
+        <span class="soon-label">Coming Soon</span>
+      </a>
+
+      <a class="game-card coming-soon" href="#" aria-disabled="true">
+        <div class="card-top">
+          <span class="game-emoji">🍕</span>
+          <span class="badge badge-cat">ARCADE</span>
+        </div>
+        <h3>Pac-Man</h3>
+        <p>Navigate neon corridors and consume data points while evading system hunters.</p>
+        <span class="soon-label">Coming Soon</span>
+      </a>
+
+      <a class="game-card coming-soon" href="#" aria-disabled="true">
+        <div class="card-top">
+          <span class="game-emoji">🐍</span>
+          <span class="badge badge-cat">ARCADE</span>
+        </div>
+        <h3>Snake</h3>
+        <p>Continuous growth mechanics within a constrained kinetic boundary.</p>
+        <span class="soon-label">Coming Soon</span>
+      </a>
+
+      <a class="game-card coming-soon" href="#" aria-disabled="true">
+        <div class="card-top">
+          <span class="game-emoji">🚀</span>
+          <span class="badge badge-cat">ARCADE</span>
+        </div>
+        <h3>Invaders</h3>
+        <p>Defensive rhythmic targeting against descending formations.</p>
+        <span class="soon-label">Coming Soon</span>
+      </a>
+
+    </section>
+  </main>
+
+  <script src="games.js"></script>
+</body>
+</html>

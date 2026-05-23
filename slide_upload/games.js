@@ -4,6 +4,21 @@ const DEMO_SESSION_KEY = 'slidePlayDemoSession';
 const PLAY_STYLE_KEY = 'slidePlayPlayStyle';
 const PLAY_PLAYERS_KEY = 'slidePlayPlayers';
 
+// ── Plan helpers ──────────────────────────────────────────────────────────────
+function getStudentPlan() {
+  try {
+    const sub = JSON.parse(localStorage.getItem('sp_student_subscription') || 'null');
+    if (sub && sub.status !== 'cancelled' && sub.plan) return sub.plan;
+  } catch (_) {}
+  return 'free';
+}
+
+function isPaidPlan() {
+  const p = getStudentPlan();
+  return p === 'student_elite' || p === 'student_premium';
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function readJson(key, fallback) {
   try {
     const parsed = JSON.parse(localStorage.getItem(key) || 'null');
@@ -77,6 +92,22 @@ function openModal(card) {
   psmPlayerList.innerHTML = '';
   addPlayerRow(1); addPlayerRow(2);
   resetModalSections();
+
+  // Show plan badges on locked options for free users
+  const paid = isPaidPlan();
+  psmOptions.forEach(btn => {
+    btn.querySelectorAll('.psm-lock-badge').forEach(el => el.remove());
+    const style = btn.dataset.style;
+    if (!paid && (style === 'multiplayer' || style === 'tournament')) {
+      const badge = document.createElement('span');
+      badge.className = 'psm-lock-badge';
+      badge.style.cssText = 'position:absolute;top:8px;right:8px;font-size:0.65rem;background:rgba(139,92,246,0.25);color:#c084fc;border:1px solid rgba(139,92,246,0.4);border-radius:4px;padding:2px 6px;pointer-events:none;';
+      badge.textContent = style === 'tournament' ? '🔒 PREMIUM' : '🔒 ELITE';
+      btn.style.position = 'relative';
+      btn.appendChild(badge);
+    }
+  });
+
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -110,6 +141,19 @@ function updateLaunchBtn() {
 
 psmOptions.forEach(btn => {
   btn.addEventListener('click', () => {
+    const style = btn.dataset.style;
+
+    // Gate Multiplayer + Tournament to paid plans
+    if ((style === 'multiplayer' || style === 'tournament') && !isPaidPlan()) {
+      const planName = style === 'tournament' ? 'Student Premium' : 'Student Elite';
+      const upgradeUrl = '../../finsished front end/Testing2-SlidePlay/studentpayment.html';
+      const go = window.confirm(
+        `🔒 ${style.charAt(0).toUpperCase() + style.slice(1)} mode is available on paid plans.\n\nUpgrade to ${planName} (from R90/mo) to unlock multiplayer & tournament play.\n\nClick OK to view plans.`
+      );
+      if (go) window.location.href = upgradeUrl;
+      return;
+    }
+
     psmOptions.forEach(o => o.classList.remove('active'));
     btn.classList.add('active');
     selectedStyle = btn.dataset.style;

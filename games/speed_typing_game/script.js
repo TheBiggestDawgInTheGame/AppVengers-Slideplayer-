@@ -355,6 +355,7 @@ function endGame(won) {
     feedback.className = 'feedback error';
     updateUI();
     if (window.GameModes) GameModes.roundEnd(score);
+    if (typeof window.saveLeaderboardScore === 'function') window.saveLeaderboardScore('typing', score);
     showSummaryModal();
 
     if (window.StudyAdventure) {

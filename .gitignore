@@ -23,3 +23,8 @@ Thumbs.db
 # Build outputs
 dist/
 build/
+
+# Large media files
+*.mp4
+*.mov
+*.avi

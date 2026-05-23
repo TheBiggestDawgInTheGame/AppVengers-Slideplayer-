@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Session — SlidePlay</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="live-game.css" />
+</head>
+<body>
+
+  <!-- Top bar (shared) -->
+  <div class="lg-topbar" id="lgTopbar">
+    <div class="lg-live-pill"><span class="lg-pulse"></span> LIVE</div>
+    <div class="lg-session-meta">
+      <span id="lgSessionName">Session</span>
+      <span class="sep">&middot;</span>
+      <span id="lgGameName"><i class="fa-solid fa-gamepad"></i> Quiz</span>
+      <span class="sep">&middot;</span>
+      <span id="lgModeName">Individual</span>
+    </div>
+    <div class="lg-score-pill" id="lgScorePill" style="display:none">
+      <i class="fa-solid fa-star"></i> <span id="lgScore">0</span> pts
+    </div>
+  </div>
+
+  <!-- ── WAITING room (student only, before game starts) ───── -->
+  <div class="lg-screen" id="lgWaiting">
+    <div class="lg-waiting-box">
+      <div class="lg-waiting-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+      <h2>Waiting for teacher to start…</h2>
+      <p>You've joined the session. Sit tight!</p>
+      <div class="lg-code-display">Session code: <strong id="lgWaitCode">------</strong></div>
+      <div class="lg-dots-row">
+        <span class="ld"></span><span class="ld"></span><span class="ld"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TEACHER CONTROL PANEL ─────────────────────────────── -->
+  <div class="lg-screen hidden" id="lgTeacher">
+    <div class="lg-teacher-layout">
+
+      <!-- Left: question + answer reveal -->
+      <div class="lg-teacher-main">
+        <div class="lg-q-counter">
+          Question <span id="lgTQNum">1</span> / <span id="lgTQTotal">10</span>
+        </div>
+        <div class="lg-question-card" id="lgTQuestion">Loading question…</div>
+        <div class="lg-options-teacher" id="lgTOptions"></div>
+        <div class="lg-answer-status">
+          <i class="fa-solid fa-users"></i>
+          <span id="lgAnsweredCount">0</span> / <span id="lgPlayerCount">0</span> answered
+        </div>
+        <div class="lg-timer-bar-wrap">
+          <div class="lg-timer-bar" id="lgTimerBar"></div>
+        </div>
+      </div>
+
+      <!-- Right: live leaderboard -->
+      <div class="lg-teacher-side">
+        <h3 class="lg-lb-title"><i class="fa-solid fa-ranking-star"></i> Leaderboard</h3>
+        <div class="lg-leaderboard" id="lgLeaderboard"></div>
+        <div class="lg-teacher-btns">
+          <button class="lg-next-btn" id="lgNextBtn">
+            <i class="fa-solid fa-forward-step"></i> Next Question
+          </button>
+          <button class="lg-end-btn" id="lgEndBtn">
+            <i class="fa-solid fa-stop"></i> End Session
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── STUDENT QUESTION SCREEN ───────────────────────────── -->
+  <div class="lg-screen hidden" id="lgStudent">
+    <div class="lg-student-layout">
+
+      <div class="lg-q-counter">
+        Question <span id="lgSQNum">1</span> / <span id="lgSQTotal">10</span>
+      </div>
+
+      <!-- Timer ring -->
+      <div class="lg-timer-ring-wrap">
+        <svg class="lg-timer-ring" viewBox="0 0 80 80">
+          <circle class="lg-ring-bg" cx="40" cy="40" r="34"/>
+          <circle class="lg-ring-fill" id="lgRingFill" cx="40" cy="40" r="34"/>
+        </svg>
+        <span class="lg-timer-num" id="lgTimerNum">20</span>
+      </div>
+
+      <div class="lg-question-card" id="lgSQuestion">Loading question…</div>
+
+      <div class="lg-options-grid" id="lgSOptions"></div>
+
+      <!-- Answer feedback (hidden until answered) -->
+      <div class="lg-feedback hidden" id="lgFeedback">
+        <div class="lgfb-icon" id="lgFbIcon"></div>
+        <div class="lgfb-text" id="lgFbText"></div>
+        <div class="lgfb-score" id="lgFbScore"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── GAME OVER SCREEN ───────────────────────────────────── -->
+  <div class="lg-screen hidden" id="lgGameOver">
+    <div class="lg-gameover-box">
+      <div class="lg-go-icon"><i class="fa-solid fa-flag-checkered"></i></div>
+      <h2>Session Complete!</h2>
+      <p id="lgGoMessage">Great work everyone!</p>
+
+      <!-- Final score (student only) -->
+      <div class="lg-final-score" id="lgFinalScore" style="display:none">
+        <span class="lg-fs-label">Your final score</span>
+        <span class="lg-fs-value" id="lgFinalScoreVal">0</span>
+        <span class="lg-fs-sub" id="lgFinalRank"></span>
+      </div>
+
+      <!-- Podium leaderboard -->
+      <div class="lg-podium" id="lgPodium"></div>
+
+      <button class="lg-home-btn" onclick="window.location.href='teacher.html'">
+        <i class="fa-solid fa-house"></i> Back to Dashboard
+      </button>
+    </div>
+  </div>
+
+  <script src="firebase-session.js"></script>
+  <script src="live-game.js"></script>
+</body>
+</html>

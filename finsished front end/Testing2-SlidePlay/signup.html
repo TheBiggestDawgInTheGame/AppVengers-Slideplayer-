@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SlidePlay - Sign Up</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        color: white;
+        min-height: 100vh;
+        overflow: auto; /* Changed from hidden to allow spacing */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        padding: 40px 15px; /* ✅ Added top/bottom padding for space outside form */
+      }
+
+      h1,
+      h2,
+      h3,
+      button {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* VIDEO BACKGROUND */
+      .video-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -3;
+      }
+
+      .video-bg video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 10, 20, 0.82);
+        z-index: -2;
+      }
+
+      /* PARTICLES */
+      #particles {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+      }
+
+      .particle {
+        position: absolute;
+        background: rgba(139, 92, 246, 0.7);
+        border-radius: 50%;
+        animation: float linear infinite;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(100vh);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-100px);
+          opacity: 0;
+        }
+      }
+
+      /* SIGNUP BOX */
+      .signup-box {
+        width: 100%;
+        max-width: 390px;
+        padding: 28px 28px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+        margin: 20px 0; /* ✅ Extra space outside top and bottom of form */
+      }
+
+      .signup-header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .signup-header h2 {
+        font-size: 1.5rem;
+        margin-bottom: 6px;
+      }
+
+      .signup-header p {
+        font-size: 0.82rem;
+        color: #cbd5e1;
+      }
+
+      /* INPUTS */
+      .input-group {
+        margin-bottom: 14px;
+      }
+
+      .input-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: 0.3s;
+        position: relative;
+      }
+
+      .input-box:focus-within {
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+      }
+
+      .input-box.error {
+        border-color: #ff6b6b;
+      }
+
+      .input-box i {
+        color: #8b5cf6;
+        width: 18px;
+        font-size: 0.9rem;
+      }
+
+      .input-field {
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: white;
+        font-size: 0.9rem;
+        width: 100%;
+      }
+
+      .input-field::placeholder {
+        color: #94a3b8;
+      }
+
+      .error-text {
+        font-size: 0.75rem;
+        color: #ff6b6b;
+        min-height: 14px;
+        margin-top: 4px;
+        margin-left: 4px;
+      }
+
+      /* BUTTONS */
+      .signup-btn,
+      .google {
+        width: 100%;
+        padding: 12px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      .signup-btn {
+        border: none;
+        color: white;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        box-shadow: 0 10px 25px rgba(139, 92, 246, 0.35);
+        margin-top: 6px;
+      }
+
+      .signup-btn:hover {
+        transform: translateY(-3px);
+      }
+
+      /* DIVIDER */
+      .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 14px 0;
+        color: #94a3b8;
+        font-size: 0.75rem;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .divider span {
+        padding: 0 12px;
+      }
+
+      /* GOOGLE */
+      .google {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .google:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-2px);
+      }
+
+      .google img {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* LOGIN LINK */
+      .login-link {
+        text-align: center;
+        margin-top: 18px;
+        font-size: 0.85rem;
+        color: #cbd5e1;
+      }
+
+      .login-link a {
+        color: #8b5cf6;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .login-link a:hover {
+        text-decoration: underline;
+      }
+
+      /* ROLE SELECTOR */
+      .role-selector {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .role-option {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 10px;
+        border-radius: 12px;
+        border: 1.5px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .role-option input[type="radio"] {
+        display: none;
+      }
+
+      .role-option:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.08);
+      }
+
+      .role-option.active {
+        border-color: #8b5cf6;
+        background: rgba(139, 92, 246, 0.15);
+        box-shadow: 0 0 18px rgba(139, 92, 246, 0.25);
+      }
+
+      .role-option.active.teacher-option {
+        border-color: #06b6d4;
+        background: rgba(6, 182, 212, 0.12);
+        box-shadow: 0 0 18px rgba(6, 182, 212, 0.2);
+      }
+
+      .role-icon {
+        font-size: 1.5rem;
+        color: #8b5cf6;
+      }
+
+      .teacher-option .role-icon {
+        color: #06b6d4;
+      }
+
+      .role-label {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #e2e8f0;
+        letter-spacing: 0.05em;
+      }
+
+      /* MOBILE */
+      @media (max-width: 500px) {
+        body {
+          padding: 25px 15px; /* Slightly reduced spacing on mobile */
+        }
+        .signup-box {
+          width: 100%;
+          padding: 22px 18px;
+          margin: 15px 0;
+        }
+        .signup-header h2 {
+          font-size: 1.3rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="video-bg">
+      <video autoplay muted loop playsinline>
+        <source src="walker.mp4" type="video/mp4" />
+      </video>
+    </div>
+
+    <div class="overlay"></div>
+    <div id="particles"></div>
+
+    <div class="signup-box">
+      <div class="signup-header">
+        <h2>Create Account</h2>
+        <p>Join SlidePlay and start learning smarter</p>
+      </div>
+
+      <form id="signupForm">
+        <div class="input-group">
+          <div class="input-box" id="usernameBox">
+            <i class="fa-solid fa-user"></i>
+            <input id="username" class="input-field" placeholder="Username" />
+          </div>
+          <div class="error-text" id="usernameError"></div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-box" id="emailBox">
+            <i class="fa-solid fa-envelope"></i>
+            <input id="email" class="input-field" placeholder="Email" />
+          </div>
+          <div class="error-text" id="emailError"></div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-box" id="passwordBox">
+            <i class="fa-solid fa-lock"></i>
+            <input
+              id="password"
+              type="password"
+              class="input-field"
+              placeholder="Password"
+            />
+          </div>
+          <div class="error-text" id="passwordError"></div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-box" id="confirmBox">
+            <i class="fa-solid fa-lock"></i>
+            <input
+              id="confirmPassword"
+              type="password"
+              class="input-field"
+              placeholder="Confirm Password"
+            />
+          </div>
+          <div class="error-text" id="confirmError"></div>
+        </div>
+
+        <!-- ROLE SELECTOR -->
+        <div class="role-selector" id="roleSelectorGroup">
+          <label class="role-option active" id="roleStudentLabel">
+            <input type="radio" name="userRole" value="student" id="roleStudent" checked />
+            <span class="role-icon"><i class="fa-solid fa-graduation-cap"></i></span>
+            <span class="role-label">Student</span>
+          </label>
+          <label class="role-option teacher-option" id="roleTeacherLabel">
+            <input type="radio" name="userRole" value="teacher" id="roleTeacher" />
+            <span class="role-icon"><i class="fa-solid fa-chalkboard-user"></i></span>
+            <span class="role-label">Teacher</span>
+          </label>
+        </div>
+
+        <button class="signup-btn" type="submit">Create Account</button>
+
+        <div class="divider">
+          <span>OR</span>
+        </div>
+
+        <button type="button" id="googleBtn" class="google">
+          <img src="google.png" alt="Google logo" />
+          Sign up with Google
+        </button>
+      </form>
+
+      <div class="login-link">
+        <p>Already have an account? <a href="login.html">Login</a></p>
+      </div>
+    </div>
+
+    <script>
+      const container = document.getElementById("particles");
+
+      function createParticle() {
+        const p = document.createElement("div");
+        p.classList.add("particle");
+
+        p.style.left = Math.random() * 100 + "vw";
+
+        const size = Math.random() * 6 + 2;
+        p.style.width = size + "px";
+        p.style.height = size + "px";
+
+        const duration = Math.random() * 5 + 5;
+        p.style.animationDuration = duration + "s";
+
+        container.appendChild(p);
+
+        setTimeout(() => p.remove(), duration * 1000);
+      }
+
+      setInterval(createParticle, 150);
+    </script>
+
+    <script>
+      // Role selector toggle highlight
+      document.querySelectorAll('input[name="userRole"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+          document.querySelectorAll(".role-option").forEach((el) => el.classList.remove("active"));
+          radio.closest(".role-option").classList.add("active");
+        });
+      });
+    </script>
+    <script type="module" src="authentication.js"></script>
+  </body>
+</html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <meta charset="UTF-8" />
+
+    <title>SlidePlay | Choose Experience</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="StudentPlayMode.css" />
+    <link rel="stylesheet" href="Choose_expo.css" />
+    <link rel="stylesheet" href="page-transition.css" />
+      <script src="Choose_expo.js"></script>
+    <style>
+      /* GLOBAL FONT SYSTEM */
+      body {
+        font-family: "Poppins", sans-serif;
+      }
+
+      /* HEADINGS + BRAND ELEMENTS */
+      h1,
+      h2,
+      h3,
+      h4,
+      .logo,
+      .hero-title {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* BUTTONS */
+      button,
+      .signup-btn,
+      .start-btn {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* TEXT ELEMENTS */
+      p,
+      a,
+      input,
+      textarea,
+      label {
+        font-family: "Poppins", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hud-grid"></div>
+    <div class="frame-wrap">
+      <header class="top-strip">
+        <div class="brand">SlidePlay</div>
+        <nav class="mini-nav">
+           <a href="StudentDashboard.html">Dashboard</a>
+           <a href="loading.html?target=library.html">Library</a>
+           <a href="#">Quests</a>
+           <a href="loading.html?target=AnalyticsPage.html">Analytics</a>
+           <a href="student_notebook.html">Notebook</a>
+        </nav>
+        <div class="top-icons">
+          <a href="settings.html" aria-label="Settings" title="Settings"
+            ><i class="fa-solid fa-gear"></i
+          ></a>
+        </div>
+      </header>
+
+      <main class="mode-shell">
+        <p class="kicker">
+          Select a mode to initialize the SlidePlay interface
+        </p>
+        <h1>Choose Your Experience</h1>
+
+        <section class="mode-grid">
+          <article class="mode-card study">
+            <div class="mode-icon"><i class="fa-solid fa-brain"></i></div>
+            <h2>Study</h2>
+            <p>Deep focus environment for intensive learning cycles.</p>
+            <ul>
+              <li>XP and streak rewards</li>
+              <li>Achievement loops</li>
+              <li>Resource synchronizer</li>
+            </ul>
+            <a class="mode-action" href="StudentUploadPage.html?mode=study">Initialize Study</a>
+          </article>
+
+          <article class="mode-card chill">
+            <div class="mode-icon"><i class="fa-solid fa-mug-hot"></i></div>
+            <h2>Chill</h2>
+            <p>Ambient, low-pressure exploration and review mode.</p>
+            <ul>
+              <li>No leaderboard pressure</li>
+              <li>Non-penalty quizzes</li>
+              <li>Visual mood spaces</li>
+            </ul>
+            <a class="mode-action" href="StudentUploadPage.html?mode=chill">Enter Flow</a>
+          </article>
+
+          <article class="mode-card story premium-locked">
+            <span class="premium-tag"
+              ><i class="fa-solid fa-crown"></i> Premium</span
+            >
+            <div class="mode-icon">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <h2>Story</h2>
+            <p>
+              Narrative-driven campaign through complex topics.
+              <strong>Premium feature.</strong>
+            </p>
+            <ul>
+              <li>Branching narratives</li>
+              <li>Character progression</li>
+              <li>World-building modules</li>
+            </ul>
+            <button class="mode-action" type="button" id="storyBtn">
+              <i class="fa-solid fa-lock"></i> Unlock Story Mode
+            </button>
+          </article>
+        </section>
+
+        <p class="foot-note">
+          You can change your mode selection at any time from this page.
+        </p>
+      </main>
+    </div>
+
+    <!-- Teacher Code Gate Modal (Study mode) -->
+    <div
+      class="pm-overlay"
+      id="pmOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pmTitle"
+    >
+      <div class="pm-modal">
+        <button class="pm-close" id="pmClose" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="pm-icon"><i class="fa-solid fa-lock"></i></div>
+        <h2 id="pmTitle">Enter Class Code</h2>
+        <p>Type the code your teacher gave you to unlock Study mode.</p>
+        <div class="pm-input-wrap">
+          <input
+            type="text"
+            id="pmCodeInput"
+            maxlength="24"
+            placeholder="e.g. PHY-11A"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Teacher class code"
+          />
+        </div>
+        <p class="pm-error" id="pmError"></p>
+        <button class="pm-enter-btn" id="pmEnterBtn">
+          <i class="fa-solid fa-play"></i> Initialize Study
+        </button>
+      </div>
+    </div>
+
+    <script src="StudentPlayMode.js"></script>
+    <script src="page-transition.js"></script>
+  </body>
+</html>

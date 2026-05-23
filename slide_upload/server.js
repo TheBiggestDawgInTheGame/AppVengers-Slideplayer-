@@ -49,6 +49,102 @@ const upload = multer({
   }
 });
 
+// --- Firebase Admin Setup ---
+let admin = null;
+try {
+  const serviceAccountPath = path.join(__dirname, '../firebase-service-account.json');
+  if (fs.existsSync(serviceAccountPath)) {
+    admin = require('firebase-admin');
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(require(serviceAccountPath)),
+        databaseURL: process.env.FIREBASE_DB_URL || ''
+      });
+    }
+  }
+} catch (e) {
+  console.warn('Firebase Admin not initialized:', e.message);
+}
+
+// --- Per-user upload directory helper ---
+function getUserUploadDir(uid) {
+  const safeUid = String(uid).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const dir = path.join(uploadDir, safeUid);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+// --- Per-user upload endpoint ---
+app.post('/api/user-upload', upload.array('slides', 20), async (req, res) => {
+  const { uid } = req.body;
+  if (!uid) return res.status(400).json({ error: 'Missing user ID (uid)' });
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: 'No files uploaded.' });
+  }
+  // Move files to user directory
+  const userDir = getUserUploadDir(uid);
+  const files = [];
+  for (const file of req.files) {
+    const dest = path.join(userDir, file.filename);
+    fs.renameSync(file.path, dest);
+    files.push({
+      originalName: file.originalname,
+      storedName: file.filename,
+      size: file.size,
+      path: dest
+    });
+  }
+  // Extract and save parsed content
+  let quizData = [];
+  let aiGenerated = false;
+  try {
+    const textResults = await Promise.all(files.map(extractAllText));
+    const combinedText = textResults.filter(Boolean).join('\n\n---\n\n');
+    if (combinedText.trim() && HUGGING_FACE_API_KEY) {
+      try {
+        const hfQuiz = await generateQuizWithHuggingFace(combinedText, 8);
+        if (hfQuiz && hfQuiz.length >= 3) {
+          quizData = hfQuiz;
+          aiGenerated = true;
+        }
+      } catch (hfErr) {
+        console.warn('Hugging Face quiz generation failed, using fallback:', hfErr.message);
+      }
+    }
+    if (quizData.length < 3) {
+      quizData = generateQuizData(files);
+    }
+  } catch (extractErr) {
+    console.warn('Text extraction error, using fallback:', extractErr.message);
+    quizData = generateFilenameQuestions(files);
+  }
+  // Save metadata and quizData to user dir
+  fs.writeFileSync(path.join(userDir, 'files.json'), JSON.stringify(files, null, 2));
+  fs.writeFileSync(path.join(userDir, 'quizData.json'), JSON.stringify(quizData, null, 2));
+  res.json({
+    message: aiGenerated
+      ? `AI quiz generated from your slides (${files.length} file${files.length > 1 ? 's' : ''} analysed).`
+      : `${files.length} file(s) uploaded successfully.`,
+    files: files.map(f => ({ originalName: f.originalName, storedName: f.storedName, size: f.size })),
+    quizData,
+    aiGenerated
+  });
+});
+
+// --- Per-user retrieval endpoint ---
+app.get('/api/user-upload', async (req, res) => {
+  const uid = req.query.uid;
+  if (!uid) return res.status(400).json({ error: 'Missing user ID (uid)' });
+  const userDir = getUserUploadDir(uid);
+  try {
+    const files = JSON.parse(fs.readFileSync(path.join(userDir, 'files.json'), 'utf8'));
+    const quizData = JSON.parse(fs.readFileSync(path.join(userDir, 'quizData.json'), 'utf8'));
+    res.json({ files, quizData });
+  } catch (e) {
+    res.status(404).json({ error: 'No uploaded content found for this user.' });
+  }
+});
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin && /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)) {
