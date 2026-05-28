@@ -1,0 +1,141 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link
+  href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+    <meta charset="UTF-8">
+    
+
+    <title>SlidePlayer | Curriculum Selection</title>
+    <link rel="stylesheet" href="library.css">
+    <style>
+        /* Custom styles for the bullet points to fit the theme */
+        .curriculum-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+        }
+        .curriculum-list li {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            padding-left: 15px;
+            position: relative;
+        }
+        .curriculum-list li::before {
+            content: "•";
+            color: var(--accent-teal);
+            position: absolute;
+            left: 0;
+        }
+    </style>
+  <link rel="stylesheet" href="page-transition.css">
+    <style>
+/* GLOBAL FONT SYSTEM */
+body {
+  font-family: "Poppins", sans-serif;
+}
+
+/* HEADINGS + BRAND ELEMENTS */
+h1, h2, h3, h4, .logo, .hero-title {
+  font-family: "Orbitron", sans-serif;
+}
+
+/* BUTTONS */
+button, .signup-btn, .start-btn {
+  font-family: "Orbitron", sans-serif;
+}
+
+/* TEXT ELEMENTS */
+p, a, input, textarea, label {
+  font-family: "Poppins", sans-serif;
+}
+</style>
+</head>
+<body class="dark-mode">
+
+    <div class="library-container">
+        <header class="library-header">
+            <h1>SELECT CURRICULUM</h1>
+            <p>Choose a specialized path to configure your academic architecture.</p>
+        </header>
+
+        <div class="game-grid">
+            <div class="game-card" onclick="selectFormat(this, 'Development Software')">
+                <div class="card-header">
+                    <span class="emoji">💻</span>
+                    <span class="badge category">SOFTWARE</span>
+                </div>
+                <h3>Development Software</h3>
+                <ul class="curriculum-list">
+                    <li>Full-stack architecture & logic</li>
+                    <li>Database systems & PostgreSQL</li>
+                    <li>API development & integration</li>
+                </ul>
+                <div class="selection-bar"></div>
+            </div>
+
+            <div class="game-card" onclick="selectFormat(this, 'Business Analysis')">
+                <div class="card-header">
+                    <span class="emoji">📊</span>
+                    <span class="badge category">STRATEGY</span>
+                </div>
+                <h3>Business Analysis</h3>
+                <ul class="curriculum-list">
+                    <li>System requirements modeling</li>
+                    <li>Process optimization workflows</li>
+                    <li>Stakeholder data synthesis</li>
+                </ul>
+            </div>
+
+            <div class="game-card" onclick="selectFormat(this, 'Information Systems')">
+                <div class="card-header">
+                    <span class="emoji">🖥️</span>
+                    <span class="badge category">SYSTEMS</span>
+                </div>
+                <h3>Information Systems</h3>
+                <ul class="curriculum-list">
+                    <li>Enterprise resource management</li>
+                    <li>Information security protocols</li>
+                    <li>Data governance & ethics</li>
+                </ul>
+            </div>
+
+            <div class="game-card" onclick="selectFormat(this, 'Communications Network')">
+                <div class="card-header">
+                    <span class="emoji">🌐</span>
+                    <span class="badge category">NETWORKS</span>
+                </div>
+                <h3>Communications Network</h3>
+                <ul class="curriculum-list">
+                    <li>Network topology & protocols</li>
+                    <li>Cybersecurity infrastructure</li>
+                    <li>Cloud connectivity models</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="action-bar" class="action-bar">
+            <p>Path Selected: <span id="selected-name" style="color: var(--accent-teal); font-weight: bold;">None</span></p>
+            <button class="analyze-btn" onclick="startAnalysis()">PROCEED TO NOTES</button>
+        </div>
+    </div>
+
+    <footer>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+    </footer>
+
+    <script src="curriculum.js"></script>
+  <script src="page-transition.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+

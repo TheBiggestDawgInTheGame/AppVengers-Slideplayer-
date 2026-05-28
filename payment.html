@@ -1,0 +1,380 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link
+  href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+  <meta charset="UTF-8" />
+  
+
+  <title>SlidePlay | Upgrade Plan</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="payment.css?v=2.1" />
+  <link rel="stylesheet" href="page-transition.css">
+    <style>
+/* GLOBAL FONT SYSTEM */
+body {
+  font-family: "Poppins", sans-serif;
+}
+
+/* HEADINGS + BRAND ELEMENTS */
+h1, h2, h3, h4, .logo, .hero-title {
+  font-family: "Orbitron", sans-serif;
+}
+
+/* BUTTONS */
+button, .signup-btn, .start-btn {
+  font-family: "Orbitron", sans-serif;
+}
+
+/* TEXT ELEMENTS */
+p, a, input, textarea, label {
+  font-family: "Poppins", sans-serif;
+}
+</style>
+</head>
+<body>
+  <div class="hud-grid"></div>
+
+  <header class="top-bar">
+    <div class="left-status">
+      <span class="pulse-dot"></span>
+      <span>Jarvis Node Online</span>
+    </div>
+
+    <div class="search-panel">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" placeholder="Search class, student, module..." />
+    </div>
+
+    <div class="bar-actions">
+      <button class="icon-btn" aria-label="Notifications">
+        <i class="fa-solid fa-bell"></i>
+      </button>
+      <a class="icon-btn" href="settings.html" aria-label="Settings">
+        <i class="fa-solid fa-gear"></i>
+      </a>
+      <div class="teacher-pill">
+        <img src="https://i.pravatar.cc/80?img=47" alt="Teacher avatar" />
+        <div>
+          <strong>Dr. M. Stark</strong>
+          <span>Physics Department</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard-layout">
+    <aside class="side-nav">
+      <div class="brand">
+        <div class="reactor-core"><i class="fa-solid fa-atom"></i></div>
+        <div>
+          <h2>SlidePlay</h2>
+          <p>EDU DEFENSE GRID</p>
+        </div>
+      </div>
+
+      <nav>
+        <a href="teacher.html"><i class="fa-solid fa-gauge-high"></i> Teacher Dashboard</a>
+        <a href="library.html"><i class="fa-solid fa-book"></i> Curriculum Library</a>
+        <a href="AnalyticsPage.html"><i class="fa-solid fa-chart-line"></i> Performance Analytics</a>
+        <a href="UploadPage.html"><i class="fa-solid fa-cloud-arrow-up"></i> Resource Upload</a>
+        <a href="AccessControl.html"><i class="fa-solid fa-user-shield"></i> Student Access Grid</a>
+        <a href="payment.html" class="active"><i class="fa-solid fa-credit-card"></i> Billing &amp; Plans</a>
+        <a href="settings.html"><i class="fa-solid fa-gear"></i> Admin Controls</a>
+      </nav>
+
+      <button class="launch-btn" onclick="window.location.href='UploadPage.html'"><i class="fa-solid fa-rocket"></i> Deploy Lesson Mode</button>
+    </aside>
+
+    <section class="main-zone">
+      <div class="hero-card card">
+        <div class="hero-copy">
+          <p class="chip">SYSTEM › BILLING</p>
+          <h1>Upgrade Plan</h1>
+          <p>Choose the best plan for your classroom command center and manage your invoices from one secure portal.</p>
+        </div>
+        <div class="hero-metrics">
+          <article>
+            <span>Current Plan</span>
+            <strong>Free Tier Active</strong>
+          </article>
+          <article>
+            <span>Billing Cycle</span>
+            <strong>Monthly</strong>
+          </article>
+          <article>
+            <span>Invoices</span>
+            <strong id="invoiceCount">0</strong>
+          </article>
+        </div>
+      </div>
+
+      <article class="card">
+        <div class="page-context-header">
+          <div class="page-id">
+            <span class="page-tag">SYSTEM › BILLING</span>
+            <h1 class="page-title">Upgrade Plan</h1>
+          </div>
+          <div class="top-controls">
+            <span class="status-pill" id="currentPlanPill"><i class="fa-solid fa-circle-check"></i> <span id="activePlanLabel">Free Tier Active</span></span>
+          </div>
+        </div>
+
+        <div class="billing-toggle-wrap">
+          <span class="toggle-label">Monthly</span>
+          <label class="toggle-switch" aria-label="Billing period toggle">
+            <input type="checkbox" id="billingToggle" />
+            <span class="toggle-track"></span>
+          </label>
+          <span class="toggle-label">Yearly <span class="save-chip">Save 20%</span></span>
+        </div>
+
+        <div class="plans-grid" id="plansGrid">
+          <div class="plan-card" data-plan="free" data-monthly="0" data-yearly="0">
+            <div class="plan-badge">Starter</div>
+            <div class="plan-icon"><i class="fa-solid fa-seedling"></i></div>
+            <h2 class="plan-name">Core Grid</h2>
+            <p class="plan-desc">Essential classroom tools for baseline performance tracking.</p>
+            <div class="plan-price">
+              <span class="price-amount" data-monthly="R100" data-yearly="R960">R100</span>
+              <span class="price-period">/mo</span>
+            </div>
+            <ul class="plan-features">
+              <li><i class="fa-solid fa-check"></i> Up to 5 classes</li>
+              <li><i class="fa-solid fa-check"></i> 30 activity uploads/month</li>
+              <li><i class="fa-solid fa-check"></i> Core analytics display</li>
+              <li class="locked"><i class="fa-solid fa-lock"></i> Advanced AI risk alerts</li>
+              <li class="locked"><i class="fa-solid fa-lock"></i> Priority support lines</li>
+            </ul>
+            <button class="plan-btn upgrade-btn" data-target="basic">Select Grid</button>
+          </div>
+
+          <div class="plan-card featured" data-plan="pro" data-monthly="150" data-yearly="1440">
+            <div class="plan-badge popular">Most Popular</div>
+            <div class="plan-icon"><i class="fa-solid fa-bolt"></i></div>
+            <h2 class="plan-name">Tactical Pro</h2>
+            <p class="plan-desc">Full intelligence automation for highly competitive environments.</p>
+            <div class="plan-price">
+              <span class="price-amount" data-monthly="R150" data-yearly="R1440">R150</span>
+              <span class="price-period">/mo</span>
+            </div>
+            <ul class="plan-features">
+              <li><i class="fa-solid fa-check"></i> Unlimited student classes</li>
+              <li><i class="fa-solid fa-check"></i> Unlimited resource uploads</li>
+              <li><i class="fa-solid fa-check"></i> Deep analytics + risk alerts</li>
+              <li><i class="fa-solid fa-check"></i> Discipline overlay dashboard</li>
+              <li><i class="fa-solid fa-check"></i> Live session broadcasting</li>
+              <li class="locked"><i class="fa-solid fa-lock"></i> Multi-teacher admin accounts</li>
+            </ul>
+            <button class="plan-btn upgrade-btn" data-target="pro">Upgrade Now</button>
+          </div>
+
+          <div class="plan-card" data-plan="premium" data-monthly="200" data-yearly="1920">
+            <div class="plan-badge">Apex</div>
+            <div class="plan-icon"><i class="fa-solid fa-school"></i></div>
+            <h2 class="plan-name">Command Elite</h2>
+            <p class="plan-desc">Full custom access nodes built for complete campus control panels.</p>
+            <div class="plan-price">
+              <span class="price-amount" data-monthly="R200" data-yearly="R1920">R200</span>
+              <span class="price-period">/mo</span>
+            </div>
+            <ul class="plan-features">
+              <li><i class="fa-solid fa-check"></i> Everything in Tactical Pro</li>
+              <li><i class="fa-solid fa-check"></i> Multi-teacher master nodes</li>
+              <li><i class="fa-solid fa-check"></i> Institutional level metrics</li>
+              <li><i class="fa-solid fa-check"></i> Dedicated server bandwidth</li>
+              <li><i class="fa-solid fa-check"></i> Custom layout branding</li>
+              <li><i class="fa-solid fa-check"></i> 24/7 Priority Node support</li>
+            </ul>
+            <button class="plan-btn upgrade-btn" data-target="premium">Deploy Elite</button>
+          </div>
+        </div>
+
+        <div class="sub-info-panel sp-hidden" id="subInfoPanel">
+          <div class="sub-info-inner">
+            <div>
+              <h3 id="subPlanTitle">Tactical Pro — Active</h3>
+              <p id="subRenewalDate">Renews on —</p>
+            </div>
+            <div class="sub-actions">
+              <button class="cancel-sub-btn" id="cancelSubBtn"><i class="fa-solid fa-ban"></i> Cancel Subscription</button>
+              <a href="#" class="view-invoices-btn" id="viewInvoicesBtn"><i class="fa-solid fa-file-invoice"></i> View Invoices</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="invoices-section sp-hidden" id="invoicesSection">
+          <h2 class="section-heading"><i class="fa-solid fa-file-invoice-dollar"></i> Billing History</h2>
+          <div class="invoice-table">
+            <div class="invoice-header">
+              <span>Receipt ID</span><span>Plan</span><span>Amount</span><span>Date</span><span>Status</span>
+            </div>
+            <div id="invoicesList"></div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <aside class="right-zone">
+      <article class="card live-card">
+        <div class="card-head">
+          <h3>Billing Snapshot</h3>
+        </div>
+        <div class="session-item">
+          <h4>Free Tier</h4>
+          <p>You're currently on the starter plan. Upgrade to unlock the full SlidePlay command set.</p>
+        </div>
+        <div class="session-item">
+          <h4>Renewal</h4>
+          <p>Renewals are calculated automatically after plan selection.</p>
+        </div>
+        <button class="session-cta" onclick="document.getElementById('plansGrid').scrollIntoView({ behavior: 'smooth' })">Browse Plans</button>
+      </article>
+
+      <article class="card ring-card">
+        <div class="card-head">
+          <h3>Yearly Savings</h3>
+        </div>
+        <div class="score-ring" data-chart="score">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="48"></circle>
+            <circle cx="60" cy="60" r="48" class="progress"></circle>
+          </svg>
+          <div>
+            <strong>20%</strong>
+            <span>Save annually</span>
+          </div>
+        </div>
+        <p class="ring-note">Choose yearly billing to lock in the best price.</p>
+      </article>
+    </aside>
+  </main>
+
+  <div class="modal-overlay sp-hidden" id="checkoutModal">
+    <div class="checkout-panel">
+      <button class="close-modal" id="closeCheckout" aria-label="Close checkout"><i class="fa-solid fa-xmark"></i></button>
+      <h2 class="checkout-title"><i class="fa-solid fa-lock"></i> Secure Checkout</h2>
+      <div class="checkout-summary" id="checkoutSummary"></div>
+
+      <div class="method-tabs">
+        <button type="button" class="method-tab active" data-method="card"><i class="fa-solid fa-credit-card"></i> Card</button>
+        <button type="button" class="method-tab" data-method="mobile"><i class="fa-solid fa-mobile-screen-button"></i> Mobile Money</button>
+        <button type="button" class="method-tab" data-method="bank"><i class="fa-solid fa-building-columns"></i> Bank Transfer</button>
+      </div>
+
+      <form class="payment-form" id="paymentForm" novalidate>
+        <div class="pay-method-panel active" id="panel-card">
+          <div class="form-group">
+            <label for="cardName">Cardholder Name</label>
+            <input type="text" id="cardName" placeholder="Dr. M. Stark" autocomplete="cc-name" required />
+          </div>
+          <div class="form-group">
+            <label for="cardNumber">Card Number</label>
+            <div class="card-input-wrap">
+              <input type="text" id="cardNumber" placeholder="•••• •••• •••• ••••" maxlength="19" autocomplete="cc-number" required />
+              <span class="card-brand-icon" id="cardBrandIcon"><i class="fa-regular fa-credit-card"></i></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cardExpiry">Expiry</label>
+              <input type="text" id="cardExpiry" placeholder="MM / YY" maxlength="7" autocomplete="cc-exp" required />
+            </div>
+            <div class="form-group">
+              <label for="cardCvc">CVC</label>
+              <input type="text" id="cardCvc" placeholder="•••" maxlength="4" autocomplete="cc-csc" required />
+            </div>
+          </div>
+        </div>
+
+        <div class="pay-method-panel" id="panel-mobile">
+          <div class="form-group">
+            <label for="mobileNetwork">Network Provider</label>
+            <select id="mobileNetwork">
+              <option value="">Select network</option>
+              <option>MTN Mobile Money</option>
+              <option>Vodafone Cash</option>
+              <option>AirtelTigo Money</option>
+              <option>M-Pesa</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mobileNumber">Mobile Number</label>
+            <input type="tel" id="mobileNumber" placeholder="+27 83 123 4567" autocomplete="tel" required />
+          </div>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will receive a prompt on your phone to confirm the payment.</p>
+        </div>
+
+        <div class="pay-method-panel" id="panel-bank">
+          <div class="bank-details-box">
+            <h4><i class="fa-solid fa-building-columns"></i> Transfer to</h4>
+            <div class="bank-row"><span>Bank</span><strong>SlidePlay Finance Ltd.</strong></div>
+            <div class="bank-row"><span>Account No.</span><strong>9876543210</strong></div>
+            <div class="bank-row"><span>Branch Code</span><strong>250655</strong></div>
+            <div class="bank-row"><span>Reference</span><strong id="bankRef">SP-000000</strong></div>
+          </div>
+          <div class="form-group">
+            <label for="transferProof">Upload Transfer Proof (optional)</label>
+            <input type="file" id="transferProof" accept="image/*,.pdf" />
+          </div>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> Activation within 1–2 business days after transfer confirmation.</p>
+        </div>
+
+        <div class="coupon-row">
+          <input type="text" id="couponCode" placeholder="Coupon code" />
+          <button type="button" id="applyCoupon" class="coupon-btn">Apply</button>
+        </div>
+        <p class="coupon-msg" id="couponMsg"></p>
+
+        <div class="order-summary">
+          <div class="order-row"><span>Plan</span><span id="orderPlanName">—</span></div>
+          <div class="order-row"><span>Billing</span><span id="orderBilling">—</span></div>
+          <div class="order-row discount-row sp-hidden" id="discountRow"><span>Discount</span><span id="orderDiscount">—</span></div>
+          <div class="order-row total-row"><span>Total</span><span id="orderTotal">—</span></div>
+        </div>
+
+        <label class="terms-check">
+          <input type="checkbox" id="termsCheck" required />
+          <span>I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a></span>
+        </label>
+
+        <button type="submit" class="pay-btn" id="payBtn">
+          <span id="payBtnText"><i class="fa-solid fa-lock"></i> Pay Now</span>
+          <span id="payBtnLoading" class="sp-hidden"><i class="fa-solid fa-spinner fa-spin"></i> Processing…</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay sp-hidden" id="successModal">
+    <div class="success-panel">
+      <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
+      <h2>Payment Successful!</h2>
+      <p id="successPlanMsg">Your new system node is now active.</p>
+      <div class="receipt-box">
+        <span>Receipt ID</span>
+        <strong id="receiptId">SP-000000</strong>
+      </div>
+      <p class="success-sub">A confirmation has been stored in your billing history.</p>
+      <div class="success-actions">
+        <a href="teacher.html" class="pay-btn">Go to Dashboard</a>
+        <button type="button" class="view-invoices-btn" id="successViewInvoices">View Invoices</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="payment.js"></script>
+  <script src="page-transition.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
