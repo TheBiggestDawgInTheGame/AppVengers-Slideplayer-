@@ -1,0 +1,145 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  
+    <head>
+    <link
+  href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+    <meta charset="UTF-8" />
+    
+
+    <title>Upload & Generate Quizzes</title>
+    <link rel="stylesheet" href="UploadPage.css" />
+    <link rel="stylesheet" href="page-transition.css">
+    <style>
+/* GLOBAL FONT SYSTEM */
+body {
+  font-family: "Poppins", sans-serif;
+}
+
+/* HEADINGS + BRAND ELEMENTS */
+h1, h2, h3, h4, .logo, .hero-title {
+  font-family: "Orbitron", sans-serif;
+}
+
+/* BUTTONS */
+button, .signup-btn, .start-btn {
+  font-family: "Orbitron", sans-serif;
+}
+
+/* TEXT ELEMENTS */
+p, a, input, textarea, label {
+  font-family: "Poppins", sans-serif;
+}
+</style>
+</head>
+  <body>
+    <main class="upload-page">
+      <header class="upload-header">
+        <h1>Upload & Generate Quizzes</h1>
+        <p>Upload slides or scanned notes, then create quizzes with AI-powered generation.</p>
+      </header>
+
+      <div class="upload-container">
+        <section class="upload-section">
+          <h2>Upload Files</h2>
+          <p class="subtitle">Drag and drop files, or click to browse. Supported formats: PDF, PPTX, PNG, JPG.</p>
+
+          <div class="upload-area" id="slides-upload-area">
+            <div class="upload-icon">??</div>
+            <h3>Drop files here</h3>
+            <p>Files will be added to the upload list below.</p>
+            <button class="upload-btn" type="button" id="browse-files-btn">Browse Files</button>
+            <input type="file" id="slides-input" multiple accept=".pdf,.pptx,.png,.jpg,.jpeg" hidden />
+          </div>
+
+          <p class="file-info">Maximum file size: 50MB.</p>
+        </section>
+
+        <section class="files-section">
+          <h2>Uploaded Files</h2>
+          <div class="files-list" id="files-list"></div>
+          <button class="secondary-btn" type="button" id="clear-files-btn">Clear All Files</button>
+        </section>
+
+        <section class="quiz-settings">
+          <h2>Quiz Settings</h2>
+          <div class="settings-grid">
+            <div class="setting-item">
+              <label for="question-count">Questions</label>
+              <div class="input-group">
+                <button type="button" onclick="decreaseValue('question-count')">-</button>
+                <input type="number" id="question-count" value="10" min="5" max="50" />
+                <button type="button" onclick="increaseValue('question-count')">+</button>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <label for="difficulty">Difficulty</label>
+              <select id="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+
+            <div class="setting-item">
+              <label for="question-type">Question Type</label>
+              <select id="question-type">
+                <option value="mixed" selected>Mixed</option>
+                <option value="mcq">Multiple choice</option>
+                <option value="true-false">True/False</option>
+                <option value="short-answer">Short answer</option>
+              </select>
+            </div>
+
+            <div class="setting-item">
+              <label for="time-limit">Time Limit (minutes)</label>
+              <div class="input-group">
+                <button type="button" onclick="decreaseValue('time-limit')">-</button>
+                <input type="number" id="time-limit" value="30" min="5" max="120" />
+                <button type="button" onclick="increaseValue('time-limit')">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="checkbox-group">
+            <label><input type="checkbox" id="include-answers" checked /> Include answer key</label>
+            <label><input type="checkbox" id="shuffle-questions" /> Shuffle questions</label>
+            <label><input type="checkbox" id="show-timer" checked /> Show timer during quiz</label>
+          </div>
+        </section>
+
+        <div class="action-section">
+          <button class="generate-btn" type="button" onclick="generateQuiz()">Generate Quiz</button>
+          <button class="secondary-btn" type="button" onclick="startCamera()">Use Camera Scan</button>
+        </div>
+      </div>
+    </main>
+
+    <div class="modal hidden" id="processing-modal" aria-hidden="true">
+      <div class="modal-content">
+        <h3>Generating your quiz...</h3>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+        <p id="processing-text">Preparing everything. Please wait.</p>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <p>&copy; 2026 SlidePlay. All Rights Reserved.</p>
+    </footer>
+
+    <script src="UploadPage.js"></script>
+    <script src="page-transition.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+

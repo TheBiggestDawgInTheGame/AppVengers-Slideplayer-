@@ -1,0 +1,234 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link
+  href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+  <meta charset="UTF-8" />
+  
+
+  <title>SlidePlay | Student Upload Arena</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="UploadPage.css" />
+  <link rel="stylesheet" href="StudentUploadPage.css" />
+  <link rel="stylesheet" href="page-transition.css">
+    <style>
+/* GLOBAL FONT SYSTEM */
+body {
+  font-family: "Poppins", sans-serif;
+}
+
+/* HEADINGS + BRAND ELEMENTS */
+h1, h2, h3, h4, .logo, .hero-title {
+  font-family: "Orbitron", sans-serif;
+}
+
+/* BUTTONS */
+button, .signup-btn, .start-btn {
+  font-family: "Orbitron", sans-serif;
+}
+
+/* TEXT ELEMENTS */
+p, a, input, textarea, label {
+  font-family: "Poppins", sans-serif;
+}
+</style>
+</head>
+<body>
+  <div id="particles"></div>
+
+  <aside class="side-nav">
+    <div class="brand-block">
+      <span class="brand-dot"></span>
+      <span class="brand-name">SlidePlay</span>
+    </div>
+
+    <nav class="nav-items">
+      <a href="StudentDashboard.html" class="nav-item">
+        <i class="fa-solid fa-gauge-high"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="loading.html?target=library.html" class="nav-item">
+        <i class="fa-solid fa-book-open"></i>
+        <span>Library</span>
+      </a>
+      <a href="StudentUploadPage.html" class="nav-item active">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Upload</span>
+      </a>
+      <a href="loading.html?target=AnalyticsPage.html" class="nav-item">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Analytics</span>
+      </a>
+      <a href="student-payment.html" class="nav-item">
+        <i class="fa-solid fa-credit-card"></i>
+        <span>Upgrade Plan</span>
+      </a>
+      <a href="settings.html" class="nav-item">
+        <i class="fa-solid fa-gear"></i>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <button class="deploy-btn" id="start-session-btn">
+      <i class="fa-solid fa-play"></i>
+      Start Mode Session
+    </button>
+  </aside>
+
+  <div class="main-zone">
+    <div class="top-bar">
+      <div class="page-id">
+        <span class="page-tag">STUDENT ZONE &rsaquo; UPLOAD</span>
+        <h1 class="page-title">Upload Arena</h1>
+      </div>
+      <div class="top-controls">
+        <span class="status-pill"><span class="pulse-dot"></span> Training Mode Online</span>
+        <a href="StudentDashboard.html" class="back-link" aria-label="Back to Dashboard"><i class="fa-solid fa-arrow-left"></i> Back</a>
+      </div>
+    </div>
+
+    <div class="mode-status-card hud-card">
+      <div>
+        <p class="mode-label">Current play mode</p>
+        <h3 id="mode-value">Not selected</h3>
+      </div>
+      <button class="pick-btn" id="choose-mode-btn"><i class="fa-solid fa-gamepad"></i> Choose Mode</button>
+    </div>
+
+    <div class="hud-card mode-config-card">
+      <div class="card-head">
+        <span class="card-label"><i class="fa-solid fa-sliders"></i> Mode Configuration</span>
+      </div>
+
+      <div class="mode-config-block" id="config-single">
+        <h4><i class="fa-solid fa-user"></i> Single Player Setup</h4>
+        <div class="mode-fields-grid">
+          <label>
+            Session Timer (minutes)
+            <input type="number" id="single-timer" min="5" max="120" value="20" title="Single player timer in minutes" />
+          </label>
+          <label>
+            Challenge Level
+            <select id="single-difficulty" title="Single player difficulty">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="mode-config-block hidden" id="config-multiplayer">
+        <h4><i class="fa-solid fa-users"></i> Multiplayer Setup</h4>
+        <div class="mode-fields-grid">
+          <label>
+            Room Code
+            <div class="mode-inline-group">
+              <input type="text" id="multi-room-code" maxlength="8" placeholder="AUTO" title="Multiplayer room code" />
+              <button class="ghost-btn" type="button" id="generate-room-code">Generate</button>
+            </div>
+          </label>
+          <label>
+            Max Players
+            <input type="number" id="multi-players" min="2" max="20" value="6" title="Maximum players" />
+          </label>
+        </div>
+      </div>
+
+      <div class="mode-config-block hidden" id="config-tournament">
+        <h4><i class="fa-solid fa-trophy"></i> Tournament Setup</h4>
+        <div class="mode-fields-grid">
+          <label>
+            Bracket Size
+            <select id="tour-bracket" title="Tournament bracket size">
+              <option value="8" selected>8 Players</option>
+              <option value="16">16 Players</option>
+              <option value="32">32 Players</option>
+            </select>
+          </label>
+          <label>
+            Seeding Style
+            <select id="tour-seed" title="Tournament seeding style">
+              <option value="balanced" selected>Balanced</option>
+              <option value="random">Random</option>
+              <option value="ranked">Ranked</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content active" id="slides-tab">
+      <div class="upload-zone" id="slides-upload-area">
+        <div class="upload-zone-inner">
+          <div class="upload-icon-ring">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <h3>Select Your Slides</h3>
+          <p class="upload-hint">PDF, PPTX, PNG, JPG - Max 50 MB per file</p>
+          <button class="pick-btn" id="browse-files-btn">
+            <i class="fa-solid fa-folder-open"></i> Browse Files
+          </button>
+          <input type="file" id="slides-input" multiple accept=".pdf,.pptx,.png,.jpg,.jpeg" hidden />
+        </div>
+        <div class="drop-scanline"></div>
+      </div>
+    </div>
+
+    <div class="hud-card files-card">
+      <div class="card-head">
+        <span class="card-label"><i class="fa-solid fa-database"></i> Loaded Files</span>
+        <button class="ghost-btn" id="clear-files-btn"><i class="fa-solid fa-trash"></i> Clear All</button>
+      </div>
+      <div class="files-list" id="files-list">
+        <p class="empty-state"><i class="fa-solid fa-satellite-dish"></i> No files loaded - upload to begin.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mode-modal hidden" id="mode-modal" role="dialog" aria-modal="true" aria-labelledby="mode-title">
+    <div class="mode-panel">
+      <button class="close-modal" id="close-mode-modal" aria-label="Close mode selector"><i class="fa-solid fa-xmark"></i></button>
+      <h2 id="mode-title"><i class="fa-solid fa-joystick"></i> Choose a Play Mode</h2>
+      <p class="mode-sub">Pick how this uploaded slide set should run.</p>
+
+      <div class="mode-grid" id="mode-grid">
+        <button class="mode-option" data-mode="single">
+          <i class="fa-solid fa-user"></i>
+          <strong>Single Player</strong>
+          <span>Practice solo and improve your score.</span>
+        </button>
+        <button class="mode-option" data-mode="multiplayer">
+          <i class="fa-solid fa-users"></i>
+          <strong>Multiplayer</strong>
+          <span>Compete with classmates in live rounds.</span>
+        </button>
+        <button class="mode-option" data-mode="tournament">
+          <i class="fa-solid fa-trophy"></i>
+          <strong>Tournament</strong>
+          <span>Join bracket battles and climb rankings.</span>
+        </button>
+      </div>
+
+      <button class="pay-btn" id="confirm-mode-btn" disabled>
+        <i class="fa-solid fa-check"></i> Confirm Mode
+      </button>
+    </div>
+  </div>
+
+  <script src="StudentUploadPage.js"></script>
+  <script src="page-transition.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+

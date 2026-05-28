@@ -1,0 +1,178 @@
+.mode-status-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.mode-label {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+#mode-value {
+  margin: 4px 0 0;
+  color: #30e8ff;
+  font-size: 1.2rem;
+}
+
+.mode-config-card {
+  margin-bottom: 18px;
+}
+
+.mode-config-block.hidden {
+  display: none;
+}
+
+.mode-config-block h4 {
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #30e8ff;
+}
+
+.mode-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mode-fields-grid label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.mode-fields-grid input,
+.mode-fields-grid select {
+  width: 100%;
+  border: 1px solid rgba(48, 232, 255, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  padding: 10px 12px;
+}
+
+.mode-fields-grid input:focus,
+.mode-fields-grid select:focus {
+  outline: none;
+  border-color: rgba(255, 83, 207, 0.72);
+  box-shadow: 0 0 0 3px rgba(255, 83, 207, 0.15);
+}
+
+.mode-inline-group {
+  display: flex;
+  gap: 8px;
+}
+
+.mode-pill {
+  border: 1px solid rgba(48, 232, 255, 0.28);
+  border-radius: 999px;
+  padding: 4px 10px;
+  min-width: 110px;
+  text-align: center;
+  color: #30e8ff;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mode-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 26, 0.84);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1200;
+}
+
+.mode-modal.hidden {
+  display: none;
+}
+
+.mode-panel {
+  width: min(760px, 100%);
+  background: linear-gradient(160deg, rgba(24, 34, 86, 0.92), rgba(14, 19, 48, 0.92));
+  border: 1px solid rgba(48, 232, 255, 0.26);
+  border-radius: 16px;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.46), 0 0 28px rgba(48, 232, 255, 0.12);
+  padding: 22px;
+}
+
+.mode-sub {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.mode-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mode-option {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(48, 232, 255, 0.25);
+  border-radius: 12px;
+  color: #ffffff;
+  text-align: left;
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mode-option i {
+  color: #30e8ff;
+}
+
+.mode-option span {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.92rem;
+}
+
+.mode-option:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 83, 207, 0.55);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.mode-option.selected {
+  border-color: #30e8ff;
+  box-shadow: inset 0 0 0 1px rgba(48, 232, 255, 0.45), 0 0 14px rgba(48, 232, 255, 0.24);
+}
+
+#confirm-mode-btn {
+  margin-top: 16px;
+  width: 100%;
+}
+
+#confirm-mode-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .mode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mode-status-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mode-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
