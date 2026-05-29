@@ -1425,6 +1425,23 @@ app.get('/api/users/:uid/subscription', async (req, res) => {
   }
 });
 
+// ── DB: get user role ─────────────────────────────────────────────────────────
+app.get('/api/users/:uid/role', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  try {
+    const result = await dbModule.query(
+      'SELECT TOP 1 Role FROM Users WHERE FirebaseUID = @uid',
+      { uid }
+    );
+    if (!result.recordset.length) return res.json({ role: 'student', source: 'default' });
+    res.json({ role: (result.recordset[0].Role || 'student').toLowerCase(), source: 'db' });
+  } catch (err) {
+    console.error('role lookup error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
 // ── RAG: create deck ──────────────────────────────────────────────────────────
 app.post('/api/decks/create', async (req, res) => {
   if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
