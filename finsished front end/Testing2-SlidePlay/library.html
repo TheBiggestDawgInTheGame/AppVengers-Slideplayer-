@@ -5,13 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Select Game Format</title>
   <link rel="stylesheet" href="games.css">
+  <link rel="stylesheet" href="responsive-shared.css">
+  <script src="theme-sync.js"></script>
 </head>
 <body>
 
   <header class="topbar">
-    <a class="brand" href="index.html"><span>Slide</span>Play</a>
+    <a class="brand" href="main.html"><span>Slide</span>Play</a>
     <div class="topbar-actions">
-      <a class="pill" href="index.html">Upload More</a>
+      <a class="pill" href="UploadPage.html">Upload More</a>
       <button type="button" class="pill active-pill">Guest</button>
     </div>
   </header>
@@ -101,7 +103,7 @@
 </div>
 
       <!-- Row 1 -->
-      <a class="game-card" href="../games/scramble_game/scramble_game.html?source=upload" data-available>
+      <a class="game-card" href="../../games/scramble_game/scramble_game.html?source=upload" data-available>
         <div class="card-top">
           <span class="abc-icon">abc</span>
           <span class="badge badge-cat">LOGIC</span>
@@ -110,7 +112,7 @@
         <p>Lexical reorganization against a decaying temporal threshold.</p>
       </a>
 
-      <a class="game-card" href="../games/memory_chain_game/index.html?source=upload" data-available>
+      <a class="game-card" href="../../games/memory_chain_game/index.html?source=upload" data-available>
         <div class="card-top">
           <span class="game-emoji">🧠</span>
           <span class="badge badge-cat">SEQUENCE</span>
@@ -119,7 +121,7 @@
         <p>Reconstruct slide workflows in the correct order using drag-and-drop sequence logic.</p>
       </a>
 
-      <a class="game-card" href="../games/slide_puzzle_game/index.html?source=upload" data-available>
+      <a class="game-card" href="../../games/slide_puzzle_game/index.html?source=upload" data-available>
         <div class="card-top">
           <span class="game-emoji">🧩</span>
           <span class="badge badge-cat">PUZZLE</span>
@@ -128,7 +130,7 @@
         <p>Break slide content into fragments and rebuild the structure with drag-and-drop tiles.</p>
       </a>
 
-      <a class="game-card" href="../games/slide_scenario_game/index.html?source=upload" data-available>
+      <a class="game-card" href="../../games/slide_scenario_game/index.html?source=upload" data-available>
         <div class="card-top">
           <span class="game-emoji">🎯</span>
           <span class="badge badge-cat">SCENARIO</span>
@@ -137,19 +139,25 @@
         <p>Use slide situations to pick the best learning decision and build decision-making skills.</p>
       </a>
 
-      <a class="game-card" href="../games/jeopardy/index.html?source=upload" data-available>
+      <a class="game-card" href="../../games/jeopardy-3d/index.html?source=upload&game=jeopardy" data-available>
         <div class="card-top">
-          <span class="game-emoji">📝</span>
-          <div class="card-badges">
-            <span class="badge badge-cat">QUIZ</span>
-            <span class="badge badge-dual">3D &amp; 2D</span>
-          </div>
+          <span class="game-emoji">🎯</span>
+          <span class="badge badge-cat">QUIZ</span>
         </div>
-        <h3>Quiz</h3>
-        <p>Play slide-driven quiz challenges and choose your mode: classic 2D or immersive 3D game show.</p>
+        <h3>Jeopardy 3D</h3>
+        <p>Jump straight into the immersive 3D quiz show without an extra chooser screen.</p>
       </a>
 
-      <a class="game-card" href="../games/jeopardy-3d/index.html?source=upload&game=millionaire" data-available>
+      <a class="game-card" href="../../games/jeopardy/index.html?source=upload" data-available>
+        <div class="card-top">
+          <span class="game-emoji">📝</span>
+          <span class="badge badge-cat">QUIZ</span>
+        </div>
+        <h3>Quiz Game</h3>
+        <p>Launch the classic 2D slide-driven quiz directly with instant feedback and timers.</p>
+      </a>
+
+      <a class="game-card" href="../../games/jeopardy-3d/index.html?source=upload&game=millionaire" data-available>
         <div class="card-top">
           <span class="game-emoji">🏆</span>
           <span class="badge badge-cat">QUIZ</span>
@@ -159,7 +167,7 @@
       </a>
 
       <!-- Row 2 -->
-      <a class="game-card" href="../games/speed_typing_game/speed_typing_game.html?source=upload" data-available>
+      <a class="game-card" href="../../games/speed_typing_game/speed_typing_game.html?source=upload" data-available>
         <div class="card-top">
           <span class="game-emoji">⌨️</span>
           <span class="badge badge-cat">TYPING</span>
@@ -168,7 +176,7 @@
         <p>Race against the clock to type out slide terms before your time runs out.</p>
       </a>
 
-      <a class="game-card" href="../games/mbasa_game/selector.html?source=upload" data-available>
+      <a class="game-card" href="../../games/mbasa_game/selector.html?source=upload" data-available>
         <div class="card-top">
           <span class="game-emoji">🏃</span>
           <div class="card-badges">
@@ -180,7 +188,7 @@
         <p>Sprint down a neon perspective highway and dodge obstacles flying at you from the horizon.</p>
       </a>
 
-      <a class="game-card" href="../games/escape_game/index.html?source=upload" data-available>
+      <a class="game-card" href="../../games/escape_game/index.html?source=upload" data-available>
         <div class="card-top">
           <span class="game-emoji">🗝️</span>
           <div class="card-badges">
@@ -235,6 +243,6 @@
     </section>
   </main>
 
-  <script src="games.js"></script>
+  <script src="../../slide_upload/games.js"></script>
 </body>
 </html>
