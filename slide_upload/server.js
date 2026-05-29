@@ -1545,6 +1545,71 @@ app.post('/api/sms/game-invite', async (req, res) => {
   res.json(result);
 });
 
+// ── Bulk session invite: email + SMS ─────────────────────────────────────────
+// POST /api/notify-session
+// Body: { code, sessionName, hostName, contacts: ["a@b.com", "+27821234567", ...] }
+app.post('/api/notify-session', async (req, res) => {
+  const { code, sessionName, hostName, contacts } = req.body || {};
+  if (!code || !Array.isArray(contacts) || contacts.length === 0) {
+    return res.status(400).json({ error: 'code and contacts[] required' });
+  }
+  const appUrl = process.env.APP_URL || 'https://appvengers-slideplayer.onrender.com';
+  const joinUrl = `${appUrl}/app/Studentdashboard.html`;
+  const host = hostName || 'Your teacher';
+  const sess = sessionName || 'a live session';
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phonePattern = /^\+\d{7,15}$/;
+
+  const results = await Promise.all(contacts.map(async (contact) => {
+    const c = String(contact).trim();
+    if (emailPattern.test(c)) {
+      // Send email
+      if (!sgMail || !process.env.SENDGRID_API_KEY) {
+        return { contact: c, ok: false, channel: 'email', error: 'Email not configured' };
+      }
+      try {
+        await sgMail.send({
+          to: c,
+          from: SENDGRID_FROM,
+          subject: `${host} invited you to join ${sess} on SlidePlay`,
+          html: `
+            <div style="font-family:'Segoe UI',Arial,sans-serif;background:#0a0e1a;padding:32px;border-radius:16px;max-width:520px;margin:auto;border:1px solid rgba(139,92,246,0.25);">
+              <div style="text-align:center;margin-bottom:24px;">
+                <span style="font-size:2rem;font-weight:800;background:linear-gradient(135deg,#8b5cf6,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">SlidePlay</span>
+              </div>
+              <h2 style="color:#e2e8f0;font-size:1.2rem;margin:0 0 12px;">You've been invited! 🎮</h2>
+              <p style="color:#94a3b8;margin:0 0 24px;font-size:0.95rem;"><strong style="color:#c4b5fd;">${host}</strong> has started <strong style="color:#5ce8ff;">${sess}</strong> and wants you to join.</p>
+              <div style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
+                <p style="color:#a78bfa;font-size:0.8rem;margin:0 0 8px;letter-spacing:2px;font-weight:700;">SESSION CODE</p>
+                <span style="font-size:2.4rem;font-weight:900;letter-spacing:10px;color:#fff;font-family:monospace;">${code}</span>
+              </div>
+              <div style="text-align:center;margin-bottom:20px;">
+                <a href="${joinUrl}" style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700;font-size:1rem;">Join Session →</a>
+              </div>
+              <p style="color:#475569;font-size:0.78rem;text-align:center;margin:0;">Open the link, log in, and enter code <strong>${code}</strong></p>
+            </div>`,
+          text: `${host} invited you to ${sess} on SlidePlay.\nSession code: ${code}\nJoin at: ${joinUrl}`
+        });
+        return { contact: c, ok: true, channel: 'email' };
+      } catch (e) {
+        return { contact: c, ok: false, channel: 'email', error: e.message };
+      }
+    } else if (phonePattern.test(c.replace(/\s/g, ''))) {
+      // Send SMS
+      const smsBody = `SlidePlay: ${host} invited you to ${sess}! Code: ${code} — Join: ${joinUrl}`;
+      const result = await sendSms(c, smsBody);
+      return { contact: c, ...result };
+    } else {
+      return { contact: c, ok: false, error: 'Not a valid email or E.164 phone (+27...)' };
+    }
+  }));
+
+  const sent  = results.filter(r => r.ok).length;
+  const failed = results.filter(r => !r.ok).length;
+  res.json({ sent, failed, results });
+});
+
 // ── Email: Test receipt endpoint ──────────────────────────────────────────────
 app.post('/api/email/test-receipt', async (req, res) => {
   const { email } = req.body || {};

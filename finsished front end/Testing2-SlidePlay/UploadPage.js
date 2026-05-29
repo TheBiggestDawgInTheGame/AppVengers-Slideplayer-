@@ -69,6 +69,65 @@ function upCopyShareLink() {
   if (input && btn) upCopyText(input.value, btn);
 }
 
+function upToggleNotify() {
+  const body    = document.getElementById("upNotifyBody");
+  const chevron = document.getElementById("upNotifyChevron");
+  if (!body) return;
+  const open = body.classList.toggle("hidden");
+  if (chevron) chevron.style.transform = open ? "" : "rotate(180deg)";
+}
+
+async function upSendNotifications() {
+  const textarea = document.getElementById("upNotifyContacts");
+  const statusEl = document.getElementById("upNotifyStatus");
+  const sendBtn  = document.getElementById("upNotifySendBtn");
+  if (!textarea || !statusEl || !sendBtn) return;
+
+  const raw = textarea.value;
+  const contacts = raw
+    .split(/[\n,]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (!contacts.length) {
+    statusEl.textContent = "Please add at least one email or phone number.";
+    statusEl.className = "up-notify-status up-notify-err";
+    return;
+  }
+
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending…';
+  statusEl.textContent = "";
+  statusEl.className = "up-notify-status";
+
+  const SERVER = (location.hostname === "127.0.0.1" || location.hostname === "localhost")
+    ? "https://appvengers-slideplayer.onrender.com"
+    : location.origin;
+
+  try {
+    const res = await fetch(`${SERVER}/api/notify-session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: up.code,
+        sessionName: up.name || "a live session",
+        hostName: localStorage.getItem("sp_user_email")?.split("@")[0] || "Your teacher",
+        contacts
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Server error");
+    statusEl.textContent = `✓ Sent to ${data.sent} contact${data.sent !== 1 ? "s" : ""}${data.failed ? ` (${data.failed} failed)` : ""}`;
+    statusEl.className = "up-notify-status up-notify-ok";
+  } catch (e) {
+    statusEl.textContent = "Failed: " + e.message;
+    statusEl.className = "up-notify-status up-notify-err";
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Code to All';
+  }
+}
+
 function upHidden(id, hide) {
   const el = document.getElementById(id);
   if (el) hide ? el.classList.add("hidden") : el.classList.remove("hidden");

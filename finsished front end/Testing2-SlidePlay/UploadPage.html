@@ -242,6 +242,24 @@
           <button class="up-share-copy" id="upShareCopyBtn" onclick="upCopyShareLink()"><i class="fa-solid fa-copy"></i> Copy</button>
         </div>
 
+        <!-- Notify students panel -->
+        <div class="up-notify-panel" id="upNotifyPanel">
+          <button class="up-notify-toggle" id="upNotifyToggle" onclick="upToggleNotify()">
+            <i class="fa-solid fa-bell"></i> Notify Students
+            <i class="fa-solid fa-chevron-down up-notify-chevron" id="upNotifyChevron"></i>
+          </button>
+          <div class="up-notify-body hidden" id="upNotifyBody">
+            <p class="up-notify-hint">Paste emails and/or phone numbers (one per line or comma-separated). Phones must start with <code>+</code> e.g. <code>+27821234567</code>.</p>
+            <textarea id="upNotifyContacts" class="up-notify-textarea" rows="4" placeholder="student@example.com&#10;+27821234567&#10;another@school.ac.za"></textarea>
+            <div class="up-notify-actions">
+              <button class="up-notify-send" id="upNotifySendBtn" onclick="upSendNotifications()">
+                <i class="fa-solid fa-paper-plane"></i> Send Code to All
+              </button>
+              <span class="up-notify-status" id="upNotifyStatus"></span>
+            </div>
+          </div>
+        </div>
+
         <div class="up-waitroom">
           <div class="uwr-bar">
             <span class="uwr-title"><i class="fa-solid fa-signal"></i> Waiting Room</span>
