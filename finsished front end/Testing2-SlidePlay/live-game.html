@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="live-game.css" />
+  <link rel="stylesheet" href="responsive-shared.css" />
 </head>
 <body>
 
@@ -120,8 +121,14 @@
         <span class="lg-fs-sub" id="lgFinalRank"></span>
       </div>
 
-      <!-- Podium leaderboard -->
+      <!-- Top-3 podium -->
       <div class="lg-podium" id="lgPodium"></div>
+
+      <!-- Full ranked leaderboard -->
+      <div class="lg-full-lb" id="lgFullLb" style="display:none">
+        <h3 class="lg-full-lb-title"><i class="fa-solid fa-ranking-star"></i> Full Results</h3>
+        <div class="lg-full-lb-list" id="lgFullLbList"></div>
+      </div>
 
       <button class="lg-home-btn" onclick="window.location.href='teacher.html'">
         <i class="fa-solid fa-house"></i> Back to Dashboard

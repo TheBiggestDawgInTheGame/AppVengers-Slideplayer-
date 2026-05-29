@@ -293,6 +293,9 @@ async function upActivateWaitroom() {
 
   up.students = [];
 
+  // Clear any leftover sim players from a previous session
+  localStorage.removeItem("sp_sim_players");
+
   // ── Populate share link ───────────────────────────────────
   const shareInput = document.getElementById("upShareUrl");
   if (shareInput) {
@@ -364,15 +367,32 @@ function _upFakeJoins(manual = false) {
   if (up.joinTimer) clearInterval(up.joinTimer);
   const simBtn = document.getElementById("upSimBtn");
   if (simBtn) simBtn.disabled = true;
-  up.joinTimer = setInterval(() => {
+
+  up.joinTimer = setInterval(async () => {
     if (idx >= shuffled.length || up.students.length >= up.maxStudents) {
       clearInterval(up.joinTimer);
       up.joinTimer = null;
       if (simBtn) simBtn.disabled = false;
       return;
     }
-    up.students.push({ name: shuffled[idx++], simulated: true });
+    const name = shuffled[idx++];
+    let playerKey = "sim_" + Date.now() + "_" + Math.random().toString(36).slice(2, 5);
+
+    // If Firebase is available, write real player entry so live-game.js can simulate answers
+    if (window.SessionDB) {
+      try {
+        const result = await SessionDB.joinSession(up.code, name);
+        playerKey = result.playerKey;
+      } catch (_) { /* offline fallback – use generated key */ }
+    }
+
+    up.students.push({ name, simulated: true, playerKey });
     upRenderRoster();
+
+    // Persist sim player keys so live-game.js can auto-answer on their behalf
+    const stored = JSON.parse(localStorage.getItem("sp_sim_players") || "[]");
+    stored.push({ name, playerKey, code: up.code });
+    localStorage.setItem("sp_sim_players", JSON.stringify(stored));
   }, 800);
 }
 

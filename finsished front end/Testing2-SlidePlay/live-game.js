@@ -25,6 +25,51 @@ let answered = false;
 let myScore = 0;
 let lastQuestion = -1;
 
+// ── Simulated players ─────────────────────────────────────────
+// Loaded from localStorage (set by UploadPage when Simulate button is used)
+const SIM_PLAYERS = (() => {
+  try {
+    const raw = localStorage.getItem("sp_sim_players");
+    if (!raw) return [];
+    const all = JSON.parse(raw);
+    // Only include players that belong to this session
+    const code = new URLSearchParams(location.search).get("session") || "";
+    return all.filter(p => p.code === code);
+  } catch (_) { return []; }
+})();
+
+let simAnswersPending = false; // prevent double-firing per question
+
+function scheduleSimAnswers(qIndex, questions, timePerQ) {
+  if (!SIM_PLAYERS.length || simAnswersPending) return;
+  simAnswersPending = true;
+  const q = questions[qIndex];
+  if (!q) return;
+
+  SIM_PLAYERS.forEach(({ playerKey }) => {
+    // Random delay: 1s – (timePerQ - 2)s so they always answer before time's up
+    const maxDelay = Math.max(1500, (timePerQ - 2) * 1000);
+    const delay = 1000 + Math.random() * (maxDelay - 1000);
+
+    setTimeout(async () => {
+      // 70% chance of correct answer, otherwise pick a random wrong one
+      let chosen;
+      if (Math.random() < 0.70) {
+        chosen = q.correct;
+      } else {
+        const wrong = [0, 1, 2, 3].filter(i => i !== q.correct);
+        chosen = wrong[Math.floor(Math.random() * wrong.length)];
+      }
+      const correct = chosen === q.correct;
+      const elapsed = delay / 1000;
+      const pts = correct ? Math.max(100, Math.round(1000 * (1 - elapsed / timePerQ))) : 0;
+      try {
+        await SessionDB.submitAnswer(LG.code, playerKey, qIndex, chosen, correct, pts);
+      } catch (_) { /* ignore */ }
+    }, delay);
+  });
+}
+
 // ── Boot ──────────────────────────────────────────────────────
 window.addEventListener("load", async () => {
   if (!LG.code) {
@@ -79,6 +124,7 @@ function renderQuestion(data) {
   if (qIndex === lastQuestion) return; // No change
   lastQuestion = qIndex;
   answered = false;
+  simAnswersPending = false; // reset for new question
 
   const questions = data.questions;
   if (!questions || qIndex >= Object.keys(questions).length) return;
@@ -89,6 +135,7 @@ function renderQuestion(data) {
 
   if (LG.role === "teacher") {
     renderTeacherQuestion(q, qIndex, total, timePerQ, data);
+    scheduleSimAnswers(qIndex, questions, timePerQ);
   } else {
     renderStudentQuestion(q, qIndex, total, timePerQ);
   }
@@ -305,6 +352,8 @@ function showGameOver() {
   if (session?.players) {
     const sorted = Object.values(session.players).sort((a, b) => (b.score || 0) - (a.score || 0));
     const medals = ["🥇", "🥈", "🥉"];
+
+    // Top-3 podium
     document.getElementById("lgPodium").innerHTML = sorted.slice(0, 3).map((p, i) => `
       <div class="lg-pod-item">
         <span class="lg-pod-medal">${medals[i] || "#" + (i + 1)}</span>
@@ -312,12 +361,34 @@ function showGameOver() {
         <span class="lg-pod-score">${p.score || 0} pts</span>
       </div>
     `).join("");
+
+    // Full leaderboard (all players)
+    const fullLb   = document.getElementById("lgFullLb");
+    const fullList = document.getElementById("lgFullLbList");
+    if (fullLb && fullList && sorted.length > 0) {
+      fullLb.style.display = "";
+      const simKeys = new Set(SIM_PLAYERS.map(p => p.playerKey));
+      fullList.innerHTML = sorted.map((p, i) => {
+        const isSim = simKeys.has(p.playerKey) ||
+                      SIM_PLAYERS.some(s => s.name === p.name);
+        const badge = isSim
+          ? `<span class="lg-sim-tag"><i class="fa-solid fa-robot"></i> SIM</span>`
+          : `<span class="lg-real-tag"><i class="fa-solid fa-user"></i></span>`;
+        const rankClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
+        return `
+          <div class="lg-full-row ${rankClass}">
+            <span class="lg-full-rank">${medals[i] || "#" + (i + 1)}</span>
+            <span class="lg-full-name">${esc(p.name)}</span>
+            ${badge}
+            <span class="lg-full-score">${p.score || 0} <small>pts</small></span>
+          </div>`;
+      }).join("");
+    }
   }
 
   if (LG.role === "student") {
     document.getElementById("lgFinalScore").style.display = "flex";
     setText("lgFinalScoreVal", myScore);
-    // Find player rank
     if (session?.players) {
       const sorted = Object.values(session.players).sort((a, b) => (b.score || 0) - (a.score || 0));
       const rank = sorted.findIndex(p => p.name === LG.name) + 1;
