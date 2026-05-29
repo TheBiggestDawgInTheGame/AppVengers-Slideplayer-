@@ -13,7 +13,7 @@ const UP_GAMES = [
 ];
 
 const UP_GAME_URLS = {
-  quiz:     "../../games/quiz_game/",
+  quiz:     "../../games/jeopardy-3d/",
   jeopardy: "../../games/jeopardy-quiz/",
   scramble: "../../games/scramble_game/",
   memory:   "../../games/memory_chain_game/",
@@ -61,6 +61,12 @@ function upCopyText(text, btn) {
     btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
     setTimeout(() => { btn.innerHTML = orig; }, 2000);
   });
+}
+
+function upCopyShareLink() {
+  const input = document.getElementById("upShareUrl");
+  const btn   = document.getElementById("upShareCopyBtn");
+  if (input && btn) upCopyText(input.value, btn);
 }
 
 function upHidden(id, hide) {
@@ -228,6 +234,22 @@ async function upActivateWaitroom() {
 
   up.students = [];
 
+  // ── Populate share link ───────────────────────────────────
+  const shareInput = document.getElementById("upShareUrl");
+  if (shareInput) {
+    // Prefer the deployed Render URL; fall back to current origin
+    const base = (location.hostname === "127.0.0.1" || location.hostname === "localhost")
+      ? "https://appvengers-slideplayer.onrender.com/app"
+      : (location.origin + "/app");
+    shareInput.value = base + "/Studentdashboard.html";
+  }
+
+  // ── Wire simulate button ──────────────────────────────────
+  const simBtn = document.getElementById("upSimBtn");
+  if (simBtn) {
+    simBtn.onclick = () => _upFakeJoins(true);
+  }
+
   // ── Write session to Firebase ─────────────────────────────
   if (window.SessionDB) {
     try {
@@ -267,22 +289,32 @@ async function upActivateWaitroom() {
   }));
 }
 
-function _upFakeJoins() {
-  // Fallback: simulate fake joins if Firebase is unavailable
+function _upFakeJoins(manual = false) {
+  // Simulate students joining – used as Firebase fallback OR via the Simulate button
   const fakeNames = [
     "Sipho M.","Ayanda K.","Thabo N.","Zanele D.","Lebo P.",
-    "Kagiso R.","Ntombi S.","Bongani T.","Naledi V.","Siyanda W."
+    "Kagiso R.","Ntombi S.","Bongani T.","Naledi V.","Siyanda W.",
+    "Mpho C.","Dineo F.","Lwazi G.","Nandi H.","Tshepo J."
   ];
-  const shuffled = [...fakeNames].sort(() => Math.random() - 0.5);
+  // Only pick names not already in the roster
+  const existing = new Set(up.students.map(s => s.name));
+  const available = fakeNames.filter(n => !existing.has(n));
+  const shuffled = available.sort(() => Math.random() - 0.5);
+  if (!shuffled.length) return; // all fakes already added
   let idx = 0;
   if (up.joinTimer) clearInterval(up.joinTimer);
+  const simBtn = document.getElementById("upSimBtn");
+  if (simBtn) simBtn.disabled = true;
   up.joinTimer = setInterval(() => {
     if (idx >= shuffled.length || up.students.length >= up.maxStudents) {
-      clearInterval(up.joinTimer); return;
+      clearInterval(up.joinTimer);
+      up.joinTimer = null;
+      if (simBtn) simBtn.disabled = false;
+      return;
     }
-    up.students.push({ name: shuffled[idx++] });
+    up.students.push({ name: shuffled[idx++], simulated: true });
     upRenderRoster();
-  }, 2000);
+  }, 800);
 }
 
 function upRenderRoster() {
@@ -291,10 +323,12 @@ function upRenderRoster() {
   if (cnt) cnt.textContent = up.students.length;
   if (!list) return;
   list.innerHTML = up.students.map(s => `
-    <div class="uwr-student">
+    <div class="uwr-student${s.simulated ? " uwr-simulated" : ""}">
       <div class="uwr-avatar">${s.name.charAt(0)}</div>
       <span class="uwr-name">${s.name}</span>
-      <span class="uwr-badge"><i class="fa-solid fa-circle-check"></i> Ready</span>
+      ${s.simulated
+        ? `<span class="uwr-badge uwr-sim-badge"><i class="fa-solid fa-robot"></i> SIM</span>`
+        : `<span class="uwr-badge"><i class="fa-solid fa-circle-check"></i> Ready</span>`}
     </div>
   `).join("");
 }

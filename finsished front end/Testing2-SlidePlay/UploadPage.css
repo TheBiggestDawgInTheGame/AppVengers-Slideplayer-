@@ -726,7 +726,68 @@ body {
 .uwr-name { flex: 1; font-size: 0.85rem; font-weight: 600; color: #ddd; }
 .uwr-badge { font-size: 0.7rem; color: #34d399; display: flex; align-items: center; gap: 4px; }
 
-.up-action-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+/* Simulated student styling */
+.uwr-simulated { border-color: rgba(139, 92, 246, 0.3); background: rgba(139, 92, 246, 0.06); }
+.uwr-simulated .uwr-avatar { background: linear-gradient(135deg, #4c1d95, #7c3aed); opacity: 0.8; }
+.uwr-simulated .uwr-name { color: #a78bfa; }
+.uwr-sim-badge { color: #a78bfa !important; }
+
+/* Simulate button in the waiting room bar */
+.uwr-sim-btn {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #a78bfa;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.uwr-sim-btn:hover { background: rgba(139, 92, 246, 0.28); border-color: #a78bfa; }
+.uwr-sim-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Share link row */
+.up-share-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.up-share-label { font-size: 0.76rem; color: #5ce8ff; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.up-share-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 0.75rem;
+  padding: 5px 8px;
+  outline: none;
+  cursor: text;
+}
+.up-share-copy {
+  background: rgba(6, 182, 212, 0.18);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: #5ce8ff;
+  padding: 5px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.up-share-copy:hover { background: rgba(6, 182, 212, 0.3); } display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .up-start-btn {
   background: linear-gradient(135deg, #059669, #34d399);
   border: none;
@@ -765,3 +826,24 @@ body {
   transition: all 0.2s;
 }
 .up-end-btn:hover { background: rgba(248,113,113,0.1); border-color: #f87171; }
+
+/* -- Global Theme Sync: Light Mode -- */
+body.light-mode {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+body.light-mode .up-panel,
+body.light-mode .up-mode-card,
+body.light-mode .up-dropzone,
+body.light-mode .uwr-student {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(99, 102, 241, 0.18);
+}
+
+body.light-mode .up-header p,
+body.light-mode .up-panel-head p,
+body.light-mode .uwr-placeholder,
+body.light-mode .up-live-meta {
+  color: #475569;
+}

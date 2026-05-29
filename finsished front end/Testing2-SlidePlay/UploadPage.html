@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="UploadPage.css" />
+    <link rel="stylesheet" href="responsive-shared.css" />
   </head>
   <body>
     <!-- PDF.js (for PDF text extraction) -->
@@ -52,8 +53,9 @@
             <span><i class="fa-solid fa-file-pdf" style="color:#f87171"></i> PDF</span>
             <span><i class="fa-solid fa-file-powerpoint" style="color:#fb923c"></i> PPTX</span>
             <span><i class="fa-brands fa-microsoft" style="color:#60a5fa"></i> DOCX</span>
+            <span><i class="fa-solid fa-image" style="color:#a78bfa"></i> PNG / JPG / WEBP</span>
           </div>
-          <input type="file" id="upFileInput" accept=".pdf,.pptx,.ppt,.docx,.doc" hidden />
+          <input type="file" id="upFileInput" accept=".pdf,.pptx,.ppt,.docx,.doc,.png,.jpg,.jpeg,.webp,.gif,.bmp" hidden />
         </div>
         <div class="up-file-picked hidden" id="upFilePicked">
           <div class="ufp-icon"><i class="fa-solid fa-file-circle-check"></i></div>
@@ -232,10 +234,19 @@
           <div class="up-big-code" id="upBigCode">------</div>
           <button class="up-copy-btn" id="upBigCopyCode"><i class="fa-solid fa-copy"></i> Copy Code</button>
         </div>
+
+        <!-- Share link row: students on other devices open this URL -->
+        <div class="up-share-row" id="upShareRow">
+          <span class="up-share-label"><i class="fa-solid fa-link"></i> Student join link:</span>
+          <input type="text" readonly id="upShareUrl" class="up-share-input" value="" />
+          <button class="up-share-copy" id="upShareCopyBtn" onclick="upCopyShareLink()"><i class="fa-solid fa-copy"></i> Copy</button>
+        </div>
+
         <div class="up-waitroom">
           <div class="uwr-bar">
             <span class="uwr-title"><i class="fa-solid fa-signal"></i> Waiting Room</span>
             <span class="uwr-counter"><span id="upJoinedCount">0</span> / <span id="upMaxCount">30</span> joined</span>
+            <button class="uwr-sim-btn" id="upSimBtn" title="Add simulated test students"><i class="fa-solid fa-robot"></i> Simulate</button>
           </div>
           <div class="uwr-list" id="upRosterList">
             <div class="uwr-placeholder">Waiting for students to join&#8230;</div>

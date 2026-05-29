@@ -1,14 +1,153 @@
-require('dotenv').config();
-const http    = require('http');
-const express = require('express');
-const multer  = require('multer');
-const fs      = require('fs');
-const path    = require('path');
-const { Server } = require('socket.io');
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+const http        = require('http');
+const express     = require('express');
+const multer      = require('multer');
+const fs          = require('fs');
+const path        = require('path');
+const crypto      = require('crypto');
+const querystring = require('querystring');
+const { Server }  = require('socket.io');
+
+let createAdapter = null;
+let createRedisClient = null;
+try {
+  ({ createAdapter } = require('@socket.io/redis-adapter'));
+  ({ createClient: createRedisClient } = require('redis'));
+} catch (_) {}
+
+// ── Optional heavy deps (graceful fallback if not installed) ─────────────────
+let axios = null;
+try { axios = require('axios'); } catch (_) {}
+
+let sgMail = null;
+try {
+  sgMail = require('@sendgrid/mail');
+  if (process.env.SENDGRID_API_KEY) sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+} catch (_) {}
+
+let GoogleGenerativeAI = null;
+let geminiGen = null;
+try {
+  ({ GoogleGenerativeAI } = require('@google/generative-ai'));
+  if (process.env.GEMINI_API_KEY) geminiGen = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+} catch (_) {}
+
+let dbModule = null;
+let ragModule = null;
+try {
+  dbModule  = require('./db');
+  ragModule = require('./rag');
+} catch (e) {
+  console.warn('DB/RAG modules not loaded:', e.message);
+}
+
+let twilioClient = null;
+try {
+  const TwilioSDK = require('twilio');
+  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } = process.env;
+  if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
+    twilioClient = TwilioSDK(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+    console.log('Twilio SMS: ENABLED');
+  } else {
+    console.log('Twilio SMS: DISABLED (set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN in .env)');
+  }
+} catch (_) {
+  console.log('Twilio: package not installed, SMS unavailable');
+}
+
+const SENDGRID_FROM = 'slideplay.notify@gmail.com';
+
+function buildReceiptHtml({ plan, provider, amount, date, email }) {
+  const planLabel = (plan || 'Premium').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const providerLabel = { payfast: 'PayFast', coinbase_commerce: 'Crypto (Coinbase)', stripe: 'Stripe' }[provider] || provider || 'Card';
+  const amountStr = amount ? `R${Number(amount).toFixed(2)}` : '';
+  const dateStr = date || new Date().toLocaleDateString('en-ZA', { year:'numeric', month:'long', day:'numeric' });
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0a0e1a;font-family:'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
+<table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;background:#111827;border-radius:16px;overflow:hidden;border:1px solid rgba(139,92,246,0.25);">
+  <tr><td style="background:linear-gradient(135deg,#8b5cf6,#06b6d4);padding:32px 40px;text-align:center;">
+    <h1 style="margin:0;color:#fff;font-size:1.8rem;letter-spacing:2px;">SlidePlay</h1>
+    <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:0.95rem;">Payment Receipt</p>
+  </td></tr>
+  <tr><td style="padding:36px 40px;">
+    <p style="color:#3dffc0;font-size:1.05rem;font-weight:600;margin:0 0 20px;">&#10003; Payment Confirmed</p>
+    <p style="color:#94a3b8;font-size:0.9rem;margin:0 0 24px;">Thank you! Your premium access is now active.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;">
+      <tr style="background:rgba(255,255,255,0.04);"><td style="padding:12px 18px;color:#7a8499;font-size:0.82rem;width:40%;">PLAN</td><td style="padding:12px 18px;color:#e2e8f0;font-size:0.9rem;font-weight:600;">${planLabel}</td></tr>
+      ${amountStr ? `<tr><td style="padding:12px 18px;color:#7a8499;font-size:0.82rem;border-top:1px solid rgba(255,255,255,0.05);">AMOUNT</td><td style="padding:12px 18px;color:#e2e8f0;font-size:0.9rem;font-weight:600;border-top:1px solid rgba(255,255,255,0.05);">${amountStr}</td></tr>` : ''}
+      <tr><td style="padding:12px 18px;color:#7a8499;font-size:0.82rem;border-top:1px solid rgba(255,255,255,0.05);">PAYMENT METHOD</td><td style="padding:12px 18px;color:#e2e8f0;font-size:0.9rem;border-top:1px solid rgba(255,255,255,0.05);">${providerLabel}</td></tr>
+      <tr><td style="padding:12px 18px;color:#7a8499;font-size:0.82rem;border-top:1px solid rgba(255,255,255,0.05);">DATE</td><td style="padding:12px 18px;color:#e2e8f0;font-size:0.9rem;border-top:1px solid rgba(255,255,255,0.05);">${dateStr}</td></tr>
+      <tr><td style="padding:12px 18px;color:#7a8499;font-size:0.82rem;border-top:1px solid rgba(255,255,255,0.05);">ACCOUNT</td><td style="padding:12px 18px;color:#e2e8f0;font-size:0.9rem;border-top:1px solid rgba(255,255,255,0.05);">${email || ''}</td></tr>
+    </table>
+    <p style="margin:28px 0 0;color:#94a3b8;font-size:0.82rem;text-align:center;">Questions? Reply to this email or visit <a href="http://localhost:3000" style="color:#8b5cf6;">SlidePlay</a>.</p>
+  </td></tr>
+  <tr><td style="background:rgba(0,0,0,0.3);padding:18px 40px;text-align:center;">
+    <p style="margin:0;color:#4a5568;font-size:0.75rem;">SlidePlay &mdash; Gamified Learning Platform &bull; This is an automated receipt, please do not reply directly.</p>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+}
+
+async function sendReceipt(toEmail, { plan, provider, amount }) {
+  if (!sgMail) {
+    return { ok: false, code: 'NOT_CONFIGURED', channel: 'email', error: 'SendGrid is not configured.' };
+  }
+  if (!toEmail) {
+    return { ok: false, code: 'MISSING_RECIPIENT', channel: 'email', error: 'Recipient email is required.' };
+  }
+  try {
+    await sgMail.send({
+      to: toEmail,
+      from: { name: 'SlidePlay', email: SENDGRID_FROM },
+      subject: `Your SlidePlay Receipt — ${(plan || 'Premium').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())} Plan`,
+      html: buildReceiptHtml({ plan, provider, amount, email: toEmail }),
+      text: `SlidePlay Receipt\n\nPlan: ${plan}\nProvider: ${provider}\nAmount: ${amount ? 'R'+Number(amount).toFixed(2) : 'N/A'}\nYour premium access is now active.\n\nThank you for using SlidePlay!`,
+    });
+    console.log('Receipt email sent to', toEmail);
+    return { ok: true, code: 'SENT', channel: 'email', to: toEmail, provider: 'sendgrid' };
+  } catch (e) {
+    console.warn('Receipt email failed (non-fatal):', e.message);
+    return { ok: false, code: 'SEND_FAILED', channel: 'email', to: toEmail, provider: 'sendgrid', error: e.message };
+  }
+}
+
+async function sendSms(to, body) {
+  if (!twilioClient || !process.env.TWILIO_PHONE_NUMBER) {
+    return { ok: false, code: 'NOT_CONFIGURED', channel: 'sms', error: 'Twilio is not fully configured.' };
+  }
+  if (!to) {
+    return { ok: false, code: 'MISSING_RECIPIENT', channel: 'sms', error: 'Recipient phone number is required.' };
+  }
+  const phone = String(to).replace(/\s/g, '');
+  if (!phone.startsWith('+')) {
+    return { ok: false, code: 'INVALID_PHONE', channel: 'sms', to: phone, error: 'Phone must be in E.164 format (+1234567890).' };
+  }
+  try {
+    await twilioClient.messages.create({ body, from: process.env.TWILIO_PHONE_NUMBER, to: phone });
+    console.log('SMS sent to', phone);
+    return { ok: true, code: 'SENT', channel: 'sms', to: phone, provider: 'twilio' };
+  } catch (e) {
+    console.warn('SMS send failed (non-fatal):', e.message);
+    return { ok: false, code: 'SEND_FAILED', channel: 'sms', to: phone, provider: 'twilio', error: e.message };
+  }
+}
 
 const HUGGING_FACE_API_KEY = process.env.HUGGING_FACE_API_KEY || process.env.HF_API_TOKEN || '';
 const HUGGING_FACE_MODEL = process.env.HUGGING_FACE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';
 const HUGGING_FACE_API_URL = `https://api-inference.huggingface.co/models/${HUGGING_FACE_MODEL}`;
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL || 'llama-3.2-11b-vision-preview';
+const SOCKET_IO_USE_REDIS = process.env.SOCKET_IO_USE_REDIS !== 'false';
+const SOCKET_IO_REDIS_URL = process.env.SOCKET_IO_REDIS_URL || '';
+const SOCKET_IO_REQUIRE_REDIS = process.env.SOCKET_IO_REQUIRE_REDIS === 'true';
+const FREE_WEEKLY_LIMIT = 5;
 
 const app        = express();
 const httpServer = http.createServer(app);
@@ -52,7 +191,7 @@ const upload = multer({
 // --- Firebase Admin Setup ---
 let admin = null;
 try {
-  const serviceAccountPath = path.join(__dirname, '../firebase-service-account.json');
+  const serviceAccountPath = path.join(__dirname, '../finsished front end/Testing2-SlidePlay/firebase-service-account.json');
   if (fs.existsSync(serviceAccountPath)) {
     admin = require('firebase-admin');
     if (!admin.apps.length) {
@@ -65,6 +204,187 @@ try {
 } catch (e) {
   console.warn('Firebase Admin not initialized:', e.message);
 }
+
+// ── JSON body parsing ───────────────────────────────────────────────────────
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buf) => {
+    // Preserve raw body for Coinbase Commerce webhook HMAC verification
+    if (req.path === '/api/crypto/webhook') req.rawBody = buf;
+  }
+}));
+app.use(express.urlencoded({ extended: true })); // For PayFast IPN
+
+// ── Upload limit helpers ──────────────────────────────────────────────────────
+const UPLOAD_LIMITS_FILE = path.join(uploadDir, '_upload_limits.json');
+
+function getWeekKey() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${week}`;
+}
+
+function loadUploadLimits() {
+  try {
+    if (fs.existsSync(UPLOAD_LIMITS_FILE)) {
+      return JSON.parse(fs.readFileSync(UPLOAD_LIMITS_FILE, 'utf8'));
+    }
+  } catch (_) {}
+  return {};
+}
+
+function saveUploadLimits(limits) {
+  try { fs.writeFileSync(UPLOAD_LIMITS_FILE, JSON.stringify(limits, null, 2)); } catch (_) {}
+}
+
+function getUserWeeklyCount(uid) {
+  const limits = loadUploadLimits();
+  const entry = limits[uid];
+  if (!entry || entry.week !== getWeekKey()) return 0;
+  return entry.count || 0;
+}
+
+function incrementUserWeeklyCount(uid) {
+  const limits = loadUploadLimits();
+  const week = getWeekKey();
+  if (!limits[uid] || limits[uid].week !== week) limits[uid] = { week, count: 0 };
+  limits[uid].count += 1;
+  saveUploadLimits(limits);
+}
+
+async function isUserPremium(uid) {
+  if (!admin) return false;
+  try {
+    const snap = await admin.database().ref(`users/${uid}/subscription`).get();
+    if (!snap.exists()) return false;
+    const sub = snap.val();
+    if (!sub || sub.status !== 'active') return false;
+    const premiumPlans = new Set(['student_elite', 'student_premium', 'pro', 'school']);
+    return premiumPlans.has(sub.plan);
+  } catch (_) { return false; }
+}
+
+// ── Gemini proxy (keeps API key server-side) ──────────────────────────────────
+app.post('/api/gemini-proxy', async (req, res) => {
+  const { prompt, image } = req.body || {};
+  if (!prompt || typeof prompt !== 'string' || prompt.trim().length < 10) {
+    return res.status(400).json({ error: 'Invalid or missing prompt.' });
+  }
+
+  const isVision = !!(image && image.data && image.mimeType);
+  const systemMsg = 'You are a strict academic assessment designer. Never generate trivial questions. Always challenge the student to think critically about the material.';
+
+  // ── Groq vision (preferred for image prompts when available) ────────────
+  if (GROQ_API_KEY && isVision) {
+    try {
+      const safePrompt = prompt.slice(0, 16000);
+      const imageDataUrl = `data:${image.mimeType};base64,${image.data}`;
+      const upstream = await fetch(GROQ_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: GROQ_VISION_MODEL,
+          messages: [
+            { role: 'system', content: systemMsg },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: safePrompt },
+                { type: 'image_url', image_url: { url: imageDataUrl } }
+              ]
+            }
+          ],
+          temperature: 0.5,
+          max_tokens: 4096
+        })
+      });
+      if (!upstream.ok) {
+        const errData = await upstream.json().catch(() => ({}));
+        console.warn('[Groq Vision] error:', errData?.error?.message || upstream.status);
+      } else {
+        const data = await upstream.json();
+        const text = data?.choices?.[0]?.message?.content || '';
+        if (text) return res.json({ text });
+      }
+    } catch (err) {
+      console.warn('[Groq Vision] request failed, falling back to Gemini:', err.message);
+    }
+  }
+
+  // ── Groq (text only — preferred when key is set and no image) ─────────────
+  if (GROQ_API_KEY && !isVision) {
+    try {
+      const safePrompt = prompt.slice(0, 24000);
+      const upstream = await fetch(GROQ_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: GROQ_MODEL,
+          messages: [
+            { role: 'system', content: systemMsg },
+            { role: 'user',   content: safePrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 8192
+        })
+      });
+      if (!upstream.ok) {
+        const errData = await upstream.json().catch(() => ({}));
+        // Fall through to Gemini on error
+        console.warn('[Groq] error:', errData?.error?.message || upstream.status);
+      } else {
+        const data = await upstream.json();
+        const text = data?.choices?.[0]?.message?.content || '';
+        return res.json({ text });
+      }
+    } catch (err) {
+      console.warn('[Groq] request failed, falling back to Gemini:', err.message);
+    }
+  }
+
+  // ── Gemini (text + vision fallback) ──────────────────────────────────────
+  if (!GEMINI_API_KEY) {
+    return res.status(503).json({ error: 'No AI service configured. Set GROQ_API_KEY or GEMINI_API_KEY in .env' });
+  }
+
+  let parts;
+  if (isVision) {
+    parts = [
+      { text: prompt },
+      { inline_data: { mime_type: image.mimeType, data: image.data } }
+    ];
+  } else {
+    parts = [{ text: prompt.slice(0, 24000) }];
+  }
+
+  try {
+    const upstream = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        systemInstruction: { parts: [{ text: systemMsg }] },
+        generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
+      })
+    });
+    if (!upstream.ok) {
+      const errData = await upstream.json().catch(() => ({}));
+      return res.status(upstream.status).json({ error: errData?.error?.message || 'Gemini API error' });
+    }
+    const data = await upstream.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    res.json({ text });
+  } catch (err) {
+    res.status(500).json({ error: 'Proxy request failed: ' + err.message });
+  }
+});
 
 // --- Per-user upload directory helper ---
 function getUserUploadDir(uid) {
@@ -81,6 +401,22 @@ app.post('/api/user-upload', upload.array('slides', 20), async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: 'No files uploaded.' });
   }
+
+  // --- Server-side upload limit check ---
+  const premium = await isUserPremium(uid);
+  if (!premium) {
+    const weeklyCount = getUserWeeklyCount(uid);
+    if (weeklyCount >= FREE_WEEKLY_LIMIT) {
+      for (const file of req.files) { try { fs.unlinkSync(file.path); } catch (_) {} }
+      return res.status(429).json({
+        error: `Free plan limit reached. You have used ${weeklyCount}/${FREE_WEEKLY_LIMIT} uploads this week. Upgrade to Premium for unlimited uploads.`,
+        limitReached: true,
+        used: weeklyCount,
+        max: FREE_WEEKLY_LIMIT
+      });
+    }
+  }
+
   // Move files to user directory
   const userDir = getUserUploadDir(uid);
   const files = [];
@@ -121,6 +457,10 @@ app.post('/api/user-upload', upload.array('slides', 20), async (req, res) => {
   // Save metadata and quizData to user dir
   fs.writeFileSync(path.join(userDir, 'files.json'), JSON.stringify(files, null, 2));
   fs.writeFileSync(path.join(userDir, 'quizData.json'), JSON.stringify(quizData, null, 2));
+
+  // Increment weekly upload counter for free-plan users
+  if (!premium) incrementUserWeeklyCount(uid);
+
   res.json({
     message: aiGenerated
       ? `AI quiz generated from your slides (${files.length} file${files.length > 1 ? 's' : ''} analysed).`
@@ -164,6 +504,15 @@ app.use((req, res, next) => {
 
 app.use(express.static(workspaceDir));
 
+// Clean /app route so friends can open https://<host>/app/Studentdashboard.html
+const frontendDir = path.join(__dirname, '../finsished front end/Testing2-SlidePlay');
+app.use('/app', express.static(frontendDir));
+
+// /join shortcut → student dashboard
+app.get('/join', (_req, res) => {
+  res.redirect('/app/Studentdashboard.html');
+});
+
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -177,7 +526,39 @@ app.get('/games', (_req, res) => {
 });
 
 app.get('/quiz_game', (_req, res) => {
-  res.redirect('/games');
+  res.redirect('/games/jeopardy-3d/index.html');
+});
+
+// ── Convenience routes for the main app (avoids file:// protocol issues) ─────
+// Using redirects so relative asset paths (JS, CSS, images) resolve correctly.
+const APP_BASE = '/finsished%20front%20end/Testing2-SlidePlay';
+const appRoute = (route, file) =>
+  app.get(route, (_req, res) => res.redirect(APP_BASE + '/' + file));
+
+appRoute('/login',          'login.html');
+appRoute('/signup',         'signup.html');
+appRoute('/student',        'Studentdashboard.html');
+appRoute('/teacher',        'teacher.html');
+appRoute('/upload',         'UploadPage.html');
+appRoute('/payment',        'payment.html');
+appRoute('/library',        'library.html');
+appRoute('/choose-exp',     'choose_exp.html');
+appRoute('/billing',        'billing.html');
+appRoute('/access-control', 'AcessControl.html');
+appRoute('/analytics',      'AnalyticsPage.html');
+
+// ── Teacher registration code verification ───────────────────────────────────
+app.post('/api/verify-teacher-code', (req, res) => {
+  const { code } = req.body || {};
+  const expected = process.env.TEACHER_CODE || '';
+  if (!expected) {
+    // No code configured — deny by default (admin must set TEACHER_CODE in .env)
+    return res.status(403).json({ ok: false, reason: 'Teacher registration is not open.' });
+  }
+  if (!code || code.trim().toUpperCase() !== expected.trim().toUpperCase()) {
+    return res.status(403).json({ ok: false, reason: 'Invalid teacher code.' });
+  }
+  res.json({ ok: true });
 });
 
 function getOriginalName(file) {
@@ -540,7 +921,26 @@ app.get('/api/config', (_req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, uploadDir });
+  res.json({ ok: true, uploadDir, socketAdapter: socketAdapterMode });
+});
+
+app.get('/api/ready', (_req, res) => {
+  const readiness = {
+    ok: true,
+    socketAdapter: socketAdapterMode,
+    requireRedis: SOCKET_IO_REQUIRE_REDIS,
+    redisConfigured: !!SOCKET_IO_REDIS_URL,
+  };
+
+  if (SOCKET_IO_REQUIRE_REDIS && socketAdapterMode !== 'redis') {
+    readiness.ok = false;
+    readiness.error = !SOCKET_IO_REDIS_URL
+      ? 'Redis is required for multiplayer readiness, but SOCKET_IO_REDIS_URL is not set.'
+      : 'Redis is required for multiplayer readiness, but the Socket.IO Redis adapter is not connected.';
+    return res.status(503).json(readiness);
+  }
+
+  res.json(readiness);
 });
 
 // ── Real-time multiplayer (socket.io) ────────────────────────────────────────
@@ -549,6 +949,39 @@ const io = new Server(httpServer, {
 });
 
 const rooms = new Map();
+let socketAdapterMode = 'memory';
+
+async function configureSocketIoAdapter() {
+  if (!SOCKET_IO_USE_REDIS) {
+    console.log('Socket.IO adapter: in-memory (SOCKET_IO_USE_REDIS=false)');
+    return;
+  }
+
+  if (!SOCKET_IO_REDIS_URL) {
+    console.log('Socket.IO adapter: in-memory (set SOCKET_IO_REDIS_URL for multi-instance scaling)');
+    return;
+  }
+
+  if (!createAdapter || !createRedisClient) {
+    console.warn('Socket.IO Redis adapter packages are missing; using in-memory adapter. Run: npm i @socket.io/redis-adapter redis');
+    return;
+  }
+
+  try {
+    const pubClient = createRedisClient({ url: SOCKET_IO_REDIS_URL });
+    const subClient = pubClient.duplicate();
+
+    pubClient.on('error', (e) => console.warn('Redis pub client error:', e.message));
+    subClient.on('error', (e) => console.warn('Redis sub client error:', e.message));
+
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+    io.adapter(createAdapter(pubClient, subClient));
+    socketAdapterMode = 'redis';
+    console.log('Socket.IO adapter: redis enabled');
+  } catch (e) {
+    console.warn('Socket.IO Redis adapter init failed; continuing with in-memory adapter:', e.message);
+  }
+}
 
 function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -559,23 +992,35 @@ function generateRoomCode() {
 
 io.on('connection', (socket) => {
   // ── Create a new room ──────────────────────────────────────────────────────
-  socket.on('create-room', ({ gameLabel } = {}) => {
+  socket.on('create-room', ({ gameLabel, gameMode, hostUID, hostName } = {}) => {
     let code;
     let attempts = 0;
     do { code = generateRoomCode(); attempts++; } while (rooms.has(code) && attempts < 100);
+    const safeMode = ['solo','multiplayer','tournament'].includes(gameMode) ? gameMode : 'multiplayer';
     rooms.set(code, {
       code,
       gameLabel: String(gameLabel || 'Game').slice(0, 64),
-      players: [{ id: socket.id, playerIndex: 1, finalScore: null }],
+      gameMode: safeMode,
+      hostUID: hostUID || null,
+      hostName: hostName || 'Host',
+      players: [{ id: socket.id, playerIndex: 1, finalScore: null, name: hostName || 'Player 1' }],
       status: 'waiting',
       createdAt: Date.now()
     });
     socket.join(code);
     socket.emit('room-created', { code });
+    // Persist to DB
+    if (dbModule) {
+      dbModule.query(
+        `INSERT INTO GameSessions (SessionCode, [Status], GameType, GameMode)
+         VALUES (@code, 'waiting', @gameType, @gameMode)`,
+        { code, gameType: String(gameLabel || 'Game').slice(0,64), gameMode: safeMode }
+      ).catch(e => console.warn('create-room DB error:', e.message));
+    }
   });
 
   // ── Join an existing room ──────────────────────────────────────────────────
-  socket.on('join-room', ({ code } = {}) => {
+  socket.on('join-room', ({ code, playerName } = {}) => {
     const safeCode = String(code || '').trim().toUpperCase().slice(0, 4);
     const room = rooms.get(safeCode);
     if (!room) {
@@ -590,7 +1035,7 @@ io.on('connection', (socket) => {
       socket.emit('join-error', { message: 'Game already started.' });
       return;
     }
-    room.players.push({ id: socket.id, playerIndex: 2, finalScore: null });
+    room.players.push({ id: socket.id, playerIndex: 2, finalScore: null, name: playerName || 'Player 2' });
     room.status = 'playing';
     socket.join(safeCode);
     // Tell P1 the opponent joined (they get playerIndex 1)
@@ -623,6 +1068,28 @@ io.on('connection', (socket) => {
         p1: p1 ? p1.finalScore : 0,
         p2: p2 ? p2.finalScore : 0
       });
+      // Determine winner
+      const allP = room.players.filter(p => p.finalScore !== null);
+      const winner = allP.reduce((best, p) => (!best || p.finalScore > best.finalScore) ? p : best, null);
+      // Persist result to DB — update SessionPlayers with scores
+      if (dbModule) {
+        // Update session status
+        dbModule.query(
+          `UPDATE GameSessions SET [Status]='ended', EndedAt=SYSUTCDATETIME() WHERE SessionCode=@code`,
+          { code: safeCode }
+        ).catch(e => console.warn('round-end session DB error:', e.message));
+        // Upsert player scores into SessionPlayers
+        for (const p of allP) {
+          if (p.name) {
+            dbModule.query(
+              `UPDATE SessionPlayers SET TotalScore=@score WHERE DisplayName=@name AND SessionID=(
+                SELECT TOP 1 SessionID FROM GameSessions WHERE SessionCode=@code
+              )`,
+              { score: p.finalScore, name: p.name, code: safeCode }
+            ).catch(() => {});
+          }
+        }
+      }
       setTimeout(() => rooms.delete(safeCode), 120000);
     }
   });
@@ -649,11 +1116,893 @@ setInterval(() => {
   }
 }, 30 * 60 * 1000);
 
-httpServer.listen(PORT, () => {
-  console.log(`Slide upload server running on http://localhost:${PORT}`);
-  if (HUGGING_FACE_API_KEY) {
-    console.log(`Hugging Face AI quiz generation: ENABLED (${HUGGING_FACE_MODEL})`);
-  } else {
-    console.log('Hugging Face AI quiz generation: DISABLED (set HUGGING_FACE_API_KEY in .env to enable)');
+// ═══════════════════════════════════════════════════════════════════════════
+// PAYMENT & DB ROUTES (merged from Testing2-SlidePlay/server.js)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── AI Hint Endpoint for Escape Game ─────────────────────────────────────────
+app.post('/api/ai-hint', async (req, res) => {
+  const { game, context } = req.body;
+  if (!game || !context) return res.status(400).json({ error: 'Missing game or context' });
+  if (!geminiGen) return res.json({ hint: 'AI is currently unavailable. Try again soon!' });
+  let prompt = 'You are an expert escape room coach AI. The player is in a 3D escape room game. Based on their current state, provide a helpful, context-aware hint. Be concise, avoid spoilers, and encourage learning.\n';
+  prompt += `Game: ${game}\n`;
+  prompt += `Level: ${context.level}\n`;
+  prompt += `Inventory: ${Array.isArray(context.inv) ? context.inv.join(', ') : ''}\n`;
+  prompt += `Solved: ${Array.isArray(context.solved) ? context.solved.join(', ') : ''}\n`;
+  prompt += `Time left: ${context.secs}s\n`;
+  prompt += 'Hint:';
+  try {
+    const model = geminiGen.getGenerativeModel({ model: 'gemini-pro' });
+    const result = await model.generateContent({ contents: [{ role: 'user', parts: [{ text: prompt }] }] });
+    const hint = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+      || 'Try examining your surroundings for clues you may have missed.';
+    res.json({ hint });
+  } catch (e) {
+    console.error('AI hint error:', e);
+    res.json({ hint: 'AI is currently unavailable. Try again soon!' });
   }
+});
+
+// ── PayFast helper ────────────────────────────────────────────────────────────
+function generatePayFastSignature(data, passphrase) {
+  let pfData = { ...data };
+  Object.keys(pfData).forEach((k) => {
+    if (pfData[k] === undefined || pfData[k] === null) delete pfData[k];
+  });
+  let pfString = Object.keys(pfData)
+    .sort()
+    .map((key) => `${key}=${encodeURIComponent(pfData[key])}`)
+    .join('&');
+  if (passphrase) pfString += `&passphrase=${encodeURIComponent(passphrase)}`;
+  return crypto.createHash('md5').update(pfString).digest('hex');
+}
+
+// ── PayFast: create payment URL ───────────────────────────────────────────────
+app.post('/api/payfast/init', (req, res) => {
+  const { amount, item_name, user_email, plan, return_url, cancel_url, notify_url } = req.body;
+  const pf_merchant_id  = process.env.PAYFAST_MERCHANT_ID;
+  const pf_merchant_key = process.env.PAYFAST_MERCHANT_KEY;
+  const pf_passphrase   = process.env.PAYFAST_PASSPHRASE;
+  const pf_url          = process.env.PAYFAST_URL || 'https://www.payfast.co.za/eng/process';
+
+  if (!pf_merchant_id || !pf_merchant_key) {
+    return res.status(500).json({ error: 'PayFast merchant credentials not set.' });
+  }
+
+  const appBase = (process.env.APP_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+  const pfBase  = `${appBase}/finsished%20front%20end/Testing2-SlidePlay`;
+  const pfData = {
+    merchant_id:   pf_merchant_id,
+    merchant_key:  pf_merchant_key,
+    return_url:    return_url  || `${pfBase}/payment.html?payfast=success`,
+    cancel_url:    cancel_url  || `${pfBase}/payment.html?payfast=cancel`,
+    notify_url:    notify_url  || `${appBase}/api/payfast/ipn`,
+    amount:        Number(amount).toFixed(2),
+    item_name:     item_name || plan || 'SlidePlay Plan',
+    email_address: user_email || '',
+    custom_str1:   plan || '',
+    custom_str2:   req.body.phone || '',
+  };
+  pfData.signature = generatePayFastSignature(pfData, pf_passphrase);
+  const payfastUrl = `${pf_url}?${querystring.stringify(pfData)}`;
+  res.json({ url: payfastUrl });
+});
+
+// ── DB helper: save payment + upsert subscription ────────────────────────────
+async function savePaymentStatus(email, plan, status, provider = 'payfast', amountZAR = 0) {
+  if (!dbModule) { console.warn('savePaymentStatus: DB not available'); return; }
+  const { query: dbQuery } = dbModule;
+  try {
+    const userRes = await dbQuery('SELECT FirebaseUID FROM Users WHERE Email = @email', { email });
+    if (!userRes.recordset.length) { console.warn('savePaymentStatus: user not found for', email); return; }
+    const uid = userRes.recordset[0].FirebaseUID;
+
+    await dbQuery(
+      `INSERT INTO Payments (FirebaseUID, Plan, AmountZAR, BillingCycle, Provider, Status)
+       VALUES (@uid, @plan, @amount, 'monthly', @provider, @status)`,
+      { uid, plan, amount: amountZAR, provider, status: status === 'COMPLETE' ? 'succeeded' : 'pending' }
+    );
+
+    if (status === 'COMPLETE') {
+      await dbQuery(
+        `MERGE Subscriptions AS target
+         USING (SELECT @uid AS FirebaseUID) AS src ON target.FirebaseUID = src.FirebaseUID
+         WHEN MATCHED THEN
+           UPDATE SET Plan = @plan, Status = 'active', RenewsAt = DATEADD(month, 1, SYSUTCDATETIME())
+         WHEN NOT MATCHED THEN
+           INSERT (FirebaseUID, Plan, Status, PriceZAR, RenewsAt)
+           VALUES (@uid, @plan, 'active', @amount, DATEADD(month, 1, SYSUTCDATETIME()));`,
+        { uid, plan, amount: amountZAR }
+      );
+    }
+    console.log('DB payment recorded for', email, plan, status);
+  } catch (err) {
+    console.error('savePaymentStatus DB error:', err.message);
+  }
+}
+
+// ── PayFast IPN ───────────────────────────────────────────────────────────────
+app.post('/api/payfast/ipn', async (req, res) => {
+  const ipnData = req.body;
+  console.log('PayFast IPN received:', ipnData);
+  try {
+    if (!axios) return res.status(503).send('IPN validation unavailable');
+    const pfUrl = process.env.PAYFAST_SANDBOX === 'false'
+      ? 'https://www.payfast.co.za/eng/query/validate'
+      : 'https://sandbox.payfast.co.za/eng/query/validate';
+    const rawBody = Object.keys(ipnData).map((k) => `${k}=${encodeURIComponent(ipnData[k])}`).join('&');
+    const pfRes = await axios.post(pfUrl, rawBody, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    if (pfRes.data.trim() !== 'VALID') {
+      console.error('PayFast IPN not valid:', pfRes.data);
+      return res.status(400).send('Invalid IPN');
+    }
+    if (ipnData.payment_status === 'COMPLETE') {
+      await savePaymentStatus(ipnData.email_address, ipnData.custom_str1, 'COMPLETE', 'payfast', parseFloat(ipnData.amount_gross || 0));
+      if (admin) {
+        try {
+          const userRecord = await admin.auth().getUserByEmail(ipnData.email_address);
+          await admin.database().ref('users/' + userRecord.uid).update({ premium: true, plan: ipnData.custom_str1, paidAt: new Date().toISOString() });
+        } catch (e) { console.error('Firebase premium update error:', e); }
+      }
+      await sendReceipt(ipnData.email_address, { plan: ipnData.custom_str1, provider: 'payfast', amount: ipnData.amount_gross });
+      if (ipnData.custom_str2) {
+        await sendSms(ipnData.custom_str2, `SlidePlay: Payment confirmed for your ${ipnData.custom_str1 || 'Premium'} plan! You now have full access. 🎉`);
+      }
+    }
+    res.status(200).send('OK');
+  } catch (err) {
+    console.error('PayFast IPN error:', err);
+    res.status(500).send('IPN error');
+  }
+});
+
+// ── Coinbase Commerce: create charge ─────────────────────────────────────────
+app.post('/api/crypto/create-charge', async (req, res) => {
+  const { plan, amount, user_email } = req.body;
+  if (!plan || !amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+    return res.status(400).json({ error: 'Invalid plan or amount.' });
+  }
+  const COINBASE_API_KEY = process.env.COINBASE_COMMERCE_API_KEY;
+  if (!COINBASE_API_KEY) return res.status(503).json({ error: 'Crypto payments are not configured on this server.' });
+  if (!axios) return res.status(503).json({ error: 'Crypto payments unavailable.' });
+
+  const appUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const PLAN_LABELS = { student_elite: 'Student Elite', student_premium: 'Student Premium', pro: 'Teacher Pro', school: 'School Premium' };
+
+  try {
+    const chargeRes = await axios.post(
+      'https://api.commerce.coinbase.com/charges',
+      {
+        name: `SlidePlay ${PLAN_LABELS[plan] || plan}`,
+        description: `SlidePlay ${PLAN_LABELS[plan] || plan} subscription`,
+        local_price: { amount: Number(amount).toFixed(2), currency: 'USD' },
+        pricing_type: 'fixed_price',
+        metadata: { plan, user_email: user_email || '' },
+        redirect_url: `${appUrl}/studentpayment.html?payment=success&provider=crypto&plan=${encodeURIComponent(plan)}`,
+        cancel_url:   `${appUrl}/studentpayment.html?payment=cancelled&provider=crypto`,
+      },
+      { headers: { 'Content-Type': 'application/json', 'X-CC-Api-Key': COINBASE_API_KEY, 'X-CC-Version': '2018-03-22' }, timeout: 10000 }
+    );
+    const charge = chargeRes.data?.data;
+    if (charge?.hosted_url) res.json({ url: charge.hosted_url, chargeId: charge.id });
+    else res.status(502).json({ error: 'No hosted URL returned from Coinbase Commerce.' });
+  } catch (e) {
+    const apiMsg = e.response?.data?.error?.message;
+    console.error('Coinbase Commerce error:', apiMsg || e.message);
+    res.status(502).json({ error: apiMsg || 'Failed to create crypto charge.' });
+  }
+});
+
+// ── Coinbase Commerce: webhook ────────────────────────────────────────────────
+app.post('/api/crypto/webhook', async (req, res) => {
+  const signature    = req.headers['x-cc-webhook-signature'];
+  const webhookSecret = process.env.COINBASE_COMMERCE_WEBHOOK_SECRET;
+  if (!webhookSecret) return res.status(500).send('Webhook secret not configured.');
+  if (!signature || !req.rawBody) return res.status(400).send('Missing signature or body.');
+
+  const expectedSig = crypto.createHmac('sha256', webhookSecret).update(req.rawBody).digest('hex');
+  if (signature !== expectedSig) {
+    console.warn('Coinbase webhook: invalid signature — possible spoofed request.');
+    return res.status(400).send('Invalid signature.');
+  }
+
+  let event;
+  try { event = JSON.parse(req.rawBody.toString()); }
+  catch { return res.status(400).send('Invalid JSON payload.'); }
+
+  const eventType = event?.event?.type;
+  const { plan, user_email } = event?.event?.data?.metadata || {};
+
+  if ((eventType === 'charge:confirmed' || eventType === 'charge:resolved') && plan && user_email) {
+    savePaymentStatus(user_email, plan, 'COMPLETE', 'coinbase', 0);
+    if (admin) {
+      try {
+        const userRecord = await admin.auth().getUserByEmail(user_email);
+        await admin.database().ref('users/' + userRecord.uid).update({ premium: true, plan, paidAt: new Date().toISOString(), paymentProvider: 'coinbase_commerce' });
+      } catch (e) { console.error('Firebase crypto webhook error:', e.message); }
+    }
+    await sendReceipt(user_email, { plan, provider: 'coinbase_commerce', amount: null });
+    const cbPhone = event?.event?.data?.metadata?.customer_phone || '';
+    if (cbPhone) {
+      await sendSms(cbPhone, `SlidePlay: Your crypto payment for the ${plan || 'Premium'} plan is confirmed! Access unlocked. 🎉`);
+    }
+  }
+  res.status(200).send('OK');
+});
+
+// ── Welcome email ─────────────────────────────────────────────────────────────
+app.post('/send-welcome-email', async (req, res) => {
+  const { email } = req.body;
+  if (!sgMail) return res.status(503).send('Email service not configured.');
+  try {
+    await sgMail.send({ to: email, from: { name: 'SlidePlay', email: SENDGRID_FROM }, subject: 'Welcome to SlidePlay!', text: 'Thank you for signing up for SlidePlay! We\'re excited to have you on board.' });
+    res.status(200).send('Email sent');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error sending email');
+  }
+});
+
+// ── DB: sync Firebase user ────────────────────────────────────────────────────
+app.post('/api/users/sync', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid, email, displayName, role } = req.body;
+  if (!uid || !email) return res.status(400).json({ error: 'uid and email required' });
+  try {
+    await dbModule.query(
+      `MERGE Users AS target
+       USING (SELECT @uid AS FirebaseUID) AS src ON target.FirebaseUID = src.FirebaseUID
+       WHEN MATCHED THEN
+         UPDATE SET Email = @email, DisplayName = @displayName, Role = @role, LastLoginAt = SYSUTCDATETIME()
+       WHEN NOT MATCHED THEN
+         INSERT (FirebaseUID, Email, DisplayName, Role) VALUES (@uid, @email, @displayName, @role);`,
+      { uid, email, displayName: displayName || '', role: role || 'student' }
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('users/sync error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── DB: get game session ──────────────────────────────────────────────────────
+app.get('/api/sessions/:code', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { code } = req.params;
+  try {
+    const result = await dbModule.query(
+      "SELECT * FROM GameSessions WHERE SessionCode = @code AND Status IN ('waiting','active')",
+      { code }
+    );
+    if (!result.recordset.length) return res.status(404).json({ error: 'Session not found' });
+    res.json(result.recordset[0]);
+  } catch (err) {
+    console.error('sessions/:code error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── DB: join session ──────────────────────────────────────────────────────────
+app.post('/api/sessions/:code/join', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { code } = req.params;
+  const { uid, displayName } = req.body;
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    const sess = await dbModule.query(
+      "SELECT SessionID FROM GameSessions WHERE SessionCode = @code AND Status = 'waiting'",
+      { code }
+    );
+    if (!sess.recordset.length) return res.status(404).json({ error: 'Session not open' });
+    const sessionId = sess.recordset[0].SessionID;
+    await dbModule.query(
+      `IF NOT EXISTS (SELECT 1 FROM SessionPlayers WHERE SessionID = @sessionId AND StudentUID = @uid)
+         INSERT INTO SessionPlayers (SessionID, StudentUID, DisplayName) VALUES (@sessionId, @uid, @displayName)`,
+      { sessionId, uid, displayName: displayName || uid }
+    );
+    res.json({ ok: true, sessionId });
+  } catch (err) {
+    console.error('sessions/:code/join error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── DB: get subscription ──────────────────────────────────────────────────────
+app.get('/api/users/:uid/subscription', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  try {
+    const result = await dbModule.query(
+      'SELECT Plan, Status, RenewsAt FROM Subscriptions WHERE FirebaseUID = @uid',
+      { uid }
+    );
+    if (!result.recordset.length) return res.json({ Plan: 'free', Status: 'none' });
+    res.json(result.recordset[0]);
+  } catch (err) {
+    console.error('subscription error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── RAG: create deck ──────────────────────────────────────────────────────────
+app.post('/api/decks/create', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid, title, rawText } = req.body;
+  if (!uid || !title) return res.status(400).json({ error: 'uid and title required' });
+  try {
+    const result = await dbModule.query(
+      `INSERT INTO SlideDecks (TeacherUID, Title, RawText)
+       OUTPUT INSERTED.DeckID
+       VALUES (@uid, @title, @rawText)`,
+      { uid, title, rawText: rawText || '' }
+    );
+    res.json({ deckId: result.recordset[0].DeckID });
+  } catch (err) {
+    console.error('decks/create error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── RAG: embed deck ───────────────────────────────────────────────────────────
+app.post('/api/decks/:deckId/embed', async (req, res) => {
+  if (!ragModule || !dbModule) return res.status(503).json({ error: 'RAG not configured.' });
+  const deckId = parseInt(req.params.deckId);
+  const { rawText } = req.body;
+  if (!rawText) return res.status(400).json({ error: 'rawText required' });
+  res.json({ ok: true, message: 'Embedding started' });
+  try {
+    const count = await ragModule.embedDeck(deckId, rawText);
+    await dbModule.query('UPDATE SlideDecks SET QuestionCount = @count WHERE DeckID = @deckId', { count, deckId });
+  } catch (err) {
+    console.error(`embed deck ${deckId} error:`, err.message);
+  }
+});
+
+// ── RAG: study Q&A ────────────────────────────────────────────────────────────
+app.post('/api/study/ask', async (req, res) => {
+  if (!ragModule) return res.status(503).json({ error: 'RAG not configured.' });
+  const { deckId, question, history } = req.body;
+  if (!deckId || !question) return res.status(400).json({ error: 'deckId and question required' });
+  try {
+    const result = await ragModule.studyAsk(parseInt(deckId), question, history || []);
+    res.json(result);
+  } catch (err) {
+    console.error('study/ask error:', err.message);
+    res.status(500).json({ error: 'RAG error' });
+  }
+});
+
+// ── DeepL Translation ─────────────────────────────────────────────────────────
+const DEEPL_HARDCODED_LANGS = [
+  { code: 'AR', name: 'Arabic' }, { code: 'BG', name: 'Bulgarian' },
+  { code: 'ZH', name: 'Chinese (Simplified)' }, { code: 'CS', name: 'Czech' },
+  { code: 'DA', name: 'Danish' }, { code: 'NL', name: 'Dutch' },
+  { code: 'ET', name: 'Estonian' }, { code: 'FI', name: 'Finnish' },
+  { code: 'FR', name: 'French' }, { code: 'DE', name: 'German' },
+  { code: 'EL', name: 'Greek' }, { code: 'HU', name: 'Hungarian' },
+  { code: 'ID', name: 'Indonesian' }, { code: 'IT', name: 'Italian' },
+  { code: 'JA', name: 'Japanese' }, { code: 'KO', name: 'Korean' },
+  { code: 'LV', name: 'Latvian' }, { code: 'LT', name: 'Lithuanian' },
+  { code: 'NB', name: 'Norwegian' }, { code: 'PL', name: 'Polish' },
+  { code: 'PT-BR', name: 'Portuguese (Brazilian)' }, { code: 'RO', name: 'Romanian' },
+  { code: 'RU', name: 'Russian' }, { code: 'SK', name: 'Slovak' },
+  { code: 'SL', name: 'Slovenian' }, { code: 'ES', name: 'Spanish' },
+  { code: 'SV', name: 'Swedish' }, { code: 'TR', name: 'Turkish' },
+  { code: 'UK', name: 'Ukrainian' },
+];
+
+function getDeepLBaseUrl() {
+  const key = process.env.DEEPL_API_KEY || '';
+  return key.endsWith(':fx')
+    ? 'https://api-free.deepl.com/v2'
+    : 'https://api.deepl.com/v2';
+}
+
+app.post('/api/translate', async (req, res) => {
+  const { text, targetLang, sourceLang } = req.body || {};
+  if (!text || !targetLang) return res.status(400).json({ error: 'text and targetLang required' });
+  const DEEPL_KEY = process.env.DEEPL_API_KEY;
+  if (!DEEPL_KEY) return res.status(503).json({ error: 'Translation not configured. Set DEEPL_API_KEY in .env' });
+  if (!axios) return res.status(503).json({ error: 'axios not available' });
+  try {
+    const payload = { text: [text], target_lang: targetLang.toUpperCase() };
+    if (sourceLang) payload.source_lang = sourceLang.toUpperCase();
+    const response = await axios.post(`${getDeepLBaseUrl()}/translate`, payload, {
+      headers: { 'Authorization': `DeepL-Auth-Key ${DEEPL_KEY}`, 'Content-Type': 'application/json' },
+    });
+    const t = response.data.translations?.[0];
+    res.json({ translatedText: t?.text || '', detectedSourceLang: t?.detected_source_language || '' });
+  } catch (e) {
+    const msg = e.response?.data?.message || e.message;
+    res.status(500).json({ error: 'Translation failed: ' + msg });
+  }
+});
+
+app.get('/api/translate/languages', async (req, res) => {
+  const DEEPL_KEY = process.env.DEEPL_API_KEY;
+  if (!DEEPL_KEY || !axios) return res.json({ languages: DEEPL_HARDCODED_LANGS });
+  try {
+    const response = await axios.get(`${getDeepLBaseUrl()}/languages?type=target`, {
+      headers: { 'Authorization': `DeepL-Auth-Key ${DEEPL_KEY}` },
+    });
+    res.json({ languages: response.data.map(l => ({ code: l.language, name: l.name })) });
+  } catch (_) {
+    res.json({ languages: DEEPL_HARDCODED_LANGS });
+  }
+});
+
+// ── SMS: Game Invite ──────────────────────────────────────────────────────────
+app.post('/api/sms/game-invite', async (req, res) => {
+  const { to, gameCode, hostName, gameType } = req.body || {};
+  if (!to || !gameCode) return res.status(400).json({ error: 'to and gameCode required' });
+  const gameName = gameType ? ` (${gameType})` : '';
+  const result = await sendSms(to, `SlidePlay${gameName}: ${hostName || 'Your teacher'} invites you to play! Game Code: ${gameCode} — Join now at ${process.env.APP_URL || 'http://localhost:3000'}`);
+  if (!result.ok) {
+    const status = result.code === 'INVALID_PHONE' ? 400 : result.code === 'NOT_CONFIGURED' ? 503 : 502;
+    return res.status(status).json(result);
+  }
+  res.json(result);
+});
+
+// ── Email: Test receipt endpoint ──────────────────────────────────────────────
+app.post('/api/email/test-receipt', async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'email required' });
+  const result = await sendReceipt(email, { plan: 'student_elite', provider: 'payfast', amount: 99 });
+  if (!result.ok) {
+    const status = result.code === 'NOT_CONFIGURED' ? 503 : 502;
+    return res.status(status).json(result);
+  }
+  res.json(result);
+});
+
+// ── SMS: Test endpoint ────────────────────────────────────────────────────────
+app.post('/api/sms/test', async (req, res) => {
+  const { to } = req.body || {};
+  if (!to) return res.status(400).json({ error: 'to required' });
+  const result = await sendSms(to, 'SlidePlay: SMS notifications are working! 🎉');
+  if (!result.ok) {
+    const status = result.code === 'INVALID_PHONE' ? 400 : result.code === 'NOT_CONFIGURED' ? 503 : 502;
+    return res.status(status).json(result);
+  }
+  res.json(result);
+});
+
+// ── Stripe (optional — falls back to demo mode if STRIPE_SECRET_KEY is not set) ───
+
+let stripe = null;
+try {
+  const Stripe = require('stripe');
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+    console.log('Stripe: ENABLED');
+  } else {
+    console.log('Stripe: DEMO MODE (set STRIPE_SECRET_KEY to enable real payments)');
+  }
+} catch (_) {
+  console.log('Stripe: package not installed, running in demo mode');
+}
+
+const demoCheckoutSessions = new Map();
+
+const STRIPE_PLAN_PRICES = {
+  student_elite:   { monthly: 90,  yearly: 860,  name: 'Student Elite' },
+  student_premium: { monthly: 150, yearly: 1400, name: 'Student Premium' },
+  pro:             { monthly: 12,  yearly: 115,  name: 'Teacher Pro' },
+  school:          { monthly: 49,  yearly: 470,  name: 'School Premium' },
+};
+
+function buildStripeReceiptId(sessionId) {
+  return 'STRIPE-' + String(sessionId).slice(-12).toUpperCase();
+}
+
+app.post('/api/stripe/create-checkout-session', async (req, res) => {
+  try {
+    const { plan, billingPeriod, customerEmail, customerName, customerPhone, successUrl, cancelUrl } = req.body || {};
+    if (!customerEmail || typeof customerEmail !== 'string') {
+      return res.status(400).json({ error: 'customerEmail is required' });
+    }
+    const planConfig = STRIPE_PLAN_PRICES[plan];
+    if (!planConfig) return res.status(400).json({ error: 'Invalid plan: ' + plan });
+    const billing = billingPeriod === 'yearly' ? 'yearly' : 'monthly';
+    const amount = billing === 'yearly' ? planConfig.yearly : planConfig.monthly;
+    const interval = billing === 'yearly' ? 'year' : 'month';
+
+    // Determine base URL for redirect (request origin or fallback)
+    const proto = req.headers['x-forwarded-proto'] || 'http';
+    const host  = req.headers['x-forwarded-host'] || req.headers['host'] || `localhost:${PORT}`;
+    const appUrl = process.env.APP_URL || `${proto}://${host}`;
+
+    const sUrl = successUrl || `${appUrl}/finsished%20front%20end/Testing2-SlidePlay/payment.html`;
+    const cUrl = cancelUrl  || sUrl;
+
+    const fullSuccess = new URL(sUrl.startsWith('http') ? sUrl : appUrl + sUrl);
+    fullSuccess.searchParams.set('checkout', 'success');
+    fullSuccess.searchParams.set('session_id', '__SESSION_ID__'); // placeholder for real Stripe
+    const fullCancel = new URL(cUrl.startsWith('http') ? cUrl : appUrl + cUrl);
+    fullCancel.searchParams.set('checkout', 'cancel');
+
+    // ── DEMO MODE (no Stripe key) ───────────────────────────
+    if (!stripe) {
+      const sessionId = `demo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const sessSuccess = new URL(sUrl.startsWith('http') ? sUrl : appUrl + sUrl);
+      sessSuccess.searchParams.set('checkout', 'success');
+      sessSuccess.searchParams.set('session_id', sessionId);
+      const sessCancel = new URL(cUrl.startsWith('http') ? cUrl : appUrl + cUrl);
+      sessCancel.searchParams.set('checkout', 'cancel');
+
+      demoCheckoutSessions.set(sessionId, {
+        id: sessionId, status: 'open', paymentStatus: 'unpaid',
+        amountTotal: amount * 100, currency: 'zar',
+        customerEmail: customerEmail.trim(),
+        customerName: String(customerName || '').trim(),
+        customerPhone: String(customerPhone || '').trim(),
+        plan, billing, planName: planConfig.name,
+        successUrl: sessSuccess.toString(),
+        cancelUrl: sessCancel.toString(),
+        createdAt: Date.now(),
+      });
+
+      const demoUrl = new URL(`${appUrl}/demo-checkout.html`);
+      demoUrl.searchParams.set('session_id', sessionId);
+      demoUrl.searchParams.set('plan_name', planConfig.name);
+      demoUrl.searchParams.set('amount', String(amount));
+      demoUrl.searchParams.set('billing', billing);
+      demoUrl.searchParams.set('email', customerEmail.trim());
+
+      return res.json({ id: sessionId, url: demoUrl.toString(), mode: 'demo' });
+    }
+
+    // ── REAL STRIPE ──────────────────────────────────────────
+    const successStripe = new URL(sUrl.startsWith('http') ? sUrl : appUrl + sUrl);
+    successStripe.searchParams.set('checkout', 'success');
+    successStripe.searchParams.set('session_id', '{CHECKOUT_SESSION_ID}');
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer_email: customerEmail.trim(),
+      success_url: successStripe.toString(),
+      cancel_url: fullCancel.toString(),
+      billing_address_collection: 'auto',
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: 'zar',
+          unit_amount: amount * 100,
+          recurring: { interval },
+          product_data: { name: planConfig.name, description: `SlidePlay ${planConfig.name} (${billing})` },
+        },
+      }],
+      metadata: { plan, billing, customerEmail: customerEmail.trim(), customerName: String(customerName || '').trim() },
+    });
+
+    return res.json({ id: session.id, url: session.url, mode: 'stripe' });
+  } catch (e) {
+    console.error('stripe create-checkout-session error:', e.message);
+    return res.status(500).json({ error: e.message || 'Failed to create Stripe checkout session' });
+  }
+});
+
+app.get('/api/stripe/checkout-session/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const demo = demoCheckoutSessions.get(sessionId);
+    if (demo) {
+      return res.json({
+        id: demo.id, status: demo.status, paymentStatus: demo.paymentStatus,
+        amountTotal: demo.amountTotal, currency: demo.currency,
+        customerEmail: demo.customerEmail, receiptId: buildStripeReceiptId(demo.id),
+        metadata: { plan: demo.plan, billing: demo.billing },
+      });
+    }
+    if (!stripe) return res.status(404).json({ error: 'Session not found and no Stripe key configured.' });
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    return res.json({
+      id: session.id, status: session.status, paymentStatus: session.payment_status,
+      amountTotal: session.amount_total, currency: session.currency,
+      customerEmail: session.customer_details?.email || session.customer_email || '',
+      receiptId: buildStripeReceiptId(session.id),
+      metadata: {
+        plan: session.metadata?.plan || '',
+        billing: session.metadata?.billing || 'monthly',
+      },
+    });
+  } catch (e) {
+    console.error('stripe checkout-session error:', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/demo-checkout/:sessionId/complete', async (req, res) => {
+  const session = demoCheckoutSessions.get(req.params.sessionId);
+  if (!session) return res.status(404).json({ error: 'Demo session not found.' });
+  session.status = 'complete';
+  session.paymentStatus = 'paid';
+  demoCheckoutSessions.set(session.id, session);
+
+  // Save to SQL DB so admin dashboard reflects the payment
+  if (session.customerEmail && dbModule) {
+    const amountZAR = session.amountTotal ? session.amountTotal / 100 : 0;
+    savePaymentStatus(session.customerEmail, session.plan || 'pro', 'COMPLETE', 'stripe', amountZAR).catch(() => {});
+  }
+
+  if (session.customerPhone) {
+    await sendSms(session.customerPhone, `SlidePlay: Your Stripe payment for ${session.planName || 'Premium'} is confirmed! Access unlocked. 🎉`);
+  }
+  if (session.customerEmail) {
+    await sendReceipt(session.customerEmail, { plan: session.planName, provider: 'stripe', amount: session.amountTotal ? session.amountTotal / 100 : null });
+  }
+  return res.json({ id: session.id, redirectUrl: session.successUrl });
+});
+
+app.post('/api/demo-checkout/:sessionId/cancel', (req, res) => {
+  const session = demoCheckoutSessions.get(req.params.sessionId);
+  if (!session) return res.status(404).json({ error: 'Demo session not found.' });
+  session.status = 'expired';
+  session.paymentStatus = 'unpaid';
+  demoCheckoutSessions.set(session.id, session);
+  return res.json({ id: session.id, redirectUrl: session.cancelUrl });
+});
+
+// ── Admin Stats ───────────────────────────────────────────────────────────────
+const PLAN_PRICES = {
+  student_elite:   { monthly: 90,  yearly: 860,  name: 'Student Elite' },
+  student_premium: { monthly: 150, yearly: 1400, name: 'Student Premium' },
+  pro:             { monthly: 12,  yearly: 115,  name: 'Teacher Pro' },
+  school:          { monthly: 49,  yearly: 470,  name: 'School Premium' },
+};
+
+app.get('/api/admin/stats', async (req, res) => {
+  try {
+    const counts        = { total: 0, students: 0, teachers: 0, admins: 0 };
+    const recentUsers   = [];
+    const recentSessions = [];
+    let activeSubscriptions = 0;
+    let onlineToday     = 0;
+    let totalRevenue    = 0;
+    let mrr             = 0;
+    const planBreakdown = [];
+    const usersPerDay   = [];
+
+    if (dbModule) {
+      const { query } = dbModule;
+
+      // Role counts
+      const roleRes = await query(
+        `SELECT Role, COUNT(*) AS cnt FROM Users GROUP BY Role`, {});
+      for (const row of (roleRes.recordset || [])) {
+        const r = (row.Role || '').toLowerCase();
+        const n = parseInt(row.cnt || 0, 10);
+        counts.total += n;
+        if (r === 'student') counts.students = n;
+        else if (r === 'teacher') counts.teachers = n;
+        else if (r === 'admin') counts.admins = n;
+      }
+
+      // Recent signups
+      const recentRes = await query(
+        `SELECT TOP 10 DisplayName, Email, Role, CreatedAt FROM Users ORDER BY CreatedAt DESC`, {});
+      for (const row of (recentRes.recordset || [])) {
+        recentUsers.push({ name: row.DisplayName || row.Email || 'Unknown', email: row.Email, role: row.Role, createdAt: row.CreatedAt });
+      }
+
+      // Recent game sessions
+      const sessRes = await query(
+        `SELECT TOP 5 SessionCode, Status, CreatedAt FROM GameSessions ORDER BY CreatedAt DESC`, {});
+      for (const row of (sessRes.recordset || [])) {
+        recentSessions.push({ code: row.SessionCode, status: row.Status, createdAt: row.CreatedAt });
+      }
+
+      // Active subscriptions + plan breakdown
+      const subRes = await query(
+        `SELECT [Plan], COUNT(*) AS cnt FROM Subscriptions WHERE [Status] = 'active' GROUP BY [Plan]`, {});
+      for (const row of (subRes.recordset || [])) {
+        const n    = parseInt(row.cnt || 0, 10);
+        const plan = (row.Plan || '').toLowerCase();
+        const info = PLAN_PRICES[plan] || { monthly: 0, name: row.Plan };
+        const rev  = info.monthly * n;
+        activeSubscriptions += n;
+        mrr += rev;
+        planBreakdown.push({ plan: info.name || row.Plan, count: n, monthlyRevenue: rev, priceEach: info.monthly });
+      }
+
+      // Total all-time revenue from Payments table
+      try {
+        const revRes = await query(
+          `SELECT SUM(AmountZAR) AS total FROM Payments WHERE [Status] = 'succeeded'`, {});
+        totalRevenue = parseFloat((revRes.recordset[0] || {}).total || 0);
+      } catch (_) {}
+
+      // Logins today
+      try {
+        const onlineRes = await query(
+          `SELECT COUNT(*) AS cnt FROM Users WHERE CAST(LastLoginAt AS DATE) = CAST(GETDATE() AS DATE)`, {});
+        onlineToday = parseInt((onlineRes.recordset[0] || {}).cnt || 0, 10);
+      } catch (_) {}
+
+      // New users per day — last 14 days
+      try {
+        const dayRes = await query(`
+          SELECT CAST(CreatedAt AS DATE) AS day, COUNT(*) AS cnt
+          FROM Users
+          WHERE CreatedAt >= DATEADD(DAY, -13, CAST(GETDATE() AS DATE))
+          GROUP BY CAST(CreatedAt AS DATE)
+          ORDER BY day ASC`, {});
+        // Fill all 14 days (zero for missing days)
+        for (let i = 13; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate() - i);
+          const key = d.toISOString().slice(0, 10);
+          const found = (dayRes.recordset || []).find(r => {
+            const rv = r.day instanceof Date ? r.day.toISOString().slice(0,10) : String(r.day).slice(0,10);
+            return rv === key;
+          });
+          usersPerDay.push({ date: key, count: found ? parseInt(found.cnt || 0, 10) : 0 });
+        }
+      } catch (_) {}
+    }
+
+    res.json({
+      counts, onlineToday, activeSubscriptions,
+      totalRevenue, mrr, planBreakdown,
+      recentUsers, recentSessions, usersPerDay,
+      serverTime: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('Admin stats error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Admin: game sessions ────────────────────────────────────────────────────
+app.get('/api/admin/sessions', async (req, res) => {
+  try {
+    if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+    const { query } = dbModule;
+    const result = await query(
+      `SELECT TOP 50
+         gs.SessionCode, gs.[Status], gs.CreatedAt, gs.EndedAt,
+         ISNULL(gs.GameType,'unknown') AS GameType,
+         ISNULL(gs.GameMode,'multiplayer') AS GameMode,
+         ISNULL(u.DisplayName, gs.TeacherUID) AS HostName,
+         (SELECT COUNT(*) FROM SessionPlayers sp WHERE sp.SessionID = gs.SessionID) AS PlayerCount,
+         (SELECT TOP 1 sp2.DisplayName FROM SessionPlayers sp2 WHERE sp2.SessionID = gs.SessionID ORDER BY sp2.TotalScore DESC) AS WinnerName,
+         (SELECT TOP 1 sp3.TotalScore FROM SessionPlayers sp3 WHERE sp3.SessionID = gs.SessionID ORDER BY sp3.TotalScore DESC) AS WinnerScore
+       FROM GameSessions gs
+       LEFT JOIN Users u ON u.FirebaseUID = gs.TeacherUID
+       ORDER BY gs.CreatedAt DESC`, {});
+    // Also pull in-memory active rooms for live data
+    const liveRooms = [];
+    for (const [code, room] of rooms.entries()) {
+      liveRooms.push({
+        SessionCode: code,
+        Status: room.status,
+        GameType: room.gameLabel,
+        GameMode: room.gameMode || 'multiplayer',
+        HostName: room.hostName || 'Unknown',
+        WinnerName: null,
+        WinnerScore: null,
+        PlayerCount: room.players.length,
+        CreatedAt: new Date(room.createdAt).toISOString(),
+        EndedAt: null,
+        live: true
+      });
+    }
+    res.json({ sessions: result.recordset || [], liveRooms });
+  } catch (err) {
+    console.error('Admin sessions error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Admin: payment records ───────────────────────────────────────────────
+app.get('/api/admin/payments', async (req, res) => {
+  try {
+    if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+    const { query } = dbModule;
+    const result = await query(
+      `SELECT TOP 100
+         p.FirebaseUID, p.[Plan], p.AmountZAR, p.BillingCycle, p.Provider, p.[Status],
+         p.CreatedAt,
+         u.DisplayName, u.Email
+       FROM Payments p
+       LEFT JOIN Users u ON u.FirebaseUID = p.FirebaseUID
+       ORDER BY p.CreatedAt DESC`, {});
+    res.json({ payments: result.recordset || [] });
+  } catch (err) {
+    console.error('Admin payments error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Admin: all users list ────────────────────────────────────────────────
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+    const { query } = dbModule;
+    const result = await query(
+      `SELECT
+         u.FirebaseUID, u.Email, u.DisplayName, u.Role, u.AuthProvider,
+         u.CreatedAt, u.LastLoginAt,
+         (SELECT TOP 1 p.[Plan] FROM Payments p WHERE p.FirebaseUID = u.FirebaseUID AND p.[Status]='succeeded' ORDER BY p.CreatedAt DESC) AS CurrentPlan,
+         ISNULL((SELECT SUM(p2.AmountZAR) FROM Payments p2 WHERE p2.FirebaseUID = u.FirebaseUID AND p2.[Status]='succeeded'), 0) AS TotalSpent,
+         (SELECT COUNT(*) FROM SessionPlayers sp WHERE sp.StudentUID = u.FirebaseUID) AS GamesPlayed
+       FROM Users u
+       ORDER BY u.CreatedAt DESC`, {});
+    res.json({ users: result.recordset || [] });
+  } catch (err) {
+    console.error('Admin users error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Admin: single user detailed profile ─────────────────────────────────
+app.get('/api/admin/users/:uid', async (req, res) => {
+  try {
+    if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+    const { query } = dbModule;
+    const uid = req.params.uid;
+    const [userRes, paymentsRes, sessionsRes] = await Promise.all([
+      query(`SELECT u.FirebaseUID, u.Email, u.DisplayName, u.Role, u.AuthProvider, u.CreatedAt, u.LastLoginAt FROM Users u WHERE u.FirebaseUID = @uid`, { uid }),
+      query(`SELECT p.[Plan], p.AmountZAR, p.BillingCycle, p.Provider, p.[Status], p.CreatedAt, p.CouponCode, p.DiscountPct FROM Payments p WHERE p.FirebaseUID = @uid ORDER BY p.CreatedAt DESC`, { uid }),
+      query(`SELECT gs.SessionCode, gs.GameType, gs.GameMode, sp.TotalScore, sp.JoinedAt, gs.[Status] FROM SessionPlayers sp JOIN GameSessions gs ON gs.SessionID = sp.SessionID WHERE sp.StudentUID = @uid ORDER BY sp.JoinedAt DESC`, { uid })
+    ]);
+    if (!userRes.recordset.length) return res.status(404).json({ error: 'User not found' });
+    res.json({
+      user: userRes.recordset[0],
+      payments: paymentsRes.recordset || [],
+      sessions: sessionsRes.recordset || []
+    });
+  } catch (err) {
+    console.error('Admin user profile error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function startServer() {
+  await configureSocketIoAdapter();
+
+  httpServer.listen(PORT, async () => {
+    console.log(`SlidePlay server running on http://localhost:${PORT}`);
+    if (SOCKET_IO_REQUIRE_REDIS && socketAdapterMode !== 'redis') {
+      console.warn('Multiplayer readiness: NOT READY - Redis is required but not connected. /api/ready will return 503.');
+    } else if (SOCKET_IO_USE_REDIS && SOCKET_IO_REDIS_URL && socketAdapterMode === 'redis') {
+      console.log('Multiplayer readiness: READY - Redis-backed Socket.IO is active.');
+    }
+    if (GROQ_API_KEY) {
+      console.log(`Groq AI: ENABLED (${GROQ_MODEL})`);
+    } else if (GEMINI_API_KEY) {
+      console.log('Groq AI: DISABLED — falling back to Gemini (set GROQ_API_KEY in .env for better quota)');
+    } else {
+      console.log('AI quiz generation: DISABLED (set GROQ_API_KEY in .env to enable)');
+    }
+    if (HUGGING_FACE_API_KEY) {
+      console.log(`Hugging Face AI quiz generation: ENABLED (${HUGGING_FACE_MODEL})`);
+    } else {
+      console.log('Hugging Face AI quiz generation: DISABLED (set HUGGING_FACE_API_KEY in .env to enable)');
+    }
+    if (dbModule) {
+      try {
+        await dbModule.getPool();
+        // Migrate: add columns to GameSessions if missing
+        const migrations = [
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='GameSessions')
+            CREATE TABLE dbo.GameSessions (SessionID INT IDENTITY(1,1) PRIMARY KEY, SessionCode NVARCHAR(10) NOT NULL, [Status] NVARCHAR(20) NOT NULL DEFAULT 'waiting', GameType NVARCHAR(64) DEFAULT 'unknown', GameMode NVARCHAR(20) DEFAULT 'multiplayer', TeacherUID NVARCHAR(255), CreatedAt DATETIME DEFAULT GETUTCDATE(), EndedAt DATETIME)`,
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='SessionPlayers')
+            CREATE TABLE dbo.SessionPlayers (PlayerID INT IDENTITY(1,1) PRIMARY KEY, SessionID INT NOT NULL, StudentUID NVARCHAR(255), DisplayName NVARCHAR(255), TotalScore INT DEFAULT 0, JoinedAt DATETIME DEFAULT GETUTCDATE())`,
+        ];
+        for (const sql of migrations) {
+          try { await dbModule.query(sql, {}); } catch (me) { console.warn('Migration warning:', me.message); }
+        }
+        console.log('DB migrations applied');
+      } catch (e) { console.warn('DB connection failed (non-fatal):', e.message); }
+    }
+  });
+}
+
+startServer().catch((e) => {
+  console.error('Server startup failed:', e.message);
+  process.exit(1);
 });
