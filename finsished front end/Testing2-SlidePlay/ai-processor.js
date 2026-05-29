@@ -294,6 +294,7 @@ ${questionType === "true_false" ? `{
   function buildPrompt(text, opts) {
     const { difficulty = "medium", count = 10, questionType = "mcq" } = opts;
     const bloom = BLOOM[difficulty] || BLOOM.medium;
+    const focusTerms = extractFocusTerms(text, 10);
 
     // Trim text to ~30 000 chars — Gemini 2.0 Flash supports ~1M tokens
     const excerpt = text.length > 30000 ? text.substring(0, 30000) + "\n[...content truncated...]" : text;
@@ -318,14 +319,22 @@ ${excerpt}
 DIFFICULTY: ${difficulty.toUpperCase()}
 Bloom's Taxonomy targets: ${bloom.levels.join(", ")}
 Question verbs to use: ${bloom.verbs}
+${focusTerms.length ? `
+FOCUS CONCEPTS / TERMS TO ANCHOR ON:
+${focusTerms.map(t => `- ${t}`).join("\n")}` : ""}
 
 REQUIREMENTS:
 - Generate exactly ${count} questions.
 - Every question must be directly answerable from the lesson content above. Do NOT use general knowledge.
+- Prefer specific, slide-based questions over broad textbook trivia.
+- Use the focus concepts above when choosing what to ask about.
+- Mix question stems when appropriate: explain why, compare, apply, infer, evaluate, identify relationships.
 - ${difficulty === "hard" ? "Include nuanced reasoning, common misconceptions as distractors, and multi-step thinking." : ""}
 - ${difficulty === "easy" ? "Use clear, direct language. Test recall and basic understanding." : ""}
 - ${difficulty === "medium" ? "Test application and analysis of the content, not just recall." : ""}
 ${typeInstructions}
+- Avoid repetitive openings like "What is..." unless the slide is clearly a definition slide.
+- Favor stems such as "Which statement best explains...", "What would happen if...", "Which example best fits...", and "How does...".
 - Include a concise "explanation" (1–2 sentences) for each correct answer — this is used for coaching.
 - Do NOT include questions about formatting, page numbers, or metadata.
 - Avoid trivial stems (e.g., "What is...") unless pedagogically justified.
@@ -368,8 +377,30 @@ QUALITY REGENERATION PASS:
 - The previous draft produced only ${previousCount} acceptable questions.
 - Regenerate to return exactly ${count} strong questions that pass strict quality.
 - Focus on scenario-based, application, comparison, and reasoning prompts.
+- Make the questions more specific to the slide concepts rather than broad trivia.
 - Keep explanations concise and evidence-based from the lesson content.
 `.trim();
+  }
+
+  function extractFocusTerms(text, limit = 10) {
+    const terms = collectFallbackTerms(text, limit * 2);
+    const phrases = [];
+    const lines = String(text || "")
+      .split(/\n+/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    for (const line of lines) {
+      const cleaned = line.replace(/\s+/g, " ");
+      if (cleaned.length < 8) continue;
+      if (/^(title|agenda|objectives?|summary|introduction|conclusion|thank you)/i.test(cleaned)) continue;
+      if (cleaned.split(/\s+/).length <= 8 && /[:\-]/.test(cleaned)) {
+        phrases.push(cleaned.replace(/[:\-].*$/, "").trim());
+      }
+      if (phrases.length >= limit) break;
+    }
+
+    return [...new Set([...phrases, ...terms])].slice(0, limit);
   }
 
   function collectFallbackTerms(text, limit = 20) {
