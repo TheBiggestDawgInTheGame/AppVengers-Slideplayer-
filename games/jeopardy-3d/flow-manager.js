@@ -49,6 +49,7 @@
       const gameParam = (params.get('game') || '').toLowerCase();
       const playStyleParam = (params.get('playStyle') || '').toLowerCase();
       const playersParam = Number(params.get('players') || '0');
+      const sourceParam = params.get('source');
 
       const gameAliasMap = {
         jeopardy: 'jeopardy',
@@ -76,7 +77,7 @@
         scramble: 'scramble-words',
       };
 
-      // Preselect mode and continue straight to upload screen
+      // Preselect mode and game
       this.currentFlow.selectedMode = mapped;
       this.currentFlow.selectedGame = defaultGameByMode[mapped] || 'jeopardy-3d';
 
@@ -86,6 +87,36 @@
 
       if (Number.isFinite(playersParam) && playersParam >= 1) {
         this.currentFlow.desiredPlayers = Math.min(8, Math.floor(playersParam));
+      }
+
+      // ── If coming from the slide upload page, check for existing quiz data ──
+      // Skip the upload screen entirely if content already exists in localStorage.
+      if (sourceParam === 'upload') {
+        try {
+          const existingQuiz = JSON.parse(localStorage.getItem('slidePlayGeneratedQuizData') || 'null');
+          const existingFiles = JSON.parse(localStorage.getItem('slidePlayUploadedFiles') || 'null');
+          const firstFile = Array.isArray(existingFiles) && existingFiles.length > 0 ? existingFiles[0] : null;
+          const extractedText = firstFile
+            ? String(firstFile.extractedText || firstFile.text || firstFile.content || '').trim()
+            : '';
+          const hasContent = Array.isArray(existingQuiz) && existingQuiz.length > 0 && extractedText.length >= 50;
+
+          if (hasContent) {
+            // Restore content into flow state so proceedToGameSelector() won't block
+            this.currentFlow.uploadedContent = extractedText;
+            this.currentFlow.uploadedFileName = firstFile.originalName || 'previous upload';
+
+            // Skip upload screen — go straight to play-style (or game engine for solo)
+            if (mappedStyle) {
+              this.selectPlayStyle(mappedStyle);
+            } else {
+              this.showScreen('play-style');
+            }
+            return true;
+          }
+        } catch (_) {
+          // Fall through to show upload screen
+        }
       }
 
       this.showScreen('upload');
@@ -201,6 +232,13 @@
 
       if (this.currentFlow.selectedPlayStyle) {
         this.selectPlayStyle(this.currentFlow.selectedPlayStyle);
+        return;
+      }
+
+      // If a game is already preselected by a deep link or upload flow,
+      // skip the redundant internal game picker and go straight to play style.
+      if (this.currentFlow.selectedGame) {
+        this.showScreen('play-style');
         return;
       }
 
