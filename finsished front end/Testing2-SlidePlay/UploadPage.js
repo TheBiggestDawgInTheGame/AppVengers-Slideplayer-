@@ -381,7 +381,7 @@ function _upFakeJoins(manual = false) {
     // If Firebase is available, write real player entry so live-game.js can simulate answers
     if (window.SessionDB) {
       try {
-        const result = await SessionDB.joinSession(up.code, name);
+        const result = await SessionDB.joinSession(up.code, name, { simulated: true });
         playerKey = result.playerKey;
       } catch (_) { /* offline fallback – use generated key */ }
     }

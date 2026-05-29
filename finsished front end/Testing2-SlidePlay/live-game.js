@@ -40,28 +40,44 @@ const SIM_PLAYERS = (() => {
 
 let simAnswersPending = false; // prevent double-firing per question
 
-function scheduleSimAnswers(qIndex, questions, timePerQ) {
-  if (!SIM_PLAYERS.length || simAnswersPending) return;
-  simAnswersPending = true;
+function getSimPlayerKeys(playersMap) {
+  const keys = new Set(SIM_PLAYERS.map(p => p.playerKey));
+  Object.entries(playersMap || {}).forEach(([key, p]) => {
+    if (p?.simulated) keys.add(key);
+  });
+  return Array.from(keys);
+}
+
+function scheduleSimAnswers(qIndex, questions, timePerQ, playersMap) {
+  const simPlayerKeys = getSimPlayerKeys(playersMap);
   const q = questions[qIndex];
   if (!q) return;
 
-  SIM_PLAYERS.forEach(({ playerKey }) => {
-    // Random delay: 1s – (timePerQ - 2)s so they always answer before time's up
-    const maxDelay = Math.max(1500, (timePerQ - 2) * 1000);
-    const delay = 1000 + Math.random() * (maxDelay - 1000);
+  const allPlayers = Object.entries(playersMap || {});
+  const alreadyAnswered = new Set(
+    allPlayers
+      .filter(([, p]) => p?.answers && p.answers[qIndex] !== undefined)
+      .map(([key]) => key)
+  );
+  const targets = simPlayerKeys.filter(key => !alreadyAnswered.has(key));
+
+  if (!targets.length || simAnswersPending) return;
+  simAnswersPending = true;
+
+  // Optimistic UI: simulated players answer during loading, before teacher advances.
+  setText("lgAnsweredCount", alreadyAnswered.size + targets.length);
+  setText("lgPlayerCount", allPlayers.length);
+
+  targets.forEach((playerKey) => {
+    // Tiny jitter so answers appear near-instant while still not all at same millisecond.
+    const delay = 25 + Math.random() * 175;
 
     setTimeout(async () => {
-      // 70% chance of correct answer, otherwise pick a random wrong one
-      let chosen;
-      if (Math.random() < 0.70) {
-        chosen = q.correct;
-      } else {
-        const wrong = [0, 1, 2, 3].filter(i => i !== q.correct);
-        chosen = wrong[Math.floor(Math.random() * wrong.length)];
-      }
+      // True random pick across available options.
+      const optionCount = Array.isArray(q.options) && q.options.length > 0 ? q.options.length : 4;
+      const chosen = Math.floor(Math.random() * optionCount);
       const correct = chosen === q.correct;
-      const elapsed = delay / 1000;
+      const elapsed = Math.min(timePerQ, delay / 1000);
       const pts = correct ? Math.max(100, Math.round(1000 * (1 - elapsed / timePerQ))) : 0;
       try {
         await SessionDB.submitAnswer(LG.code, playerKey, qIndex, chosen, correct, pts);
@@ -135,7 +151,7 @@ function renderQuestion(data) {
 
   if (LG.role === "teacher") {
     renderTeacherQuestion(q, qIndex, total, timePerQ, data);
-    scheduleSimAnswers(qIndex, questions, timePerQ);
+    scheduleSimAnswers(qIndex, questions, timePerQ, data.players);
   } else {
     renderStudentQuestion(q, qIndex, total, timePerQ);
   }

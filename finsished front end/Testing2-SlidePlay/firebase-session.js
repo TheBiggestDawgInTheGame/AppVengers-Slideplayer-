@@ -6,7 +6,10 @@
  */
 
 (function () {
-  const DB = "https://slideplayer-d024f-default-rtdb.firebaseio.com";
+  const DB =
+    window.SLIDEPLAY_RTDB_URL ||
+    localStorage.getItem("sp_rtdb_url") ||
+    "https://slideplay-38d3f-default-rtdb.firebaseio.com";
 
   // ── Low-level REST helpers ──────────────────────────────────
   async function dbGet(path) {
@@ -147,13 +150,14 @@
     return s; // null if not found
   }
 
-  async function joinSession(code, playerName) {
+  async function joinSession(code, playerName, opts = {}) {
     const session = await getSession(code);
     if (!session) throw new Error("Session not found. Check your code.");
     if (session.status === "finished") throw new Error("This session has already ended.");
     const playerKey = Date.now() + "_" + Math.random().toString(36).slice(2, 6);
     await dbSet(`sessions/${code}/players/${playerKey}`, {
       name: playerName,
+      simulated: !!opts.simulated,
       score: 0,
       answers: {},
       answeredAt: {},
