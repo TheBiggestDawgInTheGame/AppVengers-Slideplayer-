@@ -265,7 +265,11 @@ async function upStartProcessing() {
   const qHint  = document.getElementById("upQAISuggested");
   if (qEl)    qEl.textContent  = q;
   if (qInput) qInput.value     = q;
-  if (qHint)  qHint.textContent = (result?.source === "ai" ? q + " (AI-generated from your slides)" : q + " (estimated)");
+  if (qHint) {
+    if (result?.source === "ai") qHint.textContent = q + " (AI-generated from your slides)";
+    else if (result?.source === "text_fallback") qHint.textContent = q + " (derived from slide text)";
+    else qHint.textContent = q + " (estimated)";
+  }
 
   const nb = document.getElementById("upNext1");
   if (nb) nb.disabled = false;
