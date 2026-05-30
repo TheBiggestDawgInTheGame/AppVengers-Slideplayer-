@@ -903,6 +903,7 @@
         overflow: hidden;
         backdrop-filter: blur(2.5px);
       }
+      #paid-overlay.hidden { display: none !important; }
       @keyframes fadeInScale {
         0% { opacity: 0; transform: scale(0.92); }
         100% { opacity: 1; transform: scale(1); }
@@ -2353,5 +2354,34 @@ ${text.substring(0, 8000)}`;
     </script>
 
     <script src="millionaire-app.js"></script>
+
+    <script>
+    // ── Subscription gate check ──────────────────────────────────────────
+    // Hide the paid-overlay if the user has an active paid student or teacher plan.
+    (function checkSubscriptionAccess() {
+      function hasPaidPlan() {
+        try {
+          // Check student subscription
+          var sSub = JSON.parse(localStorage.getItem('sp_student_subscription') || 'null');
+          if (sSub && sSub.status !== 'cancelled' &&
+              (sSub.plan === 'student_elite' || sSub.plan === 'student_premium')) return true;
+          // Check teacher subscription
+          var tSub = JSON.parse(localStorage.getItem('sp_subscription') || 'null');
+          if (tSub && tSub.status !== 'cancelled' &&
+              (tSub.plan === 'pro' || tSub.plan === 'school')) return true;
+        } catch (_) {}
+        return false;
+      }
+
+      if (hasPaidPlan()) {
+        var overlay = document.getElementById('paid-overlay');
+        if (overlay) {
+          overlay.classList.add('hidden');
+          // Also stop the background music
+          try { document.getElementById('paid-bgm').pause(); } catch (_) {}
+        }
+      }
+    })();
+    </script>
   </body>
 </html>

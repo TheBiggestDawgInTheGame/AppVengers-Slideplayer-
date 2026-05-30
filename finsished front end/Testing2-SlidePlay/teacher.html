@@ -6,6 +6,7 @@
       rel="stylesheet"
     />
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Teacher Dashboard</title>
     <link
@@ -14,6 +15,7 @@
     />
     <link rel="stylesheet" href="teacher.css" />
     <link rel="stylesheet" href="page-transition.css" />
+    <link rel="stylesheet" href="responsive-shared.css" />
     <style>
       /* GLOBAL FONT SYSTEM */
       body {
@@ -46,6 +48,29 @@
         font-family: "Poppins", sans-serif;
       }
     </style>
+  <script>
+    // Auth guard + subscription check — redirect to login if not signed in, or to payment if locked
+    (function(){
+      const uid = localStorage.getItem('sp_user_uid');
+      if(!uid){
+        window.location.replace('login.html');
+        return;
+      }
+      
+      // Check teacher subscription status
+      const subJson = localStorage.getItem('sp_teacher_subscription');
+      let sub = null;
+      try {
+        sub = subJson ? JSON.parse(subJson) : null;
+      } catch(_) {}
+      
+      // If subscription is locked or missing, redirect to payment
+      if (!sub || sub.status === 'locked') {
+        window.location.replace('onboarding-payment.html?role=teacher&returnTo=' + encodeURIComponent('teacher.html'));
+        return;
+      }
+    })();
+  </script>
   </head>
   <body>
     <!-- AURORA BACKGROUND ORBS -->
@@ -79,10 +104,19 @@
         <div class="teacher-pill">
           <img src="https://i.pravatar.cc/80?img=47" alt="Teacher avatar" />
           <div>
-            <strong>Dr. M. Stark</strong>
-            <span>Physics Department</span>
+            <strong id="teacherName">Teacher</strong>
+            <span id="teacherRole">Teacher</span>
           </div>
         </div>
+        <script>
+          (function(){
+            var n=localStorage.getItem('sp_user_displayName')||localStorage.getItem('sp_user_name')||(localStorage.getItem('sp_user_email')||'').split('@')[0]||'Teacher';
+            var nameEl=document.getElementById('teacherName');
+            var roleEl=document.getElementById('teacherRole');
+            if(nameEl)nameEl.textContent=n.replace(/\b\w/g,function(c){return c.toUpperCase();});
+            if(roleEl)roleEl.textContent='Teacher';
+          })();
+        </script>
       </div>
     </header>
 
@@ -331,13 +365,14 @@
 
           <!-- Drop zone -->
           <div class="upload-dropzone" id="sessDropzone">
-            <input type="file" id="sessFileInput" accept=".pdf,.pptx,.ppt,.docx,.doc" hidden />
+            <input type="file" id="sessFileInput" accept=".pdf,.pptx,.ppt,.docx,.doc,.png,.jpg,.jpeg,.webp,.gif,.bmp" hidden />
             <div class="udz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
             <p class="udz-title">Drop your file here or <span class="udz-browse">browse</span></p>
             <div class="udz-types">
               <span><i class="fa-solid fa-file-pdf"></i> PDF</span>
               <span><i class="fa-solid fa-file-powerpoint"></i> PPTX</span>
               <span><i class="fa-solid fa-file-word"></i> DOCX</span>
+              <span><i class="fa-solid fa-image"></i> PNG / JPG / WEBP</span>
             </div>
           </div>
 
@@ -384,6 +419,9 @@
             <span class="sess-code-label">SESSION CODE</span>
             <div class="sess-code-value" id="sessCodeVal">------</div>
             <button class="sess-copy-btn" id="sessCodeCopy"><i class="fa-solid fa-copy"></i> Copy Code</button>
+            <button class="sess-copy-btn" id="sessSmsBtn" style="background:rgba(61,255,192,.1);border-color:rgba(61,255,192,.4);color:#3dffc0;" onclick="openSmsInviteModal()">
+              <i class="fa-solid fa-mobile-screen-button"></i> SMS Invite
+            </button>
           </div>
           <div class="sess-fields">
             <div class="sess-field">
@@ -537,5 +575,90 @@
 
     <script src="teacher.js"></script>
     <script src="page-transition.js"></script>
+
+    <!-- ── SMS Invite Modal ──────────────────────────────────────── -->
+    <div id="smsInviteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:none;align-items:center;justify-content:center;">
+      <div style="background:#111827;border:1px solid rgba(61,255,192,.25);border-radius:14px;padding:32px;max-width:420px;width:90%;position:relative;">
+        <button onclick="closeSmsInviteModal()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:#7a8499;font-size:1.2rem;cursor:pointer;">&#10005;</button>
+        <h3 style="font-family:'Orbitron',sans-serif;color:#3dffc0;margin-bottom:6px;font-size:1.1rem;">&#128241; SMS Game Invite</h3>
+        <p style="color:#7a8499;font-size:0.85rem;margin-bottom:20px;">Send the game code to a student's phone (E.164 format, e.g. <code>+27831234567</code>).</p>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:0.8rem;color:#7a8499;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Phone Number</label>
+          <input id="smsPhoneInput" type="tel" placeholder="+27831234567" style="width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e0e6f0;padding:10px 14px;font-size:0.9rem;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:0.8rem;color:#7a8499;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Game Type (optional)</label>
+          <input id="smsGameTypeInput" type="text" placeholder="e.g. Jeopardy, Quiz, Speed Typing" style="width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e0e6f0;padding:10px 14px;font-size:0.9rem;box-sizing:border-box;" />
+        </div>
+        <button id="smsSendBtn" onclick="sendSmsInvite()" style="width:100%;background:linear-gradient(135deg,#3dffc0,#00f0ff);color:#0a0e1a;border:none;border-radius:8px;padding:12px;font-weight:700;font-size:0.95rem;cursor:pointer;font-family:'Orbitron',sans-serif;letter-spacing:.5px;">
+          Send SMS
+        </button>
+        <p id="smsFeedback" style="margin-top:12px;font-size:0.85rem;text-align:center;display:none;"></p>
+      </div>
+    </div>
+
+    <script>
+      function openSmsInviteModal() {
+        const modal = document.getElementById('smsInviteModal');
+        modal.style.display = 'flex';
+        // Pre-fill saved phone
+        const saved = localStorage.getItem('sp_user_phone');
+        if (saved) document.getElementById('smsPhoneInput').value = saved;
+      }
+      function closeSmsInviteModal() {
+        document.getElementById('smsInviteModal').style.display = 'none';
+        document.getElementById('smsFeedback').style.display = 'none';
+      }
+      function formatSmsError(data) {
+        if (!data) return 'Failed to send SMS.';
+        if (data.code === 'INVALID_PHONE') return 'Use E.164 format, e.g. +27831234567.';
+        if (data.code === 'NOT_CONFIGURED') return 'SMS service is not configured on the server.';
+        if (data.code === 'SEND_FAILED' && typeof data.error === 'string') {
+          if (data.error.toLowerCase().includes('unverified')) {
+            return 'Twilio trial restriction: number not verified yet.';
+          }
+          return data.error;
+        }
+        return data.error || 'Failed to send SMS.';
+      }
+      async function sendSmsInvite() {
+        const to       = document.getElementById('smsPhoneInput').value.trim();
+        const gameType = document.getElementById('smsGameTypeInput').value.trim();
+        const gameCode = document.getElementById('sessCodeVal')?.textContent?.trim() || '------';
+        const hostName = localStorage.getItem('sp_user_name') || 'Your teacher';
+        const btn      = document.getElementById('smsSendBtn');
+        const feedback = document.getElementById('smsFeedback');
+
+        if (!to) { showSmsFeedback('Please enter a phone number.', false); return; }
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+        try {
+          const res  = await fetch('/api/sms/game-invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to, gameCode, hostName, gameType }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ok) {
+            showSmsFeedback('SMS sent! ✓', true);
+            localStorage.setItem('sp_user_phone', to);
+            setTimeout(closeSmsInviteModal, 2000);
+          } else {
+            showSmsFeedback(formatSmsError(data), false);
+          }
+        } catch (e) {
+          showSmsFeedback('Network error: ' + e.message, false);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Send SMS';
+        }
+      }
+      function showSmsFeedback(msg, ok) {
+        const el = document.getElementById('smsFeedback');
+        el.textContent = msg;
+        el.style.color = ok ? '#3dffc0' : '#ff4d6d';
+        el.style.display = 'block';
+      }
+    </script>
   </body>
 </html>

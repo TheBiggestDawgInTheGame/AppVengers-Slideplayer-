@@ -546,6 +546,7 @@ body {
   position: absolute;
   inset: 0;
   background: rgba(16,7,23,0.72);
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   display: flex;
   flex-direction: column;
@@ -867,7 +868,9 @@ body {
 .up-notify-send:disabled { opacity: 0.45; cursor: not-allowed; }
 .up-notify-status { font-size: 0.78rem; font-weight: 600; }
 .up-notify-ok  { color: #34d399; }
-.up-notify-err { color: #f87171; } display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.up-notify-err { color: #f87171; }
+
+.up-action-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .up-start-btn {
   background: linear-gradient(135deg, #059669, #34d399);
   border: none;
@@ -884,12 +887,14 @@ body {
   gap: 8px;
   transition: all 0.2s;
   animation: startGlow 2s ease-in-out infinite;
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.25);
 }
 @keyframes startGlow {
   0%,100% { box-shadow: 0 0 12px rgba(52,211,153,0.3); }
   50%      { box-shadow: 0 0 28px rgba(52,211,153,0.65); }
 }
-.up-start-btn:hover { transform: translateY(-2px); }
+.up-start-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(5,150,105,0.35); }
+.up-start-btn:focus-visible { outline: 2px solid #34d399; outline-offset: 3px; }
 .up-end-btn {
   background: transparent;
   border: 1.5px solid rgba(248,113,113,0.3);

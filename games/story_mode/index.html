@@ -23,13 +23,18 @@
     </div>
 
     <!-- Daily Challenge Card -->
-    <div id="daily-challenge" class="challenge-card" tabindex="0" aria-label="Daily Challenge">
-        <h3>Challenge of the Day</h3>
-        <div class="challenge-meta-row">
-            <span id="challenge-difficulty-badge" class="challenge-difficulty-badge">Easy</span>
+    <div id="daily-challenge" class="challenge-card collapsed" tabindex="0" aria-label="Daily Challenge">
+        <div class="challenge-card-title-row">
+            <h3>Challenge of the Day</h3>
+            <button class="challenge-toggle-btn" onclick="toggleChallengeCard()" aria-label="Expand challenge card">▴</button>
         </div>
-        <p id="challenge-desc">Complete any world without using hints!</p>
-        <button onclick="acceptChallenge()">Accept</button>
+        <div class="challenge-body">
+            <div class="challenge-meta-row">
+                <span id="challenge-difficulty-badge" class="challenge-difficulty-badge">Easy</span>
+            </div>
+            <p id="challenge-desc">Complete any world without using hints!</p>
+            <button onclick="acceptChallenge()">Accept</button>
+        </div>
     </div>
 
     <!-- Daily Reward Breakdown Modal -->
@@ -65,7 +70,11 @@
     <!-- Cutscene Modal (Comic Panel) -->
     <div id="cutscene-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
         <div class="modal-content">
-            <img src="images/cutscene_intro.png" alt="Intro Comic Panel" class="cutscene-image"/>
+            <img src="images/cutscene_intro.png" alt="Intro Comic Panel" class="cutscene-image cutscene-placeholder" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"/>
+            <div class="cutscene-placeholder-div" style="display:none;width:100%;height:220px;border-radius:12px;background:linear-gradient(135deg,#0f1530,#1e2250);border:1px solid #2d3566;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+                <div style="font-size:3rem;">🌆</div>
+                <p style="color:#7de7dc;font-size:0.88rem;letter-spacing:1px;text-transform:uppercase;">A new threat rises in the city shadows...</p>
+            </div>
             <p>"A new threat rises in the city shadows..."</p>
             <button onclick="closeCutscene()">Continue</button>
         </div>
@@ -82,9 +91,9 @@
     <div id="share-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
         <div class="modal-content">
             <h2>Share Your Progress</h2>
-            <p>Copy your progress link or share with friends!</p>
-            <input id="progress-link" value="https://storymode.app/progress/your-id" readonly class="progress-link-input" aria-label="Progress link" />
-            <button onclick="copyProgressLink()">Copy Link</button>
+            <p>Copy your progress snapshot to share with friends!</p>
+            <textarea id="progress-link" readonly class="progress-link-input" rows="3" aria-label="Progress snapshot"></textarea>
+            <button onclick="copyProgressLink()">Copy</button>
             <button onclick="closeShare()">Close</button>
         </div>
     </div>
@@ -134,23 +143,73 @@
     </div>
     <!-- In-Game Help Modal -->
     <div id="help-modal" class="modal modal-hidden" aria-modal="true" role="dialog" tabindex="-1">
-        <div class="modal-content">
+        <div class="modal-content help-modal-content">
             <h2>In-Game Help</h2>
-            <p>Need help? Here you'll find tips, controls, and FAQ.</p>
+            <div class="help-sections">
+                <div class="help-section">
+                    <h4>🎮 Getting Started</h4>
+                    <ul>
+                        <li>Pick an <strong>Operator</strong> on the Character screen — each has unique abilities and difficulty.</li>
+                        <li>On the Mission screen, choose a <strong>World</strong> to enter. Harder worlds award more points.</li>
+                        <li>Worlds unlock in order — complete earlier ones to open the next.</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h4>⭐ Points &amp; Progress</h4>
+                    <ul>
+                        <li>Each completed world earns <strong>120 pts</strong> (180 in Co-op mode).</li>
+                        <li>Bonus points are awarded for collectibles found inside a world.</li>
+                        <li>Progress saves automatically — use <strong>Save / Resume</strong> for manual slots.</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h4>🔥 Daily Challenge</h4>
+                    <ul>
+                        <li>A new challenge appears each day. <strong>Accept</strong> it to start tracking.</li>
+                        <li>Complete the challenge conditions during your next world run to earn bonus points.</li>
+                        <li>Completing challenges on consecutive days builds your <strong>Streak</strong> multiplier.</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h4>🤝 Co-op Mode</h4>
+                    <ul>
+                        <li>Toggle <strong>Co-op</strong> from the top bar before launching a world.</li>
+                        <li>Co-op runs award extra points and unlock the <em>Team Player</em> achievement.</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h4>⌨️ Keyboard Shortcuts</h4>
+                    <ul>
+                        <li><kbd>Esc</kbd> — Close any open modal</li>
+                        <li><kbd>Tab</kbd> — Navigate world cards on the Mission screen</li>
+                        <li><kbd>Enter</kbd> — Select focused world card</li>
+                    </ul>
+                </div>
+            </div>
             <button onclick="closeHelp()">Close</button>
         </div>
     </div>
     <div class="container story-container">
-            <button id="achievements-btn" class="floating-btn pos-achievements" aria-label="View Achievements" onclick="openAchievements()">🏆</button>
-        <button id="leaderboard-btn" class="floating-btn pos-leaderboard" aria-label="View Leaderboard" onclick="openLeaderboard()">🏅</button>
-        <button id="share-btn" class="floating-btn pos-share" aria-label="Share Progress" onclick="openShare()">🔗</button>
-        <button id="avatar-btn" class="floating-btn pos-avatar" aria-label="Customize Avatar" onclick="openAvatar()">🧑‍🎨</button>
-        <button id="language-btn" class="floating-btn pos-language" aria-label="Language Options" onclick="openLanguage()">🌐</button>
-        <button id="help-btn" class="floating-btn pos-help" aria-label="In-Game Help" onclick="openHelp()">❓</button>
-        <button id="save-btn" class="floating-btn pos-save" aria-label="Save/Resume" onclick="openSave()">💾</button>
-        <button id="coop-btn" class="floating-btn pos-coop" aria-label="Toggle Co-op Story Mode" onclick="toggleCoopMode()">🤝</button>
-        <button id="contrast-btn" class="floating-btn pos-contrast" aria-label="Toggle High Contrast" onclick="toggleHighContrast()">🌓</button>
-        <button id="motion-btn" class="floating-btn pos-motion" aria-label="Toggle Reduced Motion" onclick="toggleReducedMotion()">🎞️</button>
+        <!-- Quick-action top navbar — replaces scattered fixed buttons -->
+        <nav class="quick-nav" aria-label="Quick actions">
+            <button id="achievements-btn" class="qnav-btn" aria-label="View Achievements" onclick="openAchievements()">🏆 <span>Achievements</span></button>
+            <button id="leaderboard-btn" class="qnav-btn" aria-label="View Leaderboard" onclick="openLeaderboard()">🏅 <span>Leaderboard</span></button>
+            <button id="share-btn" class="qnav-btn" aria-label="Share Progress" onclick="openShare()">🔗 <span>Share</span></button>
+            <button id="avatar-btn" class="qnav-btn" aria-label="Customize Avatar" onclick="openAvatar()">🧑‍🎨 <span>Avatar</span></button>
+            <button id="language-btn" class="qnav-btn" aria-label="Language Options" onclick="openLanguage()">🌐 <span>Language</span></button>
+            <button id="coop-btn" class="qnav-btn" aria-label="Toggle Co-op" onclick="toggleCoopMode()">🤝 <span>Co-op</span></button>
+            <button id="save-btn" class="qnav-btn" aria-label="Save/Resume" onclick="openSave()">💾 <span>Save</span></button>
+            <button id="help-btn" class="qnav-btn" aria-label="In-Game Help" onclick="openHelp()">❓ <span>Help</span></button>
+            <div class="qnav-secondary">
+                <button id="contrast-btn" class="qnav-btn" aria-label="Toggle High Contrast" onclick="toggleHighContrast()">🌓</button>
+                <button id="motion-btn" class="qnav-btn" aria-label="Toggle Reduced Motion" onclick="toggleReducedMotion()">🎞️</button>
+                <label class="qnav-volume" aria-label="Music volume">
+                    🔊<input type="range" id="music-volume" min="0" max="1" step="0.05" value="0.35"
+                        oninput="const m=document.getElementById('ambient-music');if(m)m.volume=this.value;localStorage.setItem('storyModeVolume',this.value);"
+                        aria-label="Music volume slider">
+                </label>
+            </div>
+        </nav>
         <script>
         // Dynamic Animated Background
         const bgCanvas = document.getElementById('dynamic-bg');
@@ -163,39 +222,87 @@
             window.addEventListener('resize', resizeBg);
             resizeBg();
             let t = 0;
+            const orbColors = [[0,217,255],[255,47,125],[0,209,160],[96,48,255],[255,180,0]];
             function animateBg() {
                 ctx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
-                for(let i=0;i<18;i++){
-                    const x = Math.sin(t/40+i)*bgCanvas.width*0.4+bgCanvas.width/2;
-                    const y = Math.cos(t/30+i*1.2)*bgCanvas.height*0.3+bgCanvas.height/2;
-                    ctx.beginPath();
-                    ctx.arc(x,y,38+18*Math.sin(t/20+i),0,2*Math.PI);
-                    ctx.fillStyle = `rgba(${180+60*Math.sin(i)},${220+20*Math.cos(i)},${255-40*i},0.08)`;
-                    ctx.fill();
+                // Tactical grid overlay
+                const gridAlpha = 0.018 + 0.007 * Math.sin(t / 80);
+                ctx.strokeStyle = `rgba(0,217,255,${gridAlpha})`;
+                ctx.lineWidth = 0.5;
+                const gs = 90;
+                for(let x = 0; x < bgCanvas.width; x += gs) {
+                    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,bgCanvas.height); ctx.stroke();
                 }
-                t+=1;
+                for(let y = 0; y < bgCanvas.height; y += gs) {
+                    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(bgCanvas.width,y); ctx.stroke();
+                }
+                // Radial gradient orbs
+                for(let i = 0; i < 7; i++){
+                    const c = orbColors[i % orbColors.length];
+                    const x = Math.sin(t/55+i*1.4)*bgCanvas.width*0.42+bgCanvas.width/2;
+                    const y = Math.cos(t/42+i*1.7)*bgCanvas.height*0.35+bgCanvas.height/2;
+                    const r = 70 + 35 * Math.sin(t/28+i);
+                    const grad = ctx.createRadialGradient(x,y,0,x,y,r);
+                    grad.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},0.13)`);
+                    grad.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
+                    ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI);
+                    ctx.fillStyle = grad; ctx.fill();
+                }
+                t += 0.7;
                 requestAnimationFrame(animateBg);
             }
             animateBg();
         }
         // Ambient Music
         const music = document.getElementById('ambient-music');
-        if(music) { music.volume = 0.35; music.play().catch(()=>{}); }
+        if(music) {
+            const savedVol = parseFloat(localStorage.getItem('storyModeVolume') || '0.35');
+            music.volume = savedVol;
+            const slider = document.getElementById('music-volume');
+            if (slider) slider.value = savedVol;
+            music.play().catch(()=>{});
+        }
         // Achievements Modal Logic
         function openAchievements() {
+            window.renderAchievements?.();
             document.getElementById('achievements-modal').style.display = 'flex';
-            // Example achievements
-            document.getElementById('achievements-list').innerHTML = '<li>First World Complete</li><li>Challenge Master</li><li>All Worlds Unlocked</li>';
         }
         function closeAchievements() { document.getElementById('achievements-modal').style.display = 'none'; }
         // Cutscene Modal Logic
         function closeCutscene() { document.getElementById('cutscene-modal').style.display = 'none'; }
+        // Challenge card toggle
+        function toggleChallengeCard() {
+            const card = document.getElementById('daily-challenge');
+            const btn = card.querySelector('.challenge-toggle-btn');
+            card.classList.toggle('collapsed');
+            btn.textContent = card.classList.contains('collapsed') ? '▴' : '▾';
+        }
         </script>
         <!-- Main Menu Screen -->
         <div class="screen active" id="mainMenuScreen">
             <h1>🎮 STORY MODE</h1>
+            <p class="menu-tagline">South African Tactical Adventure</p>
+            <div class="menu-stats-hud" id="menuStatsHud">
+                <div class="menu-stat">
+                    <span class="menu-stat-val" id="hudPoints">0</span>
+                    <span class="menu-stat-label">Points</span>
+                </div>
+                <div class="menu-stat-divider"></div>
+                <div class="menu-stat">
+                    <span class="menu-stat-val" id="hudMissions">0/5</span>
+                    <span class="menu-stat-label">Worlds</span>
+                </div>
+                <div class="menu-stat-divider"></div>
+                <div class="menu-stat">
+                    <span class="menu-stat-val" id="hudStreak">&mdash;</span>
+                    <span class="menu-stat-label">Streak</span>
+                </div>
+            </div>
             <button class="menu-button" onclick="goToCharacterSelection()">
                 START ADVENTURE
+            </button>
+            <button class="continue-btn" id="continueBtn" onclick="continueSavedGame()" style="display:none;">
+                ▶ CONTINUE
             </button>
         </div>
 
@@ -342,12 +449,13 @@ rotateProfByteTip();
         <!-- Game Loading Screen -->
         <div class="screen" id="gameLoadingScreen">
             <div class="game-loading">
-                <h1>LOADING GAME</h1>
+                <div class="loading-operator-row" id="loadingOperatorRow"></div>
+                <h1 id="loadingHeading">LOADING GAME</h1>
                 <div class="loading-info" id="loadingInfo"></div>
                 <div class="progress-bar">
                     <div class="progress-fill"></div>
                 </div>
-                <p class="loading-note">Get ready for an epic adventure...</p>
+                <p class="loading-note" id="loadingNote">Get ready for an epic adventure...</p>
             </div>
         </div>
 
@@ -362,17 +470,28 @@ rotateProfByteTip();
     // Placeholder modal open/close functions
     function openLeaderboard() { window.openModalWithFocus ? openModalWithFocus('leaderboard-modal') : document.getElementById('leaderboard-modal').style.display = 'flex'; }
     function closeLeaderboard() { window.closeModalWithFocus ? closeModalWithFocus('leaderboard-modal') : document.getElementById('leaderboard-modal').style.display = 'none'; }
-    function openShare() { window.openModalWithFocus ? openModalWithFocus('share-modal') : document.getElementById('share-modal').style.display = 'flex'; }
+    function openShare() {
+        // Build a text snapshot of current progress
+        const pts = window.progressState?.points ?? 0;
+        const missions = window.progressState?.missionsCompleted ?? 0;
+        const streak = window.getEffectiveDailyStreak?.(window.getDayKey?.()) ?? 0;
+        const char = window.selectedCharacter?.name ?? 'Unknown Operator';
+        const snap = `🎮 Story Mode — ${char}\n🌍 ${missions}/5 worlds completed\n⭐ ${pts.toLocaleString()} points\n🔥 ${streak}-day streak`;
+        const ta = document.getElementById('progress-link');
+        if (ta) ta.value = snap;
+        window.openModalWithFocus ? openModalWithFocus('share-modal') : document.getElementById('share-modal').style.display = 'flex';
+    }
     function closeShare() { window.closeModalWithFocus ? closeModalWithFocus('share-modal') : document.getElementById('share-modal').style.display = 'none'; }
     async function copyProgressLink() {
         const link = document.getElementById('progress-link');
         const text = link.value;
         try {
             await navigator.clipboard.writeText(text);
-            alert('Link copied!');
+            showToast('Link copied to clipboard!', 'success');
         } catch (e) {
             link.select();
             document.execCommand('copy');
+            showToast('Link copied!', 'success');
             alert('Link copied!');
         }
     }

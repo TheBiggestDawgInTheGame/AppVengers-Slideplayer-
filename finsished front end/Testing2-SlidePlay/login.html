@@ -14,6 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="responsive-shared.css" />
 
     <style>
       * {
@@ -296,6 +297,7 @@
               class="input-field"
               placeholder="Enter password"
             />
+            <i class="fa-solid fa-eye toggle-pw" id="togglePw" style="cursor:pointer;color:#64748b;transition:color 0.2s;" title="Show password"></i>
           </div>
           <div class="error-text" id="passwordError"></div>
         </div>
@@ -305,7 +307,7 @@
           <a href="#" id="forgotPassword">Forgot Password?</a>
         </div>
 
-        <button class="submit-btn" type="submit">SIGN IN</button>
+        <button class="submit-btn" type="submit">LOGIN</button>
 
         <div class="success-box" id="successBox"></div>
 
@@ -313,7 +315,7 @@
 
         <button type="button" id="googleLoginBtn" class="google-btn">
           <img src="google.png" alt="Google" />
-          Sign in with Google
+          Login with Google
         </button>
       </form>
 
@@ -348,6 +350,19 @@
           e.preventDefault();
           window.location.href = "reset.html";
         });
+    </script>
+
+    <!-- TOGGLE PASSWORD VISIBILITY -->
+    <script>
+      const togglePw = document.getElementById('togglePw');
+      const pwField  = document.getElementById('password');
+      togglePw.addEventListener('click', () => {
+        const show = pwField.type === 'password';
+        pwField.type = show ? 'text' : 'password';
+        togglePw.classList.toggle('fa-eye',      !show);
+        togglePw.classList.toggle('fa-eye-slash', show);
+        togglePw.style.color = show ? '#8b5cf6' : '#64748b';
+      });
     </script>
 
     <script type="module" src="authentication.js"></script>

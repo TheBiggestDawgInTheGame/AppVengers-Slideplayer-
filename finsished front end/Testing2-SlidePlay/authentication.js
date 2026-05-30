@@ -268,8 +268,19 @@ function setupSignupForm() {
         createdAt: new Date().toISOString(),
       }).catch(() => {});
       setLocalUser(cred.user.uid, email, role, username);
+      
+      // Initialize new user with locked/free subscription state
+      const subscriptionKey = role === "teacher" ? "sp_teacher_subscription" : "sp_student_subscription";
+      localStorage.setItem(subscriptionKey, JSON.stringify({
+        plan: "free",
+        status: "locked",
+        createdAt: Date.now()
+      }));
+      
       syncUserToDB(cred.user.uid, email, username, role).catch(() => {});
-      window.location.href = getDashboard(role);
+      
+      // Redirect to onboarding payment page instead of dashboard
+      window.location.href = `onboarding-payment.html?role=${encodeURIComponent(role)}&returnTo=${encodeURIComponent(getDashboard(role))}`;
     } catch (err) {
       btn.disabled = false;
       btn.textContent = "Create Account";

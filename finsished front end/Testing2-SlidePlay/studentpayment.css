@@ -640,3 +640,28 @@ body {
   .checkout-panel { padding: 24px 16px 20px; }
   .form-row { grid-template-columns: 1fr; }
 }
+
+/* -- Global Theme Sync: Light Mode -- */
+body.light-mode {
+  --bg-deep: #f6f8ff;
+  --bg-dark: #eef2ff;
+  --bg-card: #ffffff;
+  --bg-panel: rgba(255, 255, 255, 0.96);
+  --border: rgba(99, 102, 241, 0.18);
+  --text: #0f172a;
+  --text-dim: #475569;
+}
+
+body.light-mode .bank-row strong,
+body.light-mode .order-row span:last-child,
+body.light-mode .success-panel h2 {
+  color: #0f172a;
+}
+
+body.light-mode .coupon-row input,
+body.light-mode .order-summary,
+body.light-mode .receipt-box,
+body.light-mode .success-panel {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(99, 102, 241, 0.2);
+}

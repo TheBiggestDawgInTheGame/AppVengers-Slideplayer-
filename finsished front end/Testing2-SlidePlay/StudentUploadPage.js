@@ -3,6 +3,29 @@
 
 var chillFile = null;       // File object from upload
 var selectedPlay = "";      // "solo" | "2players" | "tournament"
+var API_BASE = (
+  window.SLIDEPLAY_API_BASE ||
+  localStorage.getItem("sp_api_base") ||
+  window.location.origin
+).replace(/\/$/, "");
+
+// ── Refresh subscription from DB on load ──────────────────────────────────────
+(function refreshSubscriptionFromDB() {
+  var uid = localStorage.getItem("sp_user_uid");
+  if (!uid) return;
+  fetch(API_BASE + "/api/users/" + uid + "/subscription")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data && data.Plan) {
+        localStorage.setItem("sp_student_subscription", JSON.stringify({
+          plan: data.Plan.toLowerCase(),
+          status: data.Status ? data.Status.toLowerCase() : "active",
+        }));
+        updateTriesUI();
+      }
+    })
+    .catch(function() { /* server offline — use cached localStorage value */ });
+})();
 
 // ── Tries tracker ─────────────────────────────────────────────────────────────
 // Free plan: 5 uploads per week. Elite/Premium: unlimited.

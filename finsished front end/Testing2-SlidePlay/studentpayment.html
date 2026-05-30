@@ -7,6 +7,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Rajdhani:wght@500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="studentpayment.css" />
+  <link rel="stylesheet" href="responsive-shared.css" />
+  <script src="theme-sync.js"></script>
+  <script>
+    if (!localStorage.getItem('sp_user_uid')) {
+      window.location.replace('login.html');
+    }
+  </script>
 </head>
 <body data-role="student">
   <div class="hud-grid"></div>
@@ -23,7 +30,7 @@
       <a href="Studentdashboard.html" class="nav-item"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
       <a href="library.html" class="nav-item"><i class="fa-solid fa-book"></i><span>Library</span></a>
       <a href="quests.html" class="nav-item"><i class="fa-solid fa-bolt"></i><span>Quests</span></a>
-      <a href="game.html" class="nav-item"><i class="fa-solid fa-gamepad"></i><span>Game Mode</span></a>
+      <a href="choose_exp.html" class="nav-item"><i class="fa-solid fa-gamepad"></i><span>Game Mode</span></a>
       <a href="billing.html" class="nav-item"><i class="fa-solid fa-credit-card"></i><span>Billing</span></a>
       <a href="studentpayment.html" class="nav-item active"><i class="fa-solid fa-wallet"></i><span>Student Payment</span></a>
       <a href="settings.html" class="nav-item"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
@@ -142,6 +149,8 @@
         <button class="method-tab" data-method="mobile"><i class="fa-solid fa-mobile-screen-button"></i> Mobile Money</button>
         <button class="method-tab" data-method="bank"><i class="fa-solid fa-building-columns"></i> Bank Transfer</button>
         <button class="method-tab" data-method="crypto"><i class="fa-brands fa-bitcoin"></i> Crypto</button>
+        <button class="method-tab" data-method="payfast"><img src="https://www.payfast.io/wp-content/uploads/2022/11/Payfast-logo-2022.svg" alt="PayFast" style="height:1em;vertical-align:middle;margin-right:4px;filter:brightness(0) invert(1);"> PayFast</button>
+        <button class="method-tab" data-method="stripe"><i class="fa-brands fa-stripe-s"></i> Stripe</button>
       </div>
       <!-- Card Form -->
       <form class="payment-form" id="paymentForm" novalidate>
@@ -210,6 +219,35 @@
             <div class="bank-row"><span>Settlement</span><strong>Real-time blockchain confirmation</strong></div>
           </div>
           <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will be redirected to a secure Coinbase-hosted checkout page.</p>
+          <button type="button" class="pay-btn" id="cryptoBtn">
+            <span><i class="fa-brands fa-bitcoin"></i> Pay with Crypto</span>
+          </button>
+        </div>
+        <!-- PayFast -->
+        <div class="pay-method-panel" id="panel-payfast">
+          <div class="bank-details-box">
+            <h4><img src="https://www.payfast.io/wp-content/uploads/2022/11/Payfast-logo-2022.svg" alt="PayFast" style="height:1.2em;vertical-align:middle;margin-right:6px;filter:brightness(0) invert(1);"> PayFast Payment</h4>
+            <div class="bank-row"><span>Provider</span><strong>PayFast</strong></div>
+            <div class="bank-row"><span>Supported</span><strong>Card, EFT, Instant EFT, SnapScan</strong></div>
+            <div class="bank-row"><span>Region</span><strong>South Africa</strong></div>
+          </div>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will be redirected to PayFast to complete your payment securely.</p>
+          <button type="button" class="pay-btn" id="payfastBtn">
+            <span><i class="fa-solid fa-lock"></i> Pay with PayFast</span>
+          </button>
+        </div>
+        <!-- Stripe -->
+        <div class="pay-method-panel" id="panel-stripe">
+          <div class="bank-details-box">
+            <h4><i class="fa-brands fa-stripe-s"></i> Pay with Stripe</h4>
+            <div class="bank-row"><span>Accepted</span><strong>Visa, Mastercard, Amex</strong></div>
+            <div class="bank-row"><span>Security</span><strong>256-bit SSL encryption</strong></div>
+            <div class="bank-row"><span>Mode</span><strong id="stripeModeLabel">Demo (test)</strong></div>
+          </div>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will be redirected to a secure Stripe-hosted checkout page.</p>
+          <button type="button" class="pay-btn" id="stripeBtn">
+            <span><i class="fa-brands fa-stripe-s"></i> Pay with Stripe</span>
+          </button>
         </div>
         <!-- Coupon -->
         <div class="coupon-row">

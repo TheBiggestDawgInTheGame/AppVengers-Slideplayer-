@@ -6,6 +6,7 @@
       rel="stylesheet"
     />
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>SlidePlayer | Settings</title>
     <link
@@ -14,6 +15,7 @@
     />
     <link rel="stylesheet" href="settings.css" />
     <link rel="stylesheet" href="page-transition.css" />
+    <link rel="stylesheet" href="responsive-shared.css" />
     <style>
       /* GLOBAL FONT SYSTEM */
       body {
@@ -139,11 +141,46 @@
             </div>
           </div>
           <div class="control">
-            <select>
-              <option>English (US)</option>
-              <option>Japanese</option>
-              <option>French</option>
+            <select id="inputLanguageSelect" onchange="saveLanguagePref(this.value)">
+              <option value="">English (US)</option>
+              <option value="Japanese">Japanese</option>
+              <option value="French">French</option>
             </select>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="info">
+            <i class="fa-solid fa-mobile-screen-button"></i>
+            <div>
+              <h3>SMS Notifications</h3>
+              <p>Receive game invites and payment confirmations via text.</p>
+            </div>
+          </div>
+          <div class="control" style="flex-direction:column;align-items:flex-end;gap:10px;">
+            <label class="switch">
+              <input type="checkbox" id="smsOptIn" onchange="saveSmsOptIn(this.checked)" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-row" id="phoneRow">
+          <div class="info">
+            <i class="fa-solid fa-phone"></i>
+            <div>
+              <h3>Phone Number</h3>
+              <p>E.164 format for SMS (e.g. +27831234567). Used for game invites and payment alerts.</p>
+            </div>
+          </div>
+          <div class="control" style="flex-direction:column;align-items:flex-end;gap:8px;">
+            <input type="tel" id="phoneInput" placeholder="+27831234567"
+              style="background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#e0e6f0;padding:9px 12px;font-size:0.85rem;width:180px;" />
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button onclick="savePhone()" style="background:linear-gradient(135deg,#00f0ff,#3dffc0);color:#0a0e1a;border:none;border-radius:6px;padding:7px 16px;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:'Orbitron',sans-serif;">SAVE</button>
+              <button onclick="testSms()" style="background:transparent;border:1px solid rgba(0,240,255,.3);color:#00f0ff;border-radius:6px;padding:7px 14px;font-size:0.8rem;cursor:pointer;">Test SMS</button>
+            </div>
+            <p id="phoneFeedback" style="font-size:0.8rem;color:#3dffc0;display:none;"></p>
           </div>
         </div>
 

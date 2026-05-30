@@ -140,7 +140,7 @@ const SESS_FAKE_NAMES = [
 ];
 
 const SESS_GAME_URLS = {
-  quiz:     "../../games/quiz_game/",
+  quiz:     "../../games/jeopardy-3d/",
   jeopardy: "../../games/jeopardy-quiz/",
   scramble: "../../games/scramble_game/",
   memory:   "../../games/memory_chain_game/",

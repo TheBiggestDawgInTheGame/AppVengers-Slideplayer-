@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlidePlay | Complete Your Setup</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Rajdhani:wght@500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="StudentDashboard.css" />
+  <link rel="stylesheet" href="responsive-shared.css" />
+  <script src="theme-sync.js"></script>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .onboarding-container {
+      max-width: 900px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 40px;
+      animation: slideInUp 0.5s ease-out;
+    }
+
+    .onboarding-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .onboarding-header h1 {
+      font-size: 2rem;
+      font-family: 'Orbitron', sans-serif;
+      color: #f0f4ff;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .onboarding-header p {
+      font-size: 1rem;
+      color: #a0a0a0;
+      margin-bottom: 4px;
+    }
+
+    .onboarding-header .role-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: #8b5cf6;
+      margin-top: 12px;
+    }
+
+    .plans-wrapper {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .plan-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 28px;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .plan-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(139, 92, 246, 0.4);
+      transform: translateY(-4px);
+    }
+
+    .plan-card.selected {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: rgba(139, 92, 246, 0.6);
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .plan-icon {
+      font-size: 2.5rem;
+      color: #8b5cf6;
+      margin-bottom: 16px;
+    }
+
+    .plan-name {
+      font-size: 1.3rem;
+      font-family: 'Orbitron', sans-serif;
+      color: #f0f4ff;
+      margin-bottom: 8px;
+    }
+
+    .plan-desc {
+      font-size: 0.9rem;
+      color: #a0a0a0;
+      margin-bottom: 16px;
+    }
+
+    .plan-price {
+      font-size: 2rem;
+      font-family: 'Orbitron', sans-serif;
+      color: #06b6d4;
+      margin-bottom: 16px;
+    }
+
+    .plan-price-period {
+      font-size: 0.85rem;
+      color: #a0a0a0;
+      display: block;
+    }
+
+    .plan-features {
+      list-style: none;
+      font-size: 0.9rem;
+      color: #a0a0a0;
+      margin-bottom: 20px;
+    }
+
+    .plan-features li {
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .plan-features i {
+      color: #06b6d4;
+    }
+
+    .plan-free {
+      opacity: 0.7;
+    }
+
+    .plan-free .plan-icon {
+      color: #a0a0a0;
+    }
+
+    .plan-select-btn {
+      width: 100%;
+      padding: 10px 16px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 8px;
+      color: #8b5cf6;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .plan-card.selected .plan-select-btn {
+      background: #8b5cf6;
+      color: #fff;
+      border-color: #8b5cf6;
+    }
+
+    .payment-section {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .payment-section h3 {
+      font-family: 'Orbitron', sans-serif;
+      color: #f0f4ff;
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+    }
+
+    .payment-methods {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .payment-method-btn {
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #a0a0a0;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+    }
+
+    .payment-method-btn:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .payment-method-btn.selected {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.6);
+      color: #8b5cf6;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: space-between;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-family: 'Poppins', sans-serif;
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #a0a0a0;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .warning-box {
+      background: rgba(244, 114, 182, 0.1);
+      border: 1px solid rgba(244, 114, 182, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      color: #f472b6;
+      margin-top: 20px;
+      font-size: 0.9rem;
+    }
+
+    .warning-box i {
+      margin-right: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .onboarding-container {
+        padding: 24px;
+      }
+
+      .onboarding-header h1 {
+        font-size: 1.5rem;
+      }
+
+      .plans-wrapper {
+        grid-template-columns: 1fr;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+      }
+    }
+
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body class="dark-mode" data-role="student">
+  <div class="hud-grid"></div>
+
+  <div class="onboarding-container">
+    <div class="onboarding-header">
+      <h1>Complete Your Setup</h1>
+      <p>Select a plan to unlock your SlidePlay experience</p>
+      <div class="role-badge">
+        <i class="fa-solid fa-graduation-cap" id="roleBadgeIcon"></i>
+        <span id="roleBadgeText">Student</span>
+      </div>
+    </div>
+
+    <div class="plans-wrapper" id="plansContainer"></div>
+
+    <div class="payment-section">
+      <h3><i class="fa-solid fa-credit-card"></i> Payment Method</h3>
+      <div class="payment-methods" id="paymentMethodsContainer">
+        <button class="payment-method-btn selected" data-method="card">
+          <i class="fa-solid fa-credit-card"></i><br>Card
+        </button>
+        <button class="payment-method-btn" data-method="mobile">
+          <i class="fa-solid fa-mobile-screen-button"></i><br>Mobile Money
+        </button>
+        <button class="payment-method-btn" data-method="payfast">
+          <i class="fa-solid fa-building-columns"></i><br>PayFast
+        </button>
+        <button class="payment-method-btn" data-method="stripe">
+          <i class="fa-brands fa-stripe-s"></i><br>Stripe
+        </button>
+      </div>
+      <div class="warning-box" id="freeWarning" style="display:none;">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Free plan is immediately active. You can upgrade anytime.</span>
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+      <button class="btn btn-primary" id="completeBtn" onclick="completeOnboarding()" disabled>
+        <span id="completeBtnText">Select a Plan</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="firebase-session.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const userRole = urlParams.get('role') || 'student';
+    const returnTo = urlParams.get('returnTo') || (userRole === 'teacher' ? 'teacher.html' : 'Studentdashboard.html');
+
+    let selectedPlan = null;
+    let selectedPaymentMethod = 'card';
+
+    const plans = {
+      student: [
+        {
+          key: 'free',
+          name: 'Free',
+          icon: 'fa-leaf',
+          price: '$0',
+          period: '/mo',
+          desc: 'Get started with basic features',
+          features: ['Access to basic games', 'Limited quests', 'Community support']
+        },
+        {
+          key: 'student_elite',
+          name: 'Student Elite',
+          icon: 'fa-crown',
+          price: '$9',
+          period: '/mo',
+          desc: 'Everything you need',
+          features: ['All games unlocked', 'Daily challenges', 'Priority support', 'Leaderboards']
+        },
+        {
+          key: 'student_premium',
+          name: 'Student Premium',
+          icon: 'fa-star',
+          price: '$15',
+          period: '/mo',
+          desc: 'Maximum features & benefits',
+          features: ['All Elite features', 'Premium tournaments', 'Early access', 'Dedicated support']
+        }
+      ],
+      teacher: [
+        {
+          key: 'free',
+          name: 'Free',
+          icon: 'fa-leaf',
+          price: '$0',
+          period: '/mo',
+          desc: 'Start teaching for free',
+          features: ['Create basic quizzes', '1 active session', 'Basic analytics']
+        },
+        {
+          key: 'teacher_pro',
+          name: 'Teacher Pro',
+          icon: 'fa-crown',
+          price: '$19',
+          period: '/mo',
+          desc: 'Unlock all features',
+          features: ['Unlimited sessions', 'Advanced analytics', 'Custom branding', 'API access']
+        },
+        {
+          key: 'teacher_enterprise',
+          name: 'Teacher Enterprise',
+          icon: 'fa-star',
+          price: '$49',
+          period: '/mo',
+          desc: 'School or organization',
+          features: ['Everything in Pro', 'Multi-user access', 'Custom integrations', 'Dedicated account manager']
+        }
+      ]
+    };
+
+    function initPlans() {
+      const container = document.getElementById('plansContainer');
+      const userPlans = plans[userRole] || plans.student;
+
+      document.getElementById('roleBadgeText').textContent = userRole.charAt(0).toUpperCase() + userRole.slice(1);
+      document.getElementById('roleBadgeIcon').className = userRole === 'teacher' ? 'fa-solid fa-chalkboard-user' : 'fa-solid fa-graduation-cap';
+      document.body.setAttribute('data-role', userRole);
+
+      container.innerHTML = userPlans.map(plan => `
+        <div class="plan-card" onclick="selectPlan('${plan.key}', this)">
+          <div class="plan-icon ${plan.key === 'free' ? 'plan-free' : ''}">
+            <i class="fa-solid ${plan.icon}"></i>
+          </div>
+          <div class="plan-name">${plan.name}</div>
+          <div class="plan-desc">${plan.desc}</div>
+          <div class="plan-price">
+            ${plan.price}
+            <span class="plan-price-period">${plan.period}</span>
+          </div>
+          <ul class="plan-features">
+            ${plan.features.map(f => `<li><i class="fa-solid fa-check"></i> ${f}</li>`).join('')}
+          </ul>
+          <button class="plan-select-btn">
+            ${plan.key === 'free' ? 'Activate Free' : 'Select Plan'}
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function selectPlan(planKey, element) {
+      document.querySelectorAll('.plan-card').forEach(el => el.classList.remove('selected'));
+      element.classList.add('selected');
+      selectedPlan = planKey;
+
+      const freeWarning = document.getElementById('freeWarning');
+      if (planKey === 'free') {
+        freeWarning.style.display = 'block';
+        document.getElementById('completeBtn').disabled = false;
+        document.getElementById('completeBtnText').textContent = 'Activate Free Plan';
+      } else {
+        freeWarning.style.display = 'none';
+        document.getElementById('completeBtn').disabled = false;
+        document.getElementById('completeBtnText').textContent = 'Proceed to Payment';
+      }
+    }
+
+    document.querySelectorAll('.payment-method-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('selected'));
+        this.classList.add('selected');
+        selectedPaymentMethod = this.dataset.method;
+      });
+    });
+
+    async function completeOnboarding() {
+      if (!selectedPlan) return;
+
+      const completeBtn = document.getElementById('completeBtn');
+      completeBtn.disabled = true;
+      completeBtn.textContent = 'Processing...';
+
+      try {
+        const subscriptionKey = userRole === 'teacher' ? 'sp_teacher_subscription' : 'sp_student_subscription';
+
+        if (selectedPlan === 'free') {
+          localStorage.setItem(subscriptionKey, JSON.stringify({
+            plan: 'free',
+            status: 'active',
+            activatedAt: Date.now()
+          }));
+          window.location.href = returnTo;
+        } else {
+          // For paid plans, simulate payment processing
+          // In production, this would integrate with payment gateway
+          const paymentResult = await processPaymentSimulation(selectedPlan, selectedPaymentMethod);
+
+          if (paymentResult.success) {
+            localStorage.setItem(subscriptionKey, JSON.stringify({
+              plan: selectedPlan,
+              status: 'active',
+              activatedAt: Date.now(),
+              paymentMethod: selectedPaymentMethod
+            }));
+            window.location.href = returnTo;
+          } else {
+            alert('Payment failed: ' + paymentResult.message);
+            completeBtn.disabled = false;
+            completeBtn.textContent = 'Proceed to Payment';
+          }
+        }
+      } catch (err) {
+        console.error('Onboarding error:', err);
+        alert('Error: ' + err.message);
+        completeBtn.disabled = false;
+        completeBtn.textContent = 'Proceed to Payment';
+      }
+    }
+
+    async function processPaymentSimulation(planKey, method) {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          // Simulate 90% success rate for demo
+          const success = Math.random() > 0.1;
+          resolve({
+            success,
+            message: success ? 'Payment successful' : 'Payment declined. Please try again.'
+          });
+        }, 1500);
+      });
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', initPlans);
+  </script>
+</body>
+</html>

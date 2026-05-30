@@ -1,0 +1,202 @@
+/* Shared responsive foundation for tablet and phone use */
+
+html,
+body {
+  max-width: 100%;
+}
+
+img,
+video,
+canvas,
+svg,
+iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table-wrap,
+.table-container {
+  overflow-x: auto;
+}
+
+@media (max-width: 1024px) {
+  .top-bar,
+  .topbar,
+  .up-header,
+  .page-header,
+  .settings-header,
+  .lg-topbar {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .search-panel,
+  .search-wrap {
+    width: 100%;
+    order: 3;
+  }
+
+  .main-content,
+  .content,
+  .content-area,
+  .dashboard,
+  .dashboard-main,
+  .settings-container,
+  .up-page,
+  .su-wrap,
+  .games-shell,
+  .payment-layout,
+  .main-wrap {
+    width: min(100%, 1100px);
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .main-content,
+  .content,
+  .content-area,
+  .dashboard,
+  .dashboard-main,
+  .settings-container,
+  .up-page,
+  .su-wrap,
+  .games-shell,
+  .payment-layout,
+  .main-wrap {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .top-bar,
+  .topbar,
+  .lg-topbar {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .cards-grid,
+  .games-grid,
+  .su-mode-grid,
+  .up-mode-grid,
+  .plans-grid,
+  .stats-grid,
+  .analytics-grid,
+  .feature-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modal,
+  .dialog,
+  .panel,
+  .card,
+  .up-panel,
+  .su-panel,
+  .pm-modal,
+  .method-panel {
+    max-width: 100%;
+  }
+
+  .side-nav,
+  .sidebar {
+    width: 72px !important;
+  }
+
+  .brand-block h2,
+  .brand-block p,
+  .sidebar .brand-name,
+  .sidebar .brand-subtitle,
+  .nav-item span,
+  .nav-links span {
+    display: none !important;
+  }
+
+  .nav-item,
+  .nav-links a {
+    justify-content: center;
+  }
+
+  /* Student-only mobile bottom nav */
+  body[data-role="student"] .side-nav,
+  body[data-role="student"] .sidebar {
+    position: fixed !important;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto !important;
+    width: 100% !important;
+    height: 68px !important;
+    z-index: 1200;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  body[data-role="student"] .side-nav .brand-block,
+  body[data-role="student"] .sidebar .logo-wrap,
+  body[data-role="student"] .sidebar .brand {
+    display: none !important;
+  }
+
+  body[data-role="student"] .side-nav .nav-items,
+  body[data-role="student"] .sidebar .nav-links {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    padding: 8px 10px !important;
+    margin: 0;
+  }
+
+  body[data-role="student"] .side-nav .nav-items::-webkit-scrollbar,
+  body[data-role="student"] .sidebar .nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-role="student"] .side-nav .nav-item,
+  body[data-role="student"] .sidebar .nav-links li,
+  body[data-role="student"] .sidebar .nav-links a {
+    flex: 0 0 auto;
+  }
+
+  body[data-role="student"] .side-nav .nav-item,
+  body[data-role="student"] .sidebar .nav-links a {
+    min-width: 46px;
+    min-height: 46px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  body[data-role="student"] .dashboard,
+  body[data-role="student"] .dashboard-main,
+  body[data-role="student"] .main-content,
+  body[data-role="student"] .content,
+  body[data-role="student"] .content-area,
+  body[data-role="student"] .payment-layout,
+  body[data-role="student"] .main-wrap {
+    padding-bottom: 84px !important;
+  }
+}

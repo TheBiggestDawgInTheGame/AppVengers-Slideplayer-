@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Story Mode WebGL Launcher</title>
+    <title>Story Mode – Mission Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-a: #070a17;
@@ -14,170 +16,246 @@
             --muted: #aeb8de;
             --accent: #00d9ff;
             --accent-2: #ff2f7d;
+            --green: #00ffb0;
+            --red: #ff3a5c;
+            --yellow: #ffd86b;
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            margin: 0;
             min-height: 100vh;
             display: grid;
             place-items: center;
             background:
-                radial-gradient(900px 520px at 82% -20%, rgba(0, 217, 255, 0.22), transparent 65%),
-                radial-gradient(780px 500px at -20% 112%, rgba(255, 47, 125, 0.2), transparent 62%),
+                radial-gradient(900px 520px at 82% -20%, rgba(0,217,255,0.18), transparent 65%),
+                radial-gradient(780px 500px at -20% 112%, rgba(255,47,125,0.16), transparent 62%),
                 linear-gradient(145deg, var(--bg-a), var(--bg-b));
             color: var(--ink);
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-            padding: 20px;
+            font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+            padding: 16px;
         }
 
         #game-container {
-            width: min(1100px, 100%);
-            aspect-ratio: 16 / 9;
+            width: min(980px, 100%);
+            min-height: min(600px, 95vh);
             border: 1px solid var(--line);
-            border-radius: 16px;
+            border-radius: 20px;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 24px 52px rgba(0, 0, 0, 0.45);
-            background: #0a1026;
+            box-shadow:
+                0 0 0 1px rgba(0,217,255,0.08),
+                0 28px 60px rgba(0,0,0,0.55),
+                0 0 80px rgba(0,217,255,0.04);
+            background: #0a0f22;
         }
 
-        #webgl-frame {
+        #bg-canvas {
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
-            border: 0;
-            display: block;
-            background: #05070f;
+            opacity: 0.25;
+            pointer-events: none;
         }
 
+        /* BRIEFING */
         .briefing {
             position: absolute;
             inset: 0;
             display: grid;
             place-items: center;
-            padding: 18px;
-            background: rgba(7, 10, 23, 0.86);
-            -webkit-backdrop-filter: blur(4px);
-            backdrop-filter: blur(4px);
+            padding: 20px;
+            background: rgba(7,10,23,0.7);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
             z-index: 4;
+            overflow-y: auto;
         }
 
         .briefing-card {
-            width: min(620px, 100%);
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            background: linear-gradient(160deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)), var(--card);
-            padding: 22px;
+            width: min(580px, 100%);
+            border: 1px solid rgba(0,217,255,0.18);
+            border-radius: 18px;
+            background: linear-gradient(160deg, rgba(255,255,255,0.035), rgba(255,255,255,0)), var(--card);
+            padding: 24px;
+            box-shadow: 0 0 40px rgba(0,217,255,0.06);
         }
 
-        .briefing-title {
-            margin: 0;
-            font-size: clamp(1.2rem, 2.8vw, 2rem);
-            letter-spacing: 0.7px;
+        .briefing-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+
+        .briefing-avatar {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #070a17;
+            flex-shrink: 0;
             text-transform: uppercase;
         }
 
+        .briefing-title {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(1rem, 2.4vw, 1.5rem);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--ink);
+        }
+
         .briefing-subtitle {
-            margin: 8px 0 0;
+            margin-top: 4px;
             color: var(--muted);
-            font-size: 0.92rem;
+            font-size: 0.88rem;
         }
 
         .briefing-grid {
             margin-top: 16px;
             display: grid;
-            gap: 10px;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
         }
 
         .briefing-item {
-            border: 1px solid #2f3a6f;
+            border: 1px solid rgba(51,64,122,0.8);
             border-radius: 10px;
             padding: 10px 12px;
-            background: rgba(8, 13, 33, 0.8);
+            background: rgba(8,13,33,0.7);
         }
 
+        .briefing-item.full-width { grid-column: 1 / -1; }
+
         .briefing-label {
-            color: #7deeff;
-            font-size: 0.72rem;
-            letter-spacing: 0.9px;
+            color: var(--accent);
+            font-size: 0.68rem;
+            letter-spacing: 1.2px;
             text-transform: uppercase;
+            font-family: 'Orbitron', monospace;
         }
 
         .briefing-value {
             margin-top: 3px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: #f1f4ff;
-        }
-
-        .briefing-actions {
-            margin-top: 16px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            font-weight: 600;
         }
 
         .gate-quiz {
             margin-top: 14px;
-            border: 1px solid #32407a;
-            border-radius: 10px;
-            padding: 10px;
-            background: rgba(11, 17, 40, 0.78);
+            border: 1px solid rgba(0,217,255,0.2);
+            border-radius: 12px;
+            padding: 14px;
+            background: rgba(0,217,255,0.03);
         }
 
         .gate-quiz h3 {
-            margin: 0;
-            font-size: 0.82rem;
-            letter-spacing: 0.8px;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
             text-transform: uppercase;
-            color: #7ceaff;
+            color: var(--accent);
+            margin-bottom: 8px;
         }
 
         .gate-quiz p {
-            margin: 8px 0 10px;
-            font-size: 0.88rem;
+            font-size: 0.9rem;
             color: #e2e9ff;
+            line-height: 1.45;
+            margin-bottom: 10px;
         }
 
-        .gate-options {
-            display: grid;
-            gap: 8px;
-        }
+        .gate-options { display: grid; gap: 7px; }
 
         .gate-option {
             border: 1px solid #3d4c88;
             background: #16214a;
             color: #dce6ff;
             border-radius: 8px;
-            padding: 8px 10px;
-            font-size: 0.8rem;
+            padding: 9px 12px;
+            font-size: 0.85rem;
+            font-family: 'Rajdhani', sans-serif;
             text-align: left;
             cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
         }
 
-        .gate-option:hover {
-            border-color: #68ddff;
-        }
+        .gate-option:hover { border-color: var(--accent); background: rgba(0,217,255,0.07); }
+        .gate-option.correct { border-color: var(--green); background: rgba(0,255,176,0.1); color: var(--green); }
+        .gate-option.wrong { border-color: var(--red); background: rgba(255,58,92,0.1); color: #ff9aac; }
 
         .gate-feedback {
-            margin-top: 8px;
+            margin-top: 9px;
             min-height: 20px;
-            font-size: 0.8rem;
-            color: #ffd86b;
+            font-size: 0.82rem;
+            color: var(--yellow);
+            font-weight: 600;
         }
+
+        .briefing-actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .launch-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 11px 22px;
+            font-size: 0.8rem;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-weight: 800;
+            font-family: 'Orbitron', monospace;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            color: #061026;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .launch-btn:hover:not(:disabled) { transform: translateY(-1px); }
+        .launch-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        .back-btn {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid rgba(68,81,143,0.7);
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 0.78rem;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            transition: border-color 0.15s, color 0.15s;
+        }
+
+        .back-btn:hover { border-color: var(--accent); color: var(--accent); }
 
         .status-line {
             margin-top: 12px;
             color: #c7d5ff;
-            font-size: 0.84rem;
+            font-size: 0.82rem;
+            font-family: 'Orbitron', monospace;
+            letter-spacing: 0.6px;
         }
 
         .loader {
             margin-top: 10px;
             width: 100%;
-            height: 6px;
+            height: 5px;
             border-radius: 99px;
             background: #121a39;
             overflow: hidden;
@@ -188,156 +266,674 @@
             height: 100%;
             width: 0;
             background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            transition: width 0.1s linear;
         }
 
-        .result-actions {
-            margin-top: 10px;
+        /* QUIZ SCREEN */
+        #quiz-screen {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            z-index: 3;
+        }
+
+        #quiz-screen.active { display: flex; }
+
+        .quiz-header {
             display: flex;
-            gap: 8px;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(51,64,122,0.6);
+            background: rgba(7,10,23,0.85);
+            backdrop-filter: blur(4px);
             flex-wrap: wrap;
         }
 
-        .result-actions button {
-            border: 1px solid #41508f;
-            background: #17214a;
-            color: #dce7ff;
-            border-radius: 8px;
-            padding: 8px 10px;
-            font-size: 0.75rem;
-            cursor: pointer;
-        }
-
-        .fallback-panel {
-            position: absolute;
-            left: 12px;
-            right: 12px;
-            bottom: 12px;
-            z-index: 6;
-            display: none;
+        .quiz-op-chip {
+            display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            border: 1px solid #3c4a84;
-            border-radius: 10px;
-            padding: 10px 12px;
-            background: rgba(7, 12, 30, 0.92);
+            gap: 8px;
+            background: rgba(0,217,255,0.07);
+            border: 1px solid rgba(0,217,255,0.18);
+            border-radius: 20px;
+            padding: 5px 12px 5px 7px;
         }
 
-        .fallback-note {
-            color: #d4e0ff;
-            font-size: 0.8rem;
-            line-height: 1.35;
+        .quiz-op-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #070a17;
         }
 
-        .launch-btn,
-        .back-btn {
-            border: 0;
-            border-radius: 10px;
-            padding: 10px 16px;
+        .quiz-op-name {
             font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .quiz-mission-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            font-family: 'Orbitron', monospace;
             letter-spacing: 0.8px;
-            text-transform: uppercase;
-            cursor: pointer;
-            font-weight: 700;
+            flex: 1;
         }
 
-        .launch-btn {
+        .quiz-lives {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .quiz-lives span {
+            font-size: 1.1rem;
+            transition: opacity 0.3s;
+        }
+
+        .quiz-lives span.lost { opacity: 0.2; filter: grayscale(1); }
+
+        .quiz-score-chip {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--accent);
+            background: rgba(0,217,255,0.07);
+            border: 1px solid rgba(0,217,255,0.18);
+            border-radius: 8px;
+            padding: 5px 10px;
+            letter-spacing: 0.8px;
+        }
+
+        .timer-ring-wrap {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+        }
+
+        .timer-ring-wrap svg { transform: rotate(-90deg); }
+        .timer-ring-wrap svg circle { fill: none; stroke-width: 3; }
+        .timer-ring-track { stroke: rgba(51,64,122,0.6); }
+        .timer-ring-fill { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.3s; }
+        .timer-ring-fill.low { stroke: var(--red); }
+
+        .timer-number {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .timer-number.low { color: var(--red); }
+
+        .quiz-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 24px 32px;
+            gap: 20px;
+        }
+
+        .quiz-progress-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .quiz-progress-label {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.68rem;
+            color: var(--muted);
+            white-space: nowrap;
+            letter-spacing: 0.8px;
+        }
+
+        .quiz-progress-bar {
+            flex: 1;
+            height: 4px;
+            background: rgba(51,64,122,0.5);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .quiz-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            border-radius: 99px;
+            transition: width 0.4s ease;
+        }
+
+        .question-text {
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            font-weight: 600;
+            color: var(--ink);
+            line-height: 1.5;
+            min-height: 2.5em;
+            text-align: center;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        @media (max-width: 560px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .quiz-body { padding: 16px; }
+        }
+
+        .option-btn {
+            border: 1px solid rgba(61,76,136,0.8);
+            background: rgba(22,33,74,0.7);
+            color: #dce6ff;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 0.95rem;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, transform 0.1s;
+            display: flex;
+            align-items: center;
+        }
+
+        .option-btn:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); background: rgba(0,217,255,0.05); }
+        .option-btn:disabled { cursor: not-allowed; }
+
+        .option-btn.correct { border-color: var(--green); background: rgba(0,255,176,0.1); color: var(--green); }
+        .option-btn.wrong { border-color: var(--red); background: rgba(255,58,92,0.08); color: #ff9aac; }
+
+        .opt-letter {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: rgba(0,217,255,0.1);
+            border: 1px solid rgba(0,217,255,0.22);
+            font-size: 0.72rem;
+            font-family: 'Orbitron', monospace;
+            font-weight: 800;
+            color: var(--accent);
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .quiz-feedback-bar {
+            min-height: 32px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: color 0.2s;
+        }
+
+        .quiz-feedback-bar.correct-fb { color: var(--green); }
+        .quiz-feedback-bar.wrong-fb { color: var(--red); }
+
+        /* RESULT SCREEN */
+        #result-screen {
+            position: absolute;
+            inset: 0;
+            display: none;
+            place-items: center;
+            padding: 20px;
+            background: rgba(7,10,23,0.92);
+            backdrop-filter: blur(8px);
+            z-index: 5;
+        }
+
+        #result-screen.active { display: grid; }
+
+        .result-card {
+            width: min(500px, 100%);
+            border: 1px solid rgba(0,217,255,0.18);
+            border-radius: 20px;
+            background: var(--card);
+            padding: 32px 28px;
+            text-align: center;
+            box-shadow: 0 0 60px rgba(0,217,255,0.08);
+        }
+
+        .result-status-badge {
+            display: inline-block;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 6px 16px;
+            border-radius: 99px;
+            margin-bottom: 16px;
+        }
+
+        .result-status-badge.win { background: rgba(0,255,176,0.12); border: 1px solid var(--green); color: var(--green); }
+        .result-status-badge.lose { background: rgba(255,58,92,0.1); border: 1px solid var(--red); color: var(--red); }
+
+        .result-headline {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: 800;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .result-headline.win { color: var(--green); }
+        .result-headline.lose { color: var(--red); }
+
+        .result-mission-name {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-bottom: 24px;
+        }
+
+        .result-score-big {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .result-score-label {
+            font-size: 0.72rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .result-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            margin-bottom: 24px;
+        }
+
+        .result-stat {
+            background: rgba(8,13,33,0.7);
+            border: 1px solid rgba(51,64,122,0.6);
+            border-radius: 10px;
+            padding: 10px 8px;
+        }
+
+        .result-stat-val {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--ink);
+        }
+
+        .result-stat-label {
+            font-size: 0.68rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-top: 3px;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .result-btn-primary {
             background: linear-gradient(90deg, var(--accent), var(--accent-2));
             color: #061026;
+            border: 0;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: transform 0.1s;
         }
 
-        .back-btn {
+        .result-btn-primary:hover { transform: translateY(-1px); }
+
+        .result-btn-secondary {
             background: transparent;
-            color: #d4ddff;
-            border: 1px solid #44518f;
-        }
-
-        .external-btn {
-            border: 1px solid #3f7fb8;
-            background: #11345c;
-            color: #d8eeff;
-            border-radius: 9px;
-            padding: 8px 12px;
-            font-size: 0.76rem;
+            color: var(--muted);
+            border: 1px solid rgba(68,81,143,0.7);
+            border-radius: 10px;
+            padding: 11px 20px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
             letter-spacing: 0.6px;
             text-transform: uppercase;
-            font-weight: 700;
             cursor: pointer;
+            transition: border-color 0.15s, color 0.15s;
         }
 
-        @media (max-width: 720px) {
-            #game-container {
-                aspect-ratio: auto;
-                min-height: 70vh;
-            }
+        .result-btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+        @keyframes popIn { 0% { transform: scale(0.88); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes slideUp { 0% { transform: translateY(16px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .pop-in { animation: popIn 0.25s ease forwards; }
+        .slide-up { animation: slideUp 0.3s ease forwards; }
+
+        /* STORY INTRO SCREEN */
+        #story-intro-screen {
+            position: absolute;
+            inset: 0;
+            display: none;
+            place-items: center;
+            padding: 24px;
+            background: rgba(7,10,23,0.96);
+            backdrop-filter: blur(8px);
+            z-index: 5;
+        }
+        #story-intro-screen.active { display: grid; }
+        .story-intro-card {
+            width: min(640px, 100%);
+            border: 1px solid rgba(0,217,255,0.2);
+            border-radius: 18px;
+            background: var(--card);
+            padding: 30px 28px;
+            box-shadow: 0 0 60px rgba(0,217,255,0.07);
+        }
+        .story-op-tag {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+        .story-mission-tag {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--ink);
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(51,64,122,0.6);
+        }
+        .story-narrative {
+            font-size: 1rem;
+            line-height: 1.75;
+            color: #d6deff;
+            min-height: 8em;
+            white-space: pre-wrap;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+        }
+        .story-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--accent);
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            animation: blink 0.85s step-end infinite;
+        }
+        .story-cursor.hidden { display: none; }
+        .begin-op-wrap {
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .begin-op-hint {
+            font-size: 0.8rem;
+            color: var(--muted);
+            font-family: 'Orbitron', monospace;
+            letter-spacing: 0.6px;
+        }
+        #begin-op-btn {
+            display: none;
+        }
+        #begin-op-btn.visible {
+            display: block;
+        }
+
+        /* OBJECTIVE NARRATIVE */
+        .obj-narrative {
+            text-align: center;
+            font-size: 0.88rem;
+            color: var(--muted);
+            font-style: italic;
+            line-height: 1.5;
+            min-height: 1.8em;
+            padding: 0 8px;
+        }
+
+        /* RESULT DEBRIEF */
+        .result-debrief {
+            font-size: 0.9rem;
+            line-height: 1.65;
+            color: #bdc8f0;
+            border: 1px solid rgba(51,64,122,0.5);
+            border-radius: 10px;
+            padding: 14px;
+            background: rgba(8,13,33,0.6);
+            text-align: left;
+            margin-bottom: 20px;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <iframe
-            id="webgl-frame"
-            title="Story Mode WebGL"
-            data-src="https://play.unity.com/en/games/609641f1-b052-4e29-b1aa-aab2ab34b098/webgl-builds"
-            allowfullscreen>
-        </iframe>
+        <canvas id="bg-canvas"></canvas>
 
+        <!-- BRIEFING SCREEN -->
         <section class="briefing" id="briefing-overlay" aria-label="Mission briefing">
             <div class="briefing-card">
-                <h1 class="briefing-title">Mission Briefing</h1>
-                <p class="briefing-subtitle">Story handoff complete. Confirm your run to enter the simulation.</p>
+                <div class="briefing-header">
+                    <div class="briefing-avatar" id="briefing-avatar">?</div>
+                    <div>
+                        <h1 class="briefing-title">Mission Briefing</h1>
+                        <p class="briefing-subtitle">Confirm your loadout before entering the simulation.</p>
+                    </div>
+                </div>
                 <div class="briefing-grid">
                     <div class="briefing-item">
                         <div class="briefing-label">Operator</div>
                         <div class="briefing-value" id="briefing-character">Unknown Operator</div>
                     </div>
                     <div class="briefing-item">
+                        <div class="briefing-label">Difficulty</div>
+                        <div class="briefing-value" id="briefing-difficulty">Easy</div>
+                    </div>
+                    <div class="briefing-item full-width">
                         <div class="briefing-label">Mission</div>
                         <div class="briefing-value" id="briefing-mission">Unassigned</div>
                     </div>
-                    <div class="briefing-item">
-                        <div class="briefing-label">Launch Source</div>
-                        <div class="briefing-value" id="briefing-source">Story Mode</div>
-                    </div>
-                    <div class="briefing-item">
-                        <div class="briefing-label">Challenge</div>
-                        <div class="briefing-value" id="briefing-challenge">Theme | Easy</div>
-                    </div>
-                    <div class="briefing-item">
+                    <div class="briefing-item full-width">
                         <div class="briefing-label">Slide Intelligence</div>
-                        <div class="briefing-value" id="briefing-slide">No slide data</div>
+                        <div class="briefing-value" id="briefing-slide">No slide data detected</div>
                     </div>
-                </div>
-                <div class="briefing-actions">
-                    <button class="launch-btn" id="launch-btn" type="button">Start Mission</button>
-                    <button class="launch-btn" id="skip-intro-btn" type="button">Skip Intro</button>
-                    <button class="back-btn" id="back-btn" type="button">Back to Story Hub</button>
-                    <button class="external-btn" id="open-external-btn" type="button">Open Externally</button>
                 </div>
                 <section class="gate-quiz" id="gate-quiz" aria-live="polite">
-                    <h3>Slide Checkpoint Required</h3>
+                    <h3>&#128274; Slide Checkpoint Required</h3>
                     <p id="gate-question">Loading checkpoint...</p>
                     <div id="gate-options" class="gate-options"></div>
                     <div id="gate-feedback" class="gate-feedback"></div>
                 </section>
-                <div class="status-line" id="status-line">Preparing simulation intro...</div>
+                <div class="briefing-actions">
+                    <button class="launch-btn" id="launch-btn" type="button">Start Mission</button>
+                    <button class="back-btn" id="back-btn" type="button">&#8592; Back to Story Hub</button>
+                </div>
+                <div class="status-line" id="status-line">Awaiting gate clearance...</div>
                 <div class="loader"><span id="loader-fill"></span></div>
-                <div class="result-actions">
-                    <button id="finish-win-btn" type="button">Finish Mission (Win)</button>
-                    <button id="finish-lose-btn" type="button">Finish Mission (Lose)</button>
+            </div>
+        </section>
+
+        <!-- STORY INTRO SCREEN -->
+        <section id="story-intro-screen" aria-label="Mission introduction">
+            <div class="story-intro-card">
+                <div class="story-op-tag" id="story-op-tag">OPERATION</div>
+                <div class="story-mission-tag" id="story-mission-tag">–</div>
+                <div class="story-narrative" id="story-narrative"><span class="story-cursor" id="story-cursor"></span></div>
+                <div class="begin-op-wrap">
+                    <span class="begin-op-hint" id="begin-op-hint"></span>
+                    <button class="launch-btn" id="begin-op-btn" type="button">Begin Operation</button>
                 </div>
             </div>
         </section>
 
-        <div class="fallback-panel" id="fallback-panel" aria-live="polite">
-            <span class="fallback-note">Embedded Unity may be blocked by browser privacy settings. Open in a new tab for reliable launch.</span>
-            <button class="external-btn" id="open-external-inline-btn" type="button">Open in New Tab</button>
-        </div>
+        <!-- QUIZ GAME SCREEN -->
+        <section id="quiz-screen" aria-label="Mission simulation">
+            <div class="quiz-header">
+                <div class="quiz-op-chip">
+                    <div class="quiz-op-avatar" id="quiz-op-avatar">?</div>
+                    <span class="quiz-op-name" id="quiz-op-name">Operator</span>
+                </div>
+                <div class="quiz-mission-label" id="quiz-mission-label">MISSION: –</div>
+                <div class="quiz-lives" id="quiz-lives" aria-label="Lives remaining">
+                    <span>&#10084;</span><span>&#10084;</span><span>&#10084;</span>
+                </div>
+                <div class="quiz-score-chip" id="quiz-score-chip">0 PTS</div>
+                <div class="timer-ring-wrap">
+                    <svg width="44" height="44" viewBox="0 0 44 44">
+                        <circle class="timer-ring-track" cx="22" cy="22" r="18" />
+                        <circle class="timer-ring-fill" id="timer-ring-fill" cx="22" cy="22" r="18"
+                            stroke-dasharray="113.1" stroke-dashoffset="0" />
+                    </svg>
+                    <div class="timer-number" id="timer-number">20</div>
+                </div>
+            </div>
+            <div class="quiz-body">
+                <div class="quiz-progress-row">
+                    <span class="quiz-progress-label" id="quiz-progress-label">OBJECTIVE 1/10</span>
+                    <div class="quiz-progress-bar">
+                        <div class="quiz-progress-fill" id="quiz-progress-fill" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="obj-narrative" id="obj-narrative"></div>
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-grid" id="options-grid"></div>
+                <div class="quiz-feedback-bar" id="quiz-feedback-bar"></div>
+            </div>
+        </section>
+
+        <!-- RESULT SCREEN -->
+        <section id="result-screen" aria-label="Mission result" aria-live="polite">
+            <div class="result-card pop-in">
+                <div class="result-status-badge" id="result-status-badge">–</div>
+                <div class="result-headline" id="result-headline">–</div>
+                <div class="result-mission-name" id="result-mission-name">–</div>
+                <div class="result-score-big" id="result-score-big">0</div>
+                <div class="result-score-label">Simulation Score</div>
+                <div class="result-debrief" id="result-debrief"></div>
+                <div class="result-stats-grid">
+                    <div class="result-stat">
+                        <div class="result-stat-val" id="res-accuracy">0%</div>
+                        <div class="result-stat-label">Accuracy</div>
+                    </div>
+                    <div class="result-stat">
+                        <div class="result-stat-val" id="res-correct">0/0</div>
+                        <div class="result-stat-label">Correct</div>
+                    </div>
+                    <div class="result-stat">
+                        <div class="result-stat-val" id="res-time">0s</div>
+                        <div class="result-stat-label">Avg. Time</div>
+                    </div>
+                </div>
+                <div class="result-actions">
+                    <button class="result-btn-primary" id="result-return-btn">Return to Story Hub</button>
+                    <button class="result-btn-secondary" id="result-retry-btn">Retry Mission</button>
+                </div>
+            </div>
+        </section>
     </div>
 
     <script>
+        /* BACKGROUND CANVAS */
+        (function () {
+            var canvas = document.getElementById('bg-canvas');
+            var ctx = canvas.getContext('2d');
+            var dots = [];
+
+            function resize() {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                dots = [];
+                var gap = 38;
+                for (var x = 0; x < canvas.width + gap; x += gap) {
+                    for (var y = 0; y < canvas.height + gap; y += gap) {
+                        dots.push({ x: x, y: y, r: Math.random() * 1.2 + 0.3, speed: Math.random() * 0.4 + 0.1, phase: Math.random() * Math.PI * 2 });
+                    }
+                }
+            }
+
+            var t = 0;
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                t += 0.012;
+                dots.forEach(function (d) {
+                    var alpha = 0.3 + 0.5 * Math.abs(Math.sin(t * d.speed + d.phase));
+                    ctx.beginPath();
+                    ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(0,217,255,' + alpha + ')';
+                    ctx.fill();
+                });
+                requestAnimationFrame(draw);
+            }
+
+            window.addEventListener('resize', resize);
+            resize();
+            draw();
+        }());
+
+        /* CONSTANTS */
+        var SLIDE_QUIZ_KEY = 'slidePlayGeneratedQuizData';
+        var TIME_PER_Q = 20;
+        var MAX_LIVES = 3;
+        var MAX_QUESTIONS = 12;
+        var WIN_THRESHOLD = 0.55;
+        var CIRCUMFERENCE = 2 * Math.PI * 18;
+
+        var launch = {};
+        var quizQuestions = [];
+        var currentQIndex = 0;
+        var score = 0;
+        var lives = MAX_LIVES;
+        var correctCount = 0;
+        var totalTimeTaken = 0;
+        var timeLeft = TIME_PER_Q;
+        var timerInterval = null;
+        var answered = false;
+        var gateUnlocked = false;
+        var introTimer = null;
+        var introProgress = 0;
+        var questionStartTime = 0;
+
         function readLaunchContext() {
-            const params = new URLSearchParams(window.location.search);
+            var params = new URLSearchParams(window.location.search);
             return {
                 characterName: params.get('characterName') || 'Unknown Operator',
                 missionTitle: params.get('missionTitle') || 'Unassigned',
@@ -345,252 +941,480 @@
                 challengeType: params.get('challengeType') || 'theme',
                 challengeDifficulty: params.get('challengeDifficulty') || 'Easy',
                 challengeReward: Number(params.get('challengeReward') || 0),
-                pointsSnapshot: Number(params.get('pointsSnapshot') || 0),
                 coop: params.get('coop') === '1',
-                branch: params.get('branch') || 'balanced',
-                slideDeckLabel: params.get('slideDeckLabel') || 'Unknown deck',
+                slideDeckLabel: params.get('slideDeckLabel') || '',
                 slideQuizCount: Number(params.get('slideQuizCount') || 0),
                 slideFileCount: Number(params.get('slideFileCount') || 0),
-                slideSampleQuestion: params.get('slideSampleQuestion') || '',
                 preStartQuestion: params.get('preStartQuestion') || '',
                 preStartOptions: params.get('preStartOptions') || '[]',
-                preStartCorrect: Number(params.get('preStartCorrect') || -1),
+                preStartCorrect: Number(params.get('preStartCorrect') !== null ? params.get('preStartCorrect') : -1),
                 returnUrl: params.get('returnUrl') || '../index.html'
             };
         }
 
-        function toTitleCase(value) {
-            return String(value)
-                .replace(/[_-]+/g, ' ')
-                .replace(/\b\w/g, function (m) { return m.toUpperCase(); });
+        function parseOpts(s) {
+            try { var p = JSON.parse(s || '[]'); return Array.isArray(p) ? p : []; } catch (e) { return []; }
+        }
+
+        function initials(name) {
+            return (name || '?').split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ''; }).join('').toUpperCase() || '?';
+        }
+
+        function toTitle(s) {
+            return String(s || '').replace(/[_-]+/g, ' ').replace(/\b\w/g, function (m) { return m.toUpperCase(); });
+        }
+
+        function diffMult(diff) {
+            var d = (diff || '').toLowerCase();
+            if (d === 'legendary') return 2;
+            if (d === 'hard') return 1.5;
+            return 1;
+        }
+
+        function buildQuestionBank() {
+            var bank = [];
+            try {
+                var raw = localStorage.getItem(SLIDE_QUIZ_KEY);
+                if (raw) {
+                    var parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach(function (q) {
+                            if (q && q.question && Array.isArray(q.options) && q.options.length >= 2) {
+                                bank.push({ question: q.question, options: q.options, correct: Number(q.correct) || 0 });
+                            }
+                        });
+                    }
+                }
+            } catch (e) { /* ignore */ }
+
+            var gateQ = launch.preStartQuestion;
+            var gateOpts = parseOpts(launch.preStartOptions);
+            var gateCor = launch.preStartCorrect;
+            if (gateQ && gateOpts.length >= 2 && gateCor >= 0) {
+                var alreadyIn = bank.some(function (q) { return q.question === gateQ; });
+                if (!alreadyIn) bank.unshift({ question: gateQ, options: gateOpts, correct: gateCor });
+            }
+
+            if (bank.length < 4) {
+                var fallback = [
+                    { question: 'What is the best way to approach a complex problem?', options: ['Break it into smaller parts', 'Ignore the details', 'Guess the answer', 'Wait for someone else'], correct: 0 },
+                    { question: 'In a team operation, communication is…', options: ['Unnecessary', 'Important only for leaders', 'Critical for all members', 'Optional'], correct: 2 },
+                    { question: 'Which approach improves learning retention?', options: ['Reading once quickly', 'Active recall and practice', 'Highlighting everything', 'Skipping difficult parts'], correct: 1 },
+                    { question: 'When you get a wrong answer, you should…', options: ['Give up immediately', 'Pretend it did not happen', 'Analyze why and learn from it', 'Blame the question'], correct: 2 },
+                    { question: 'The best operators prepare by…', options: ['Doing nothing in advance', 'Reviewing available intelligence', 'Acting without a plan', 'Avoiding challenges'], correct: 1 },
+                    { question: 'A strong simulation score requires…', options: ['Speed only', 'Luck', 'Accuracy and consistency', 'Skipping hard questions'], correct: 2 }
+                ];
+                fallback.forEach(function (q) { bank.push(q); });
+            }
+
+            return shuffleArray(bank).slice(0, MAX_QUESTIONS);
+        }
+
+        function shuffleArray(arr) {
+            var a = arr.slice();
+            for (var i = a.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+            }
+            return a;
         }
 
         function populateBriefing() {
-            const launch = readLaunchContext();
+            document.getElementById('briefing-avatar').textContent = initials(launch.characterName);
             document.getElementById('briefing-character').textContent = launch.characterName;
             document.getElementById('briefing-mission').textContent = launch.missionTitle;
-            document.getElementById('briefing-source').textContent = toTitleCase(launch.source);
-            document.getElementById('briefing-challenge').textContent = `${toTitleCase(launch.challengeType)} | ${launch.challengeDifficulty} | +${launch.challengeReward} pts | ${launch.coop ? 'Co-op' : 'Solo'} | ${toTitleCase(launch.branch)}`;
-            const sample = launch.slideSampleQuestion ? `Sample: ${launch.slideSampleQuestion}` : 'Sample: unavailable';
-            document.getElementById('briefing-slide').textContent = `${launch.slideDeckLabel} | Files: ${launch.slideFileCount} | Questions: ${launch.slideQuizCount} | ${sample}`;
+            document.getElementById('briefing-difficulty').textContent =
+                toTitle(launch.challengeDifficulty) + ' \u00b7 ' + toTitle(launch.challengeType) + (launch.coop ? ' \u00b7 Co-op' : '');
+            var slideInfo = launch.slideDeckLabel
+                ? launch.slideDeckLabel + ' | ' + launch.slideQuizCount + ' questions'
+                : (launch.slideQuizCount > 0 ? launch.slideQuizCount + ' slide questions loaded' : 'Using simulation fallback questions');
+            document.getElementById('briefing-slide').textContent = slideInfo;
         }
 
-        let introProgress = 0;
-        let introTimer = null;
-        let embedTimeout = null;
-        let gateUnlocked = false;
+        function setupGateQuiz() {
+            var gate = document.getElementById('gate-quiz');
+            var questionEl = document.getElementById('gate-question');
+            var optionsEl = document.getElementById('gate-options');
+            var feedbackEl = document.getElementById('gate-feedback');
+            var q = launch.preStartQuestion;
+            var opts = parseOpts(launch.preStartOptions);
+            var cor = launch.preStartCorrect;
 
-        function getGameUrl() {
-            const frame = document.getElementById('webgl-frame');
-            return frame?.dataset?.src || 'https://play.unity.com/en/games/609641f1-b052-4e29-b1aa-aab2ab34b098/webgl-builds';
-        }
-
-        function openExternalGame() {
-            const statusLine = document.getElementById('status-line');
-            const gameUrl = getGameUrl();
-            window.open(gameUrl, '_blank', 'noopener');
-            if (statusLine) {
-                statusLine.textContent = 'Opened Unity Play in a new tab.';
-            }
-        }
-
-        function setLaunchButtonsEnabled(enabled) {
-            const launchBtn = document.getElementById('launch-btn');
-            const skipBtn = document.getElementById('skip-intro-btn');
-            if (launchBtn) {
-                launchBtn.disabled = !enabled;
-                launchBtn.style.opacity = enabled ? '1' : '0.55';
-                launchBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
-            }
-            if (skipBtn) {
-                skipBtn.disabled = !enabled;
-                skipBtn.style.opacity = enabled ? '1' : '0.55';
-                skipBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
-            }
-        }
-
-        function parseGateOptions(serialized) {
-            try {
-                const parsed = JSON.parse(serialized || '[]');
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (_error) {
-                return [];
-            }
-        }
-
-        function unlockGate() {
-            gateUnlocked = true;
-            setLaunchButtonsEnabled(true);
-        }
-
-        function setupPreStartQuizGate() {
-            const launch = readLaunchContext();
-            const gate = document.getElementById('gate-quiz');
-            const questionEl = document.getElementById('gate-question');
-            const optionsEl = document.getElementById('gate-options');
-            const feedbackEl = document.getElementById('gate-feedback');
-            if (!gate || !questionEl || !optionsEl || !feedbackEl) {
-                return;
-            }
-
-            const question = launch.preStartQuestion || launch.slideSampleQuestion || '';
-            const options = parseGateOptions(launch.preStartOptions);
-            const correct = launch.preStartCorrect;
-
-            if (!question || options.length === 0 || correct < 0 || correct >= options.length) {
+            if (!q || opts.length < 2 || cor < 0 || cor >= opts.length) {
                 gate.style.display = 'none';
                 unlockGate();
                 return;
             }
 
-            setLaunchButtonsEnabled(false);
-            questionEl.textContent = question;
+            setLaunchEnabled(false);
+            questionEl.textContent = q;
             optionsEl.innerHTML = '';
             feedbackEl.textContent = 'Answer correctly to unlock mission launch.';
 
-            options.forEach(function (option, index) {
-                const btn = document.createElement('button');
+            opts.forEach(function (opt, idx) {
+                var btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'gate-option';
-                btn.textContent = option;
+                btn.textContent = opt;
                 btn.addEventListener('click', function () {
-                    if (index === correct) {
-                        feedbackEl.textContent = 'Correct. Mission launch unlocked.';
+                    optionsEl.querySelectorAll('.gate-option').forEach(function (b) { b.disabled = true; });
+                    if (idx === cor) {
+                        btn.classList.add('correct');
+                        feedbackEl.textContent = '\u2713 Correct. Gate cleared \u2014 mission launch enabled.';
+                        feedbackEl.style.color = 'var(--green)';
                         unlockGate();
                     } else {
-                        feedbackEl.textContent = 'Incorrect. Review your slides and try again.';
+                        btn.classList.add('wrong');
+                        feedbackEl.textContent = '\u2717 Incorrect. Review your slides then try again.';
+                        feedbackEl.style.color = 'var(--red)';
+                        setTimeout(function () {
+                            optionsEl.querySelectorAll('.gate-option').forEach(function (b) {
+                                b.disabled = false;
+                                b.classList.remove('wrong', 'correct');
+                            });
+                            feedbackEl.textContent = 'Answer correctly to unlock mission launch.';
+                            feedbackEl.style.color = '';
+                        }, 1200);
                     }
                 });
                 optionsEl.appendChild(btn);
             });
         }
 
+        function unlockGate() {
+            gateUnlocked = true;
+            setLaunchEnabled(true);
+            document.getElementById('status-line').textContent = 'Gate cleared. Ready to launch simulation.';
+        }
+
+        function setLaunchEnabled(enabled) {
+            var btn = document.getElementById('launch-btn');
+            btn.disabled = !enabled;
+        }
+
+        /* ── STORY NARRATIVE CONTENT ── */
+        var OBJ_SITUATIONS = [
+            'You reach the outer perimeter. A security terminal demands verification before you can proceed.',
+            'Deeper inside now. An encrypted lock bars the corridor. The answer is hidden in what you know.',
+            'Movement detected on the eastern flank. A challenge surfaces on the tactical display.',
+            'A contact meets you in the shadows, passing you a critical question. Answer it correctly to continue.',
+            'The extraction route is compromised. Prove your knowledge to unlock the secondary path.',
+            'You reach the server room. The firewall asks you to authenticate with verified intelligence.',
+            'The mission handler radios in. One critical piece of information must be confirmed before you advance.',
+            'Enemy comms carry an intercepted transmission. Decode the intelligence embedded in the message.',
+            'Final stretch. A last security barrier stands between you and the objective.',
+            'You are close now. One challenge separates you from extraction.',
+            'Bonus objective activated. Show your full mastery of the material.',
+            'Elite protocol engaged. This one separates agents from legends.'
+        ];
+
+        var CORRECT_STORY = [
+            'Terminal bypassed. You advance deeper into the operation.',
+            'Confirmed. The door opens. Moving forward.',
+            'Intelligence verified. Enemy patrol neutralised.',
+            'Checkpoint cleared. Objective secured.',
+            'Data extracted successfully. Continuing the mission.',
+            'Correct. The operation holds. Press on.',
+            'Access granted. Another step closer to extraction.'
+        ];
+
+        function getObjSituation(idx) {
+            return OBJ_SITUATIONS[idx % OBJ_SITUATIONS.length];
+        }
+
+        function getCorrectFeedback() {
+            return CORRECT_STORY[Math.floor(Math.random() * CORRECT_STORY.length)];
+        }
+
+        function getWrongFeedback(livesLeft) {
+            if (livesLeft <= 0) return 'Critical failure. The operation is compromised.';
+            var s = livesLeft === 1 ? 'life' : 'lives';
+            var lines = [
+                'The system rejects your input. An alarm flares \u2014 but you recover.',
+                'Incorrect intelligence. A setback, but the mission continues.',
+                'Enemy countermeasures triggered. You barely slip through.'
+            ];
+            return lines[Math.min(3 - livesLeft, lines.length - 1)] + ' ' + livesLeft + ' ' + s + ' remaining.';
+        }
+
+        function getTimeoutFeedback(livesLeft) {
+            if (livesLeft <= 0) return 'Time expired. The window closed. Operation compromised.';
+            return 'Time expired. The window closed. ' + livesLeft + ' ' + (livesLeft === 1 ? 'life' : 'lives') + ' remaining.';
+        }
+
+        function typewriterText(el, text, speed, onDone) {
+            el.textContent = '';
+            var cursor = document.createElement('span');
+            cursor.className = 'story-cursor';
+            el.appendChild(cursor);
+            var i = 0;
+            var interval = setInterval(function () {
+                if (i < text.length) {
+                    el.insertBefore(document.createTextNode(text[i]), cursor);
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    cursor.className = 'story-cursor hidden';
+                    if (onDone) onDone();
+                }
+            }, speed || 22);
+        }
+
+        function buildStoryIntroText(name, mission, difficulty, total) {
+            var diff = (difficulty || 'Easy').toLowerCase();
+            var threat = diff === 'legendary' ? 'CRITICAL' : diff === 'hard' ? 'HIGH' : 'MODERATE';
+            return 'Agent ' + name + '.\n\n' +
+                'Your mission: ' + mission + '.\n\n' +
+                'You have been deployed. ' + total + ' checkpoints stand between you and extraction. Each one demands precision \u2014 hesitation is not an option.\n\n' +
+                'Threat level: ' + threat + '. Every wrong answer costs you a life. Three strikes and the operation is over.\n\n' +
+                'Trust your training. Move when ready.';
+        }
+
+        /* ── INTRO + GAME FLOW ── */
         function runIntro() {
             if (!gateUnlocked) {
-                const statusLine = document.getElementById('status-line');
-                if (statusLine) {
-                    statusLine.textContent = 'Complete the slide checkpoint first.';
-                }
+                document.getElementById('status-line').textContent = 'Complete the slide checkpoint first.';
                 return;
             }
-
-            const statusLine = document.getElementById('status-line');
-            const fill = document.getElementById('loader-fill');
-            const frame = document.getElementById('webgl-frame');
-            if (!statusLine || !fill || !frame) {
-                return;
-            }
-
-            if (introTimer) {
-                clearInterval(introTimer);
-            }
-
+            setLaunchEnabled(false);
             introProgress = 0;
-            statusLine.textContent = 'Preparing simulation intro...';
-            fill.style.width = '0%';
-
+            var fill = document.getElementById('loader-fill');
+            var statusLine = document.getElementById('status-line');
+            var msgs = ['Deploying field agent...', 'Encrypting mission channel...', 'Loading simulation environment...', 'All systems go.'];
+            var msgIdx = 0;
+            statusLine.textContent = msgs[0];
+            clearInterval(introTimer);
             introTimer = setInterval(function () {
-                introProgress += 4;
-                fill.style.width = `${introProgress}%`;
-                if (introProgress >= 100) {
-                    clearInterval(introTimer);
-                    statusLine.textContent = 'Simulation ready. Loading WebGL...';
-                    startMission();
-                }
-            }, 120);
+                introProgress += 5;
+                fill.style.width = introProgress + '%';
+                if (introProgress % 25 === 0 && msgIdx < msgs.length - 1) { msgIdx++; statusLine.textContent = msgs[msgIdx]; }
+                if (introProgress >= 100) { clearInterval(introTimer); showStoryIntro(); }
+            }, 80);
         }
 
-        function startMission() {
-            if (!gateUnlocked) {
-                const statusLine = document.getElementById('status-line');
-                if (statusLine) {
-                    statusLine.textContent = 'Complete the slide checkpoint first.';
-                }
-                return;
-            }
+        function showStoryIntro() {
+            quizQuestions = buildQuestionBank();
+            var total = quizQuestions.length;
 
-            const frame = document.getElementById('webgl-frame');
-            const overlay = document.getElementById('briefing-overlay');
-            const statusLine = document.getElementById('status-line');
-            const fallbackPanel = document.getElementById('fallback-panel');
-            if (frame && !frame.src) {
-                frame.src = frame.dataset.src;
-            }
-            if (statusLine) {
-                statusLine.textContent = 'WebGL session running...';
-            }
-            if (overlay) {
-                overlay.style.display = 'none';
-            }
+            document.getElementById('briefing-overlay').style.display = 'none';
+            document.getElementById('story-mission-tag').textContent = launch.missionTitle.toUpperCase();
+            document.getElementById('story-op-tag').textContent = 'OPERATION — ' + launch.characterName.toUpperCase();
 
-            if (embedTimeout) {
-                clearTimeout(embedTimeout);
-            }
-            embedTimeout = setTimeout(function () {
-                if (fallbackPanel) {
-                    fallbackPanel.style.display = 'flex';
-                }
-            }, 7000);
-        }
+            var introText = buildStoryIntroText(launch.characterName, launch.missionTitle, launch.challengeDifficulty, total);
+            var hint = document.getElementById('begin-op-hint');
+            hint.textContent = total + ' objectives loaded';
 
-        function returnToStory(resultStatus) {
-            const launch = readLaunchContext();
-            const score = Math.floor(Math.random() * 500) + (resultStatus === 'win' ? 600 : 200);
-            const time = Math.floor(Math.random() * 360) + 90;
-            const collectibles = resultStatus === 'win' ? (Math.floor(Math.random() * 4) + 1) : 0;
-            const params = new URLSearchParams({
-                from: 'webgl_launcher',
-                resultStatus,
-                resultScore: String(score),
-                resultTime: String(time),
-                resultCollectibles: String(collectibles)
+            var screen = document.getElementById('story-intro-screen');
+            screen.classList.add('active');
+
+            var narEl = document.getElementById('story-narrative');
+            typewriterText(narEl, introText, 18, function () {
+                var btn = document.getElementById('begin-op-btn');
+                btn.classList.add('visible');
             });
-            window.location.href = `${launch.returnUrl}?${params.toString()}`;
+        }
+
+        function beginOperation() {
+            currentQIndex = 0;
+            score = 0;
+            lives = MAX_LIVES;
+            correctCount = 0;
+            totalTimeTaken = 0;
+            answered = false;
+
+            document.getElementById('quiz-op-avatar').textContent = initials(launch.characterName);
+            document.getElementById('quiz-op-name').textContent = launch.characterName;
+            document.getElementById('quiz-mission-label').textContent = 'MISSION: ' + launch.missionTitle.toUpperCase();
+            updateLivesUI();
+            updateScoreUI();
+
+            document.getElementById('story-intro-screen').classList.remove('active');
+            document.getElementById('quiz-screen').classList.add('active');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQIndex >= quizQuestions.length) { endGame(); return; }
+            answered = false;
+            var q = quizQuestions[currentQIndex];
+            var total = quizQuestions.length;
+
+            document.getElementById('quiz-progress-label').textContent = 'OBJECTIVE ' + (currentQIndex + 1) + '/' + total;
+            document.getElementById('quiz-progress-fill').style.width = ((currentQIndex / total) * 100) + '%';
+
+            var narEl = document.getElementById('obj-narrative');
+            narEl.classList.remove('slide-up');
+            void narEl.offsetWidth;
+            narEl.classList.add('slide-up');
+            narEl.textContent = getObjSituation(currentQIndex);
+
+            var qEl = document.getElementById('question-text');
+            qEl.classList.remove('slide-up');
+            void qEl.offsetWidth;
+            qEl.classList.add('slide-up');
+            qEl.textContent = q.question;
+
+            var grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+            var letters = ['A', 'B', 'C', 'D'];
+            q.options.forEach(function (opt, idx) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'option-btn';
+                var letterSpan = document.createElement('span');
+                letterSpan.className = 'opt-letter';
+                letterSpan.textContent = letters[idx] || String(idx + 1);
+                var textNode = document.createTextNode(opt);
+                btn.appendChild(letterSpan);
+                btn.appendChild(textNode);
+                btn.addEventListener('click', function () { handleAnswer(idx, q.correct); });
+                grid.appendChild(btn);
+            });
+
+            var fb = document.getElementById('quiz-feedback-bar');
+            fb.textContent = '';
+            fb.className = 'quiz-feedback-bar';
+
+            startTimer();
+            questionStartTime = Date.now();
+        }
+
+        function handleAnswer(selected, correct) {
+            if (answered) return;
+            answered = true;
+            stopTimer();
+
+            var elapsed = (Date.now() - questionStartTime) / 1000;
+            totalTimeTaken += elapsed;
+
+            var buttons = document.getElementById('options-grid').querySelectorAll('.option-btn');
+            var fb = document.getElementById('quiz-feedback-bar');
+            buttons.forEach(function (b) { b.disabled = true; });
+            buttons[correct].classList.add('correct');
+
+            var isTimeout = selected < 0;
+            if (selected === correct) {
+                correctCount++;
+                var mult = diffMult(launch.challengeDifficulty);
+                var timeBonus = Math.round(Math.max(0, (TIME_PER_Q - elapsed) / TIME_PER_Q) * 50);
+                var points = Math.round(100 * mult) + timeBonus;
+                score += points;
+                fb.textContent = getCorrectFeedback() + ' (+' + points + ' pts)';
+                fb.className = 'quiz-feedback-bar correct-fb';
+                updateScoreUI();
+            } else {
+                if (!isTimeout && selected >= 0 && selected < buttons.length) buttons[selected].classList.add('wrong');
+                lives--;
+                updateLivesUI();
+                var storyMsg = isTimeout ? getTimeoutFeedback(lives) : getWrongFeedback(lives);
+                fb.textContent = storyMsg + (lives > 0 ? ' [Correct: ' + quizQuestions[currentQIndex].options[correct] + ']' : '');
+                fb.className = 'quiz-feedback-bar wrong-fb';
+                if (lives <= 0) { setTimeout(endGame, 1800); return; }
+            }
+
+            currentQIndex++;
+            setTimeout(showQuestion, 1400);
+        }
+
+        function startTimer() {
+            timeLeft = TIME_PER_Q;
+            updateTimerUI();
+            clearInterval(timerInterval);
+            timerInterval = setInterval(function () {
+                timeLeft--;
+                updateTimerUI();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if (!answered) handleAnswer(-1, quizQuestions[currentQIndex].correct);
+                }
+            }, 1000);
+        }
+
+        function stopTimer() { clearInterval(timerInterval); }
+
+        function updateTimerUI() {
+            var numEl = document.getElementById('timer-number');
+            var ring = document.getElementById('timer-ring-fill');
+            var pct = timeLeft / TIME_PER_Q;
+            ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - pct);
+            numEl.textContent = timeLeft;
+            var isLow = timeLeft <= 5;
+            ring.className = 'timer-ring-fill' + (isLow ? ' low' : '');
+            numEl.className = 'timer-number' + (isLow ? ' low' : '');
+        }
+
+        function updateLivesUI() {
+            var spans = document.getElementById('quiz-lives').querySelectorAll('span');
+            spans.forEach(function (s, i) { s.classList.toggle('lost', i >= lives); });
+        }
+
+        function updateScoreUI() {
+            document.getElementById('quiz-score-chip').textContent = score.toLocaleString() + ' PTS';
+        }
+
+        function buildDebrief(isWin, name, mission, accuracy, score) {
+            if (isWin) {
+                var assessment = accuracy >= 80 ? 'exceptional' : accuracy >= 65 ? 'solid' : 'adequate';
+                return 'Agent ' + name + ' successfully completed all objectives in Operation ' + mission + '.\n\nThe simulation records ' + score.toLocaleString() + ' points \u2014 a ' + assessment + ' field performance. Extraction confirmed.\n\nYou are cleared for your next assignment.';
+            } else {
+                return 'Agent ' + name + ' was unable to complete Operation ' + mission + '. The simulation was terminated after critical failure.\n\nFinal score: ' + score.toLocaleString() + ' points. Return to base for debrief before your next deployment.\n\nReview your slides and try again.';
+            }
+        }
+
+        function endGame() {
+            stopTimer();
+            document.getElementById('quiz-screen').classList.remove('active');
+            var total = quizQuestions.length;
+            var accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+            var avgTime = currentQIndex > 0 ? Math.round(totalTimeTaken / currentQIndex) : 0;
+            var isWin = lives > 0 && accuracy >= Math.round(WIN_THRESHOLD * 100);
+            var finalStatus = isWin ? 'win' : 'lose';
+
+            var badge = document.getElementById('result-status-badge');
+            var headline = document.getElementById('result-headline');
+            badge.className = 'result-status-badge ' + finalStatus;
+            badge.textContent = isWin ? 'MISSION COMPLETE' : 'OPERATION COMPROMISED';
+            headline.className = 'result-headline ' + finalStatus;
+            headline.textContent = isWin ? 'Extraction Successful' : 'Agent Down';
+            document.getElementById('result-mission-name').textContent = 'Operation ' + launch.missionTitle + ' \u2014 ' + launch.characterName;
+            document.getElementById('result-score-big').textContent = score.toLocaleString();
+            document.getElementById('res-accuracy').textContent = accuracy + '%';
+            document.getElementById('res-correct').textContent = correctCount + '/' + total;
+            document.getElementById('res-time').textContent = avgTime + 's';
+            document.getElementById('result-debrief').textContent = buildDebrief(isWin, launch.characterName, launch.missionTitle, accuracy, score);
+            document.getElementById('result-screen').classList.add('active');
+        }
+
+        function returnToStory(status) {
+            var accuracy = quizQuestions.length > 0 ? Math.round((correctCount / quizQuestions.length) * 100) : 0;
+            var avgTime = currentQIndex > 0 ? Math.round(totalTimeTaken / currentQIndex) : 0;
+            var params = new URLSearchParams();
+            params.set('from', 'webgl_launcher');
+            params.set('resultStatus', status || 'win');
+            params.set('resultScore', String(score));
+            params.set('resultTime', String(avgTime));
+            params.set('resultCollectibles', String(correctCount));
+            window.location.href = launch.returnUrl + '?' + params.toString();
         }
 
         function backToStoryHub() {
-            window.location.href = '../index.html';
+            window.location.href = launch.returnUrl;
         }
 
-        function setupFrameFallback() {
-            const frame = document.getElementById('webgl-frame');
-            if (!frame) {
-                return;
-            }
-
-            frame.addEventListener('load', function () {
-                const fallbackPanel = document.getElementById('fallback-panel');
-                if (fallbackPanel) {
-                    fallbackPanel.style.display = 'none';
-                }
-            });
-
-            frame.addEventListener('error', function () {
-                const overlay = document.getElementById('briefing-overlay');
-                const statusLine = document.getElementById('status-line');
-                const fallbackPanel = document.getElementById('fallback-panel');
-                if (overlay) {
-                    overlay.style.display = 'grid';
-                }
-                if (statusLine) {
-                    statusLine.textContent = 'WebGL failed to load. You can still return with a mission result.';
-                }
-                if (fallbackPanel) {
-                    fallbackPanel.style.display = 'flex';
-                }
-            });
-        }
+        /* INIT */
+        launch = readLaunchContext();
+        populateBriefing();
+        setupGateQuiz();
 
         document.getElementById('launch-btn').addEventListener('click', runIntro);
-        document.getElementById('skip-intro-btn').addEventListener('click', startMission);
         document.getElementById('back-btn').addEventListener('click', backToStoryHub);
-        document.getElementById('open-external-btn').addEventListener('click', openExternalGame);
-        document.getElementById('open-external-inline-btn').addEventListener('click', openExternalGame);
-        document.getElementById('finish-win-btn').addEventListener('click', function () { returnToStory('win'); });
-        document.getElementById('finish-lose-btn').addEventListener('click', function () { returnToStory('lose'); });
-        populateBriefing();
-        setupPreStartQuizGate();
-        setupFrameFallback();
+        document.getElementById('begin-op-btn').addEventListener('click', beginOperation);
+        document.getElementById('result-return-btn').addEventListener('click', function () {
+            returnToStory(lives > 0 ? 'win' : 'lose');
+        });
+        document.getElementById('result-retry-btn').addEventListener('click', function () {
+            window.location.reload();
+        });
     </script>
 </body>
 </html>

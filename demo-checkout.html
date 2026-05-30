@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlidePlay — Demo Checkout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --surface: #111827;
+      --border: rgba(0, 240, 255, 0.15);
+      --cyan: #00f0ff;
+      --green: #3dffc0;
+      --red: #ff4d6d;
+      --text: #e0e6f0;
+      --muted: #7a8499;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.06);
+    }
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem;
+      color: var(--cyan);
+      letter-spacing: 2px;
+      margin-bottom: 24px;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(255, 193, 7, 0.12);
+      border: 1px solid rgba(255, 193, 7, 0.4);
+      color: #ffc107;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+    .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 28px; }
+    .order-box {
+      background: rgba(0, 240, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .order-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 0.95rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .order-row:last-child { border-bottom: none; }
+    .order-row span { color: var(--muted); }
+    .order-row strong { color: var(--text); }
+    .order-row.total strong { color: var(--cyan); font-size: 1.1rem; }
+    .notice {
+      background: rgba(255, 193, 7, 0.08);
+      border: 1px solid rgba(255, 193, 7, 0.25);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      color: #ffc107;
+      margin-bottom: 24px;
+      text-align: left;
+      line-height: 1.5;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+      margin-bottom: 10px;
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-pay {
+      background: linear-gradient(135deg, var(--cyan), var(--green));
+      color: #0a0e1a;
+    }
+    .btn-pay:not(:disabled):hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-cancel {
+      background: transparent;
+      border: 1px solid rgba(255, 77, 109, 0.4);
+      color: var(--red);
+    }
+    .btn-cancel:not(:disabled):hover { background: rgba(255,77,109,0.08); }
+    .spinner { animation: spin 0.8s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #errorMsg { color: var(--red); font-size: 0.9rem; margin-top: 10px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">SLIDE<span style="color:#3dffc0">PLAY</span></div>
+    <div class="badge">&#9888; Demo Mode — No real charge</div>
+    <h1>Complete Your Order</h1>
+    <p class="sub">Simulated Stripe checkout for development &amp; testing.</p>
+
+    <div class="order-box">
+      <div class="order-row"><span>Plan</span><strong id="planName">—</strong></div>
+      <div class="order-row"><span>Billing</span><strong id="billing">—</strong></div>
+      <div class="order-row"><span>Customer</span><strong id="customerEmail">—</strong></div>
+      <div class="order-row total"><span>Total</span><strong id="totalAmount">—</strong></div>
+    </div>
+
+    <div class="notice">
+      This is a <strong>demo checkout page</strong>. Clicking "Complete Payment" will simulate
+      a successful Stripe payment without charging any card.
+    </div>
+
+    <button class="btn btn-pay" id="completeBtn" onclick="completePurchase()">
+      &#10003; Complete Payment (Demo)
+    </button>
+    <button class="btn btn-cancel" id="cancelBtn" onclick="cancelPurchase()">
+      Cancel
+    </button>
+    <p id="errorMsg"></p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const sessionId  = params.get('session_id')  || '';
+    const planName   = params.get('plan_name')   || 'Plan';
+    const amount     = params.get('amount')      || '0';
+    const billing    = params.get('billing')     || 'monthly';
+    const email      = params.get('email')       || '';
+
+    document.getElementById('planName').textContent     = planName;
+    document.getElementById('billing').textContent      = billing.charAt(0).toUpperCase() + billing.slice(1);
+    document.getElementById('customerEmail').textContent = email || '—';
+    document.getElementById('totalAmount').textContent  = 'R' + amount + (billing === 'yearly' ? '/yr' : '/mo');
+
+    async function completePurchase() {
+      if (!sessionId) { showError('Missing session ID.'); return; }
+      setLoading(true);
+      try {
+        const res = await fetch('/api/demo-checkout/' + encodeURIComponent(sessionId) + '/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json();
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+        } else {
+          showError(data.error || 'Could not complete session.');
+          setLoading(false);
+        }
+      } catch (e) {
+        showError('Network error: ' + e.message);
+        setLoading(false);
+      }
+    }
+
+    async function cancelPurchase() {
+      if (!sessionId) { history.back(); return; }
+      setLoading(true);
+      try {
+        const res = await fetch('/api/demo-checkout/' + encodeURIComponent(sessionId) + '/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json();
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+        } else {
+          history.back();
+        }
+      } catch (e) {
+        history.back();
+      }
+    }
+
+    function setLoading(on) {
+      document.getElementById('completeBtn').disabled = on;
+      document.getElementById('cancelBtn').disabled = on;
+      if (on) document.getElementById('completeBtn').innerHTML = '<span class="spinner">&#8635;</span> Processing…';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <style>
                 /* Sidebar Icon Glow */
                 .nav-links a i {
@@ -64,6 +65,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="StudentDashboard.css">
   <link rel="stylesheet" href="page-transition.css">
+  <link rel="stylesheet" href="responsive-shared.css">
         <style>
             /* XP Bar glow override */
             .progress-fill {
@@ -78,8 +80,31 @@
                 box-shadow: 0 0 30px rgba(255,215,0,0.55), 0 8px 28px rgba(244,114,182,0.4);
             }
         </style>
+<script>
+  // Auth guard + subscription check
+  (function(){
+    const uid = localStorage.getItem('sp_user_uid');
+    if(!uid){
+      window.location.replace('login.html');
+      return;
+    }
+    
+    // Check student subscription status
+    const subJson = localStorage.getItem('sp_student_subscription');
+    let sub = null;
+    try {
+      sub = subJson ? JSON.parse(subJson) : null;
+    } catch(_) {}
+    
+    // If subscription is locked or missing, redirect to payment
+    if (!sub || sub.status === 'locked') {
+      window.location.replace('onboarding-payment.html?role=student&returnTo=' + encodeURIComponent('Studentdashboard.html'));
+      return;
+    }
+  })();
+</script>
 </head>
-<body class="dark-mode">
+<body class="dark-mode" data-role="student">
                 <!-- Animated SVG Background -->
                 <svg id="svg-bg"></svg>
 
@@ -155,34 +180,7 @@
                     <span class="notification-dot"></span>
                 </button>
                 <div class="notification-dropdown hidden" id="notificationDropdown">
-                    <div class="notification-item">
-                        <div class="notification-icon"><i class="fa-solid fa-user-plus"></i></div>
-                        <div>
-                            <span class="notification-title">Class Update</span>
-                            <span class="notification-text">Alex joined Development Software</span>
-                        </div>
-                    </div>
-                    <div class="notification-item notification-unread">
-                        <div class="notification-icon"><i class="fa-solid fa-signal"></i></div>
-                        <div>
-                            <span class="notification-title">Current Mode</span>
-                            <span class="notification-text">Medium Mode</span>
-                        </div>
-                    </div>
-                    <div class="notification-item">
-                        <div class="notification-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
-                        <div>
-                            <span class="notification-title">Class Reminder</span>
-                            <span class="notification-text">Development Software starts in 30 minutes</span>
-                        </div>
-                    </div>
-                    <div class="notification-item">
-                        <div class="notification-icon"><i class="fa-solid fa-star"></i></div>
-                        <div>
-                            <span class="notification-title">Practice Tip</span>
-                            <span class="notification-text">Use Medium Mode for balanced progress</span>
-                        </div>
-                    </div>
+                  <div id="notificationFeed"></div>
                 </div>
             </div>
 
@@ -194,7 +192,7 @@
 
             <div class="top-user">
                 <div class="user-info">
-                    <span class="u-name">KAELEN VANCE</span>
+                    <span class="u-name" id="topNavName">PLAYER</span>
                     <span class="u-status">NOVICE HACKER</span>
                 </div>
                 <img src="https://picsum.photos/40/40?random=1" class="top-avatar">
@@ -232,7 +230,7 @@
             <div class="nav-footer">
                 <div class="user-pill">
                     <div class="user-meta">
-                        <span class="user-display-name">Kaelen Vance</span>
+                        <span class="user-display-name" id="sideNavName">Player</span>
                         <span class="user-status">Novice Hacker</span>
                     </div>
                     <div class="user-icon">
@@ -280,7 +278,7 @@
                                                                                         <button class="upgrade-btn-glass">Upgrade to Elite</button>
                                                                                     </div>
                             <div class="welcome-header">
-                                <h1>Welcome back, <span class="user-name">Kaelen</span>!</h1>
+                                <h1>Welcome back, <span class="user-name" id="welcomeName">Player</span>!</h1>
                                 <p class="welcome-subtitle">Ready to unlock your next level?</p>
                             </div>
 
@@ -397,7 +395,6 @@
                                                                 <button class="theme-btn" id="themeCyber">Cyberpunk</button>
                                                             </div>
                             </div>
-                            </div>
                         </div>
                     </div>
                 </section>
@@ -510,50 +507,10 @@
                         <h2>SYSTEM COMMS</h2>
                         <i class="fa-solid fa-bell"></i>
                     </div>
-                    <div class="comms-list">
-                        <div class="comms-item achievement">
-                            <div class="comms-icon">
-                                <i class="fa-solid fa-star"></i>
-                            </div>
-                            <div class="comms-content">
-                                <span class="comms-title">Achievement Unlocked!</span>
-                                <span class="comms-message">"First Victory" - Complete your first quest</span>
-                                <span class="comms-time">2 hours ago</span>
-                            </div>
-                        </div>
-                        <div class="comms-item update">
-                            <div class="comms-icon">
-                                <i class="fa-solid fa-download"></i>
-                            </div>
-                            <div class="comms-content">
-                                <span class="comms-title">Update Available</span>
-                                <span class="comms-message">v2.1.0 - New features and bug fixes</span>
-                                <span class="comms-time">4 hours ago</span>
-                            </div>
-                        </div>
-                        <div class="comms-item achievement">
-                            <div class="comms-icon">
-                                <i class="fa-solid fa-trophy"></i>
-                            </div>
-                            <div class="comms-content">
-                                <span class="comms-title">Rank Up!</span>
-                                <span class="comms-message">You've been promoted to "Novice Hacker"</span>
-                                <span class="comms-time">1 day ago</span>
-                            </div>
-                        </div>
-                        <div class="comms-item maintenance">
-                            <div class="comms-icon">
-                                <i class="fa-solid fa-wrench"></i>
-                            </div>
-                            <div class="comms-content">
-                                <span class="comms-title">Maintenance Notice</span>
-                                <span class="comms-message">Scheduled maintenance: Apr 20, 2:00 AM UTC</span>
-                                <span class="comms-time">2 days ago</span>
-                            </div>
-                        </div>
-                    </div>
+                  <div class="comms-list" id="liveCommsFeed"></div>
                 </section>
-
+            </div><!-- /right-sidebar -->
+        </div><!-- /content-area -->
     </main>
 
     <footer>
@@ -579,6 +536,23 @@
                                                 const savedTheme = localStorage.getItem('slideplayTheme');
                                                 if(savedTheme) setTheme(savedTheme.replace('-mode',''));
                                                 else setTheme('dark');
+                                            });
+
+                                            // ── Populate user name from localStorage ──────────────
+                                            document.addEventListener('DOMContentLoaded', () => {
+                                                const email = localStorage.getItem('sp_user_email') || '';
+                                                const raw = localStorage.getItem('sp_user_displayName')
+                                                    || email.split('@')[0]
+                                                    || 'Player';
+                                                // Title-case the name
+                                                const display = raw.replace(/\b\w/g, c => c.toUpperCase());
+                                                const first = display.split(/[\s._]/)[0];
+                                                const el1 = document.getElementById('topNavName');
+                                                const el2 = document.getElementById('sideNavName');
+                                                const el3 = document.getElementById('welcomeName');
+                                                if (el1) el1.textContent = display.toUpperCase();
+                                                if (el2) el2.textContent = display;
+                                                if (el3) el3.textContent = first;
                                             });
 
                                             // Animated XP Bar Burst
@@ -837,6 +811,155 @@
                     item.addEventListener('click', launchConfetti);
                 });
             });
+
+          function safeReadJson(key, fallback) {
+            try {
+              return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback;
+            } catch (_) {
+              return fallback;
+            }
+          }
+
+          function formatLiveAge(timestamp) {
+            if (!timestamp) return 'Live now';
+            const elapsed = Math.max(0, Date.now() - timestamp);
+            const minutes = Math.floor(elapsed / 60000);
+            if (minutes < 1) return 'Just now';
+            if (minutes === 1) return '1 min ago';
+            return `${minutes} mins ago`;
+          }
+
+          function buildStudentNotificationData() {
+            const displayName = localStorage.getItem('sp_user_displayName') || localStorage.getItem('sp_user_name') || (localStorage.getItem('sp_user_email') || 'Student').split('@')[0] || 'Student';
+            const email = localStorage.getItem('sp_user_email') || '';
+            const notifications = [];
+
+            notifications.push({
+              kind: 'update',
+              icon: 'fa-user-check',
+              title: 'Account',
+              text: email ? `Signed in as ${displayName} (${email})` : `Signed in as ${displayName}`,
+              time: 'Live now',
+              unread: false
+            });
+
+            const sub = safeReadJson('sp_student_subscription', null);
+            if (sub && (sub.plan || sub.status)) {
+              notifications.push({
+                kind: 'achievement',
+                icon: 'fa-crown',
+                title: 'Plan Status',
+                text: `${String(sub.plan || sub.status).replace(/_/g, ' ')}${sub.status && sub.plan ? ` • ${sub.status}` : ''}`,
+                time: 'Live now',
+                unread: true
+              });
+            }
+
+            const activeSession = safeReadJson('sp_active_session', null);
+            if (activeSession && activeSession.code) {
+              notifications.push({
+                kind: 'update',
+                icon: 'fa-signal',
+                title: 'Live Session',
+                text: `Code ${activeSession.code} • ${activeSession.status || 'waiting'}`,
+                time: formatLiveAge(activeSession.joinedAt),
+                unread: true
+              });
+            }
+
+            const progress = safeReadJson('sp_class_progress', []);
+            if (Array.isArray(progress) && progress.length) {
+              const latest = progress[progress.length - 1];
+              const label = typeof latest === 'string' ? latest : (latest?.title || latest?.name || 'Progress update');
+              notifications.push({
+                kind: 'achievement',
+                icon: 'fa-chart-line',
+                title: 'Progress',
+                text: label,
+                time: 'Live now',
+                unread: false
+              });
+            }
+
+            const uploads = safeReadJson('sp_upload_tries', null);
+            if (uploads) {
+              const count = typeof uploads === 'number' ? uploads : Number(uploads.used || uploads.count || 0);
+              notifications.push({
+                kind: 'maintenance',
+                icon: 'fa-folder-open',
+                title: 'Upload Activity',
+                text: `${count} real upload attempt${count === 1 ? '' : 's'} recorded`,
+                time: 'Live now',
+                unread: false
+              });
+            }
+
+            if (notifications.length === 1) {
+              notifications.push({
+                kind: 'update',
+                icon: 'fa-wifi',
+                title: 'No live activity yet',
+                text: 'Join a class or start a live session to see real notifications here.',
+                time: 'Live now',
+                unread: false
+              });
+            }
+
+            return notifications;
+          }
+
+          function renderLiveNotifications() {
+            const feed = document.getElementById('notificationFeed');
+            const commsFeed = document.getElementById('liveCommsFeed');
+            const items = buildStudentNotificationData();
+
+            if (feed) {
+              feed.innerHTML = items.map((item) => `
+                <div class="notification-item${item.unread ? ' notification-unread' : ''}">
+                  <div class="notification-icon"><i class="fa-solid ${item.icon}"></i></div>
+                  <div>
+                    <span class="notification-title">${item.title}</span>
+                    <span class="notification-text">${item.text}</span>
+                  </div>
+                </div>
+              `).join('');
+            }
+
+            if (commsFeed) {
+              commsFeed.innerHTML = items.map((item) => `
+                <div class="comms-item ${item.kind}">
+                  <div class="comms-icon"><i class="fa-solid ${item.icon}"></i></div>
+                  <div class="comms-content">
+                    <span class="comms-title">${item.title}</span>
+                    <span class="comms-message">${item.text}</span>
+                    <span class="comms-time">${item.time}</span>
+                  </div>
+                </div>
+              `).join('');
+            }
+
+            const dot = document.querySelector('#notificationButton .notification-dot');
+            if (dot) {
+              dot.style.display = items.some((item) => item.unread) ? '' : 'none';
+            }
+          }
+
+          function subscribeToLiveSessionNotifications() {
+            const activeSession = safeReadJson('sp_active_session', null);
+            if (!window.SessionDB || !activeSession || !activeSession.code) return;
+
+            try {
+              SessionDB.listenSession(activeSession.code, (session) => {
+                localStorage.setItem('sp_active_session', JSON.stringify({
+                  code: activeSession.code,
+                  name: session?.name || session?.host || activeSession.name || 'Live Session',
+                  status: session?.status || activeSession.status || 'waiting',
+                  joinedAt: activeSession.joinedAt || Date.now()
+                }));
+                renderLiveNotifications();
+              });
+            } catch (_) {}
+          }
       const notificationButton = document.getElementById('notificationButton');
       const notificationDropdown = document.getElementById('notificationDropdown');
 
@@ -868,6 +991,10 @@
       
       updateTime();
       setInterval(updateTime, 60000);
+      renderLiveNotifications();
+      subscribeToLiveSessionNotifications();
+
+      window.addEventListener('storage', renderLiveNotifications);
 
       // Invite button functionality
       const inviteButtons = document.querySelectorAll('.invite-btn');
@@ -1263,6 +1390,14 @@
           if (!window.SessionDB) throw new Error("Firebase not loaded");
 
           const { playerKey, session } = await SessionDB.joinSession(code, studentName);
+
+          localStorage.setItem("sp_active_session", JSON.stringify({
+            code,
+            name: session?.name || session?.host || "Live Session",
+            status: session?.status || "waiting",
+            playerKey,
+            joinedAt: Date.now()
+          }));
 
           const name = encodeURIComponent(studentName);
           const key  = encodeURIComponent(playerKey);

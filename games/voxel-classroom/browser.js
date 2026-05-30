@@ -55,7 +55,7 @@ const gameEntryFiles = {
   pacman_game: 'pacman_game.html',
   snake_game: 'snake_game.html',
   scramble_game: 'scramble_game.html',
-  quiz_game: 'quiz_game.html',
+  quiz_game: 'index.html',
   speed_typing_game: 'speed_typing_game.html'
 };
 

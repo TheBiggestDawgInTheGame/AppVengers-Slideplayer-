@@ -38,6 +38,17 @@
   } else {
     teacherStatusEl.textContent =
       "Teacher: " + (session.username || session.email || "Unknown");
+    // ── Enable paid feature buttons when teacher has a paid subscription ──
+    const sub = readJson("sp_subscription", null);
+    const isPaidTeacher = sub && sub.status !== "cancelled" &&
+      (sub.plan === "pro" || sub.plan === "school");
+    if (isPaidTeacher) {
+      enablePaidFeatures();
+    } else {
+      disableActions();
+      // Show a subtle hint rather than disabling silently
+      toast("Paid subscription required to use Access Control features.");
+    }
   }
 
   grantBtn.addEventListener("click", grantAccess);
@@ -63,6 +74,23 @@
         }
       },
     );
+  }
+
+  function enablePaidFeatures() {
+    [grantBtn, penalizeBtn, suspendBtn, restoreBtn, warnBtn].forEach(
+      function (btn) {
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = "";
+          btn.style.cursor = "";
+          btn.removeAttribute("title");
+        }
+      },
+    );
+    // Hide PAID lock badges from section headings
+    document.querySelectorAll(".paid-badge").forEach(function (el) {
+      el.style.display = "none";
+    });
   }
 
   function applyInterventionPrefill() {

@@ -1,4 +1,29 @@
 document.addEventListener("DOMContentLoaded", function () {
+  var API_BASE = (
+    window.SLIDEPLAY_API_BASE ||
+    localStorage.getItem("sp_api_base") ||
+    window.location.origin
+  ).replace(/\/$/, "");
+
+  // Refresh subscription from DB before checking plan
+  (function refreshSubscriptionFromDB() {
+    var uid = localStorage.getItem("sp_user_uid");
+    if (!uid) return;
+    fetch(API_BASE + "/api/users/" + uid + "/subscription")
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data && data.Plan) {
+          localStorage.setItem("sp_student_subscription", JSON.stringify({
+            plan: data.Plan.toLowerCase(),
+            status: data.Status ? data.Status.toLowerCase() : "active",
+          }));
+          // Re-evaluate story card unlock after DB refresh
+          var plan = data.Plan.toLowerCase();
+          if (plan === "student_elite" || plan === "student_premium") unlockStoryCard();
+        }
+      })
+      .catch(function() {});
+  })();
   var studyBtn = document.getElementById("studyBtn");
   var storyBtn = document.getElementById("storyBtn");
   var overlay = document.getElementById("pmOverlay");

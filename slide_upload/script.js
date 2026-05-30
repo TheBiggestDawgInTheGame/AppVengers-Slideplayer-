@@ -272,13 +272,17 @@ async function uploadFiles() {
 
     // --- Attach Firebase UID if logged in ---
     let uid = null;
-    try {
-      if (window.saveLeaderboardScore) {
-        // shared/firebase-leaderboard.js exposes auth
-        const auth = window.saveLeaderboardScore.auth || window.auth;
-        if (auth && auth.currentUser) uid = auth.currentUser.uid;
-      }
-    } catch (_e) {}
+    // Primary: read from localStorage (set by authentication.js on login)
+    uid = localStorage.getItem('sp_user_uid') || null;
+    // Fallback: read from live Firebase auth state if available
+    if (!uid) {
+      try {
+        if (window.saveLeaderboardScore) {
+          const auth = window.saveLeaderboardScore.auth || window.auth;
+          if (auth && auth.currentUser) uid = auth.currentUser.uid;
+        }
+      } catch (_e) {}
+    }
     if (uid) formData.append('uid', uid);
 
     try {

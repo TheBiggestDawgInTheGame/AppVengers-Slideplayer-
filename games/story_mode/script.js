@@ -178,6 +178,44 @@ const BRANCH_KEY = 'storyModeBranchChoice';
 const LANGUAGE_KEY = 'storyModeLanguage';
 const ANALYTICS_KEY = 'storyModeAnalytics';
 const SAVE_SLOT_PREFIX = 'storyModeSaveSlot';
+const ACHIEVEMENTS_KEY = 'storyModeAchievements';
+
+const ACHIEVEMENT_DEFS = [
+    { id: 'first_mission',    icon: '🎯', label: 'First Mission',        desc: 'Complete your first world.',                         check: (p, a, s) => p.missionsCompleted >= 1 },
+    { id: 'triple_worlds',   icon: '🌍', label: 'World Traveller',       desc: 'Complete 3 worlds.',                                 check: (p, a, s) => p.missionsCompleted >= 3 },
+    { id: 'all_worlds',      icon: '🏆', label: 'Full Operator',         desc: 'Complete all 5 worlds.',                             check: (p, a, s) => p.missionsCompleted >= 5 },
+    { id: 'points_500',      icon: '⭐', label: 'Rising Star',           desc: 'Reach 500 points.',                                  check: (p, a, s) => p.points >= 500 },
+    { id: 'points_1500',     icon: '💎', label: 'Diamond Agent',         desc: 'Reach 1 500 points.',                                check: (p, a, s) => p.points >= 1500 },
+    { id: 'streak_3',        icon: '🔥', label: 'On Fire',               desc: 'Maintain a 3-day challenge streak.',                  check: (p, a, s) => s >= 3 },
+    { id: 'streak_7',        icon: '🌟', label: 'Unstoppable',           desc: 'Maintain a 7-day challenge streak.',                  check: (p, a, s) => s >= 7 },
+    { id: 'challenge_done',  icon: '✅', label: 'Challenge Accepted',    desc: 'Complete 1 daily challenge.',                         check: (p, a, s) => a.challengeCompleted >= 1 },
+    { id: 'challenge_5',     icon: '🏅', label: 'Challenge Regular',     desc: 'Complete 5 daily challenges.',                        check: (p, a, s) => a.challengeCompleted >= 5 },
+    { id: 'quiz_ace',        icon: '📚', label: 'Quiz Ace',              desc: 'Answer 10 quiz questions correctly.',                 check: (p, a, s) => a.quizCorrect >= 10 },
+    { id: 'coop_player',     icon: '🤝', label: 'Team Player',           desc: 'Complete a world with Co-op mode on.',               check: (p, a, s) => Boolean(localStorage.getItem('storyModeCoopComplete')) },
+];
+
+// ── Toast notification (replaces all alert() calls) ──────────────
+function showToast(message, type) {
+    const t = type || 'info';
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;';
+        document.body.appendChild(container);
+    }
+    const colors = { success: '#00d1a0', error: '#ff2f7d', warn: '#ffd86b', info: '#00d9ff' };
+    const textColors = { warn: '#1a1c2e' };
+    const toast = document.createElement('div');
+    toast.style.cssText = `background:${colors[t]||colors.info};color:${textColors[t]||'#061026'};padding:10px 22px;border-radius:10px;font-size:0.86rem;font-weight:700;letter-spacing:0.4px;box-shadow:0 6px 24px rgba(0,0,0,0.45);pointer-events:auto;opacity:0;transition:opacity 0.2s;max-width:480px;text-align:center;`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    requestAnimationFrame(function () { toast.style.opacity = '1'; });
+    setTimeout(function () {
+        toast.style.opacity = '0';
+        setTimeout(function () { if (toast.parentNode) toast.remove(); }, 240);
+    }, 3400);
+}
 
 let currentDailyChallenge = null;
 let activeModal = null;
@@ -248,10 +286,13 @@ function ensureSlideContextAvailable() {
     if (context.hasSlides) {
         return true;
     }
-
-    alert('Story Mode missions need slide context first. Upload or generate slide quiz content before launching this game.');
-    window.location.href = '../../slide_upload/index.html';
-    return false;
+    // No slide data — activate demo mode so the flow still runs
+    localStorage.setItem(SLIDE_DEMO_KEY, JSON.stringify({
+        title: 'Demo Deck',
+        topic: 'General Knowledge'
+    }));
+    showToast('Demo mode active — using sample slide deck to preview the game', 'warn');
+    return true;
 }
 
 function saveAnalytics() {
@@ -424,7 +465,7 @@ function saveSlot(slotIndex) {
 function loadSlot(slotIndex) {
     const slot = readJsonLocal(`${SAVE_SLOT_PREFIX}${slotIndex}`, null);
     if (!slot) {
-        alert('That slot is empty.');
+        showToast('That save slot is empty', 'warn');
         return;
     }
 
@@ -491,11 +532,16 @@ function applyReturnFromLauncher() {
     const collectibles = Number(params.get('resultCollectibles') || 0);
 
     if (status === 'win') {
-        progressState.points += Math.max(0, Math.floor(score / 5)) + (collectibles * 20);
+        const earned = Math.max(0, Math.floor(score / 5)) + (collectibles * 20);
+        progressState.points += earned;
+        progressState.missionsCompleted = Math.min(progressState.missionsCompleted + 1, 5);
         persistProgressState();
-        alert(`Mission result: WIN. Score ${score}, Time ${time}s, Collectibles ${collectibles}.`);
+        completeDailyChallengeIfEligible();
+        checkAndGrantAchievements();
+        renderMenuHUD();
+        showToast(`Mission complete — +${earned} pts earned`, 'success');
     } else {
-        alert(`Mission result: ${status.toUpperCase()}. Score ${score}, Time ${time}s.`);
+        showToast(`Mission ${status} — Score: ${score} | Time: ${time}s`, 'warn');
     }
 
     if (window.history && window.history.replaceState) {
@@ -654,7 +700,7 @@ function acceptChallenge() {
     saveAnalytics();
     updateDebugPanel();
     renderDailyChallenge();
-    alert('Daily challenge accepted. Complete one world to claim your reward.');
+    showToast('Daily challenge accepted — complete one world to claim your reward', 'info');
 }
 
 function completeDailyChallengeIfEligible() {
@@ -691,7 +737,7 @@ function awardDailyChallenge() {
     renderDailyChallenge();
     renderLeaderboard();
     updateDebugPanel();
-    alert(`Daily challenge complete! +${currentDailyChallenge.reward} bonus points. Current streak: ${streak} day(s).`);
+    showToast(`Challenge complete! +${currentDailyChallenge.reward} pts — Streak: ${streak} day(s)`, 'success');
 }
 
 function openRewardBreakdown(streak) {
@@ -802,9 +848,15 @@ function loadCharacters() {
         if (selectedCharacter && selectedCharacter.id === character.id) {
             card.classList.add('active');
         }
+        const initials = character.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         card.innerHTML = `
             <div class="character-card-media" style="background:${character.cardGradient};">
-                <img src="${character.image}" alt="${character.name} portrait" class="character-portrait" loading="lazy">
+                <img src="${character.image}" alt="${character.name} portrait" class="character-portrait" loading="lazy"
+                    onerror="this.style.display='none';var fb=this.parentNode.querySelector('.char-img-fallback');if(fb)fb.style.display='flex';">
+                <div class="char-img-fallback" style="display:none;">
+                    <span>${initials}</span>
+                    <small>${character.classType}</small>
+                </div>
             </div>
             <div class="character-card-info">
                 <div class="character-name">${character.name}</div>
@@ -831,7 +883,14 @@ function renderFeaturedCharacter() {
     const abilityGrid = document.getElementById('abilityGrid');
 
     featuredMedia.style.background = selectedCharacter.cardGradient;
-    featuredMedia.innerHTML = `<img src="${selectedCharacter.image}" alt="${selectedCharacter.name} portrait" class="featured-portrait">`;
+    const featInitials = selectedCharacter.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    featuredMedia.innerHTML = `
+        <img src="${selectedCharacter.image}" alt="${selectedCharacter.name} portrait" class="featured-portrait"
+            onerror="this.style.display='none';var fb=this.parentNode.querySelector('.char-img-fallback');if(fb)fb.style.display='flex';">
+        <div class="char-img-fallback" style="display:none;">
+            <span>${featInitials}</span>
+            <small>${selectedCharacter.classType}</small>
+        </div>`;
     featuredClass.textContent = `Class: ${selectedCharacter.classType}`;
     featuredDifficulty.textContent = `Difficulty: ${selectedCharacter.difficulty}`;
     featuredName.textContent = selectedCharacter.name;
@@ -959,7 +1018,9 @@ function loadMissions() {
     document.getElementById('selectedCharacterInfo').textContent = `Operator: ${selectedCharacter.name} | Deck: ${slideContext.deckLabel} | Questions: ${slideContext.quizCount}`;
     updateCoopStatusUI();
 
-    const unlockedPercent = 64;
+    const totalWorlds = 5;
+    const completed = Math.min(progressState.missionsCompleted, totalWorlds);
+    const unlockedPercent = Math.round((completed / totalWorlds) * 100);
     document.getElementById('missionProgressValue').textContent = `${unlockedPercent}%`;
     document.getElementById('missionProgressFill').style.width = `${unlockedPercent}%`;
 
@@ -983,7 +1044,18 @@ function loadMissions() {
         const recommended = mission.id === recommendation.missionId;
         const branchTag = branchChoice === 'aggressive' ? 'Fast Path' : (branchChoice === 'support' ? 'Co-op Path' : 'Study Path');
 
+        // Completion badge
+        let badgeHtml = '';
+        if (!mission.unlocked) {
+            badgeHtml = '<span class="badge-progress locked">🔒 Locked</span>';
+        } else if (mission.id <= completed) {
+            badgeHtml = '<span class="badge-progress complete">✓ Done</span>';
+        } else if (mission.id === completed + 1) {
+            badgeHtml = '<span class="badge-progress inprogress">▶ Next</span>';
+        }
+
         card.innerHTML = `
+            ${badgeHtml}
             <div class="mission-sector">${mission.sector}</div>
             <div class="mission-landmark">${mission.landmark}</div>
             <div class="mission-title">${mission.title}${recommended ? ' ⭐' : ''}</div>
@@ -1049,7 +1121,7 @@ function toggleCoopMode() {
     localStorage.setItem('storyModeCoopEnabled', String(coopMode));
     updateCoopStatusUI();
     renderDailyChallenge();
-    alert('Co-op mode: ' + (coopMode ? 'ON' : 'OFF'));
+    showToast('Co-op mode: ' + (coopMode ? 'ON' : 'OFF'), coopMode ? 'success' : 'info');
 }
 
 function updateCoopStatusUI() {
@@ -1074,7 +1146,7 @@ function saveProgress() {
     localStorage.setItem('storyModeAvatarId', selectedAvatarId);
     persistProgressState();
     renderSaveSlots();
-    alert('Progress saved!');
+    showToast('Progress saved!', 'success');
 }
 
 function resumeProgress() {
@@ -1106,7 +1178,7 @@ function resumeProgress() {
     updateCoopStatusUI();
     renderDailyChallenge();
     renderSaveSlots();
-    alert('Resumed your last saved setup.');
+    showToast('Last saved setup restored', 'success');
 }
 
 // Language change placeholder
@@ -1215,16 +1287,101 @@ function buildWebGlLaunchUrl(missionTitle) {
     return `${target}?${params.toString()}`;
 }
 
+function checkAndGrantAchievements() {
+    const earned = readJsonLocal(ACHIEVEMENTS_KEY, {});
+    const streak = getEffectiveDailyStreak(getDayKey());
+    let changed = false;
+    ACHIEVEMENT_DEFS.forEach(def => {
+        if (!earned[def.id] && def.check(progressState, analyticsState, streak)) {
+            earned[def.id] = new Date().toLocaleDateString();
+            changed = true;
+            showToast(`Achievement unlocked: ${def.icon} ${def.label}`, 'success');
+        }
+    });
+    if (changed) {
+        localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(earned));
+    }
+}
+
+function renderAchievements() {
+    const list = document.getElementById('achievements-list');
+    if (!list) {
+        return;
+    }
+    const earned = readJsonLocal(ACHIEVEMENTS_KEY, {});
+    const streak = getEffectiveDailyStreak(getDayKey());
+    list.innerHTML = '';
+    ACHIEVEMENT_DEFS.forEach(def => {
+        const isEarned = Boolean(earned[def.id]);
+        const li = document.createElement('li');
+        li.className = `achievement-item${isEarned ? ' earned' : ' locked'}`;
+        li.innerHTML = `
+            <span class="ach-icon">${def.icon}</span>
+            <div class="ach-body">
+                <strong>${def.label}</strong>
+                <span>${def.desc}</span>
+            </div>
+            ${isEarned ? `<span class="ach-date">${earned[def.id]}</span>` : '<span class="ach-lock">🔒</span>'}`;
+        list.appendChild(li);
+    });
+}
+function renderMenuHUD() {
+    const hudPoints = document.getElementById('hudPoints');
+    const hudMissions = document.getElementById('hudMissions');
+    const hudStreak = document.getElementById('hudStreak');
+    const continueBtn = document.getElementById('continueBtn');
+    if (!hudPoints) {
+        return;
+    }
+    const streak = getEffectiveDailyStreak(getDayKey());
+    hudPoints.textContent = progressState.points.toLocaleString();
+    hudMissions.textContent = `${progressState.missionsCompleted}/5`;
+    hudStreak.innerHTML = streak > 0 ? `🔥 ${streak}` : '&mdash;';
+    if (continueBtn) {
+        continueBtn.style.display = progressState.missionsCompleted > 0 ? 'block' : 'none';
+    }
+}
+
+function continueSavedGame() {
+    if (!selectedCharacter) {
+        selectedCharacter = characters[0];
+    }
+    loadCharacters();
+    renderFeaturedCharacter();
+    loadMissions();
+    showScreen('missionScreen');
+}
+
 // Start Game
 function startGame(missionId, missionTitle) {
     selectedMission = currentMissionWorlds.find(m => m.id === missionId) || { id: missionId, title: missionTitle };
+
+    // Populate rich loading screen
+    const operatorRow = document.getElementById('loadingOperatorRow');
     const info = document.getElementById('loadingInfo');
-    info.innerHTML = `
-        <strong>${selectedCharacter.name}</strong> enters<br>
-        <strong>${missionTitle}</strong><br>
-        <span>${selectedMission.landmark || "South African Landmark World"}</span>
-    `;
-    
+    const heading = document.getElementById('loadingHeading');
+    const note = document.getElementById('loadingNote');
+    const charInitials = selectedCharacter.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const diffColor = { Easy: '#baff6b', Medium: '#ffd86b', Hard: '#ff2f7d', Legendary: '#c084fc' }[selectedMission.difficulty] || '#00d9ff';
+
+    if (operatorRow) {
+        operatorRow.innerHTML = `
+            <div class="loading-avatar" style="background:${selectedCharacter.cardGradient}">${charInitials}</div>
+            <div class="loading-operator-meta">
+                <span class="loading-operator-name">${selectedCharacter.name}</span>
+                <span class="loading-operator-role">${selectedCharacter.role} • ${selectedCharacter.classType}</span>
+            </div>`;
+    }
+    if (heading) heading.textContent = missionTitle.toUpperCase();
+    if (info) {
+        info.innerHTML = `
+            <span class="loading-world-badge" style="color:${diffColor};border-color:${diffColor}22">${selectedMission.difficulty || 'Standard'}</span>
+            <span class="loading-world-label">${selectedMission.landmark || 'South African Landmark World'}</span>
+            ${selectedMission.description ? `<p class="loading-world-desc">${selectedMission.description}</p>` : ''}`;
+    }
+    const hint = selectedCharacter.abilities[Math.floor(Math.random() * selectedCharacter.abilities.length)];
+    if (note) note.innerHTML = `<em>“${hint.title}”</em> — ${hint.note}`;
+
     showScreen('gameLoadingScreen');
     
     // Launch imported WebGL story game after the loading animation.
@@ -1253,6 +1410,8 @@ renderLeaderboard();
 updateCoopStatusUI();
 renderDailyChallenge();
 renderSaveSlots();
+renderMenuHUD();
+checkAndGrantAchievements();
 applyLanguage();
 setupModalAccessibility();
 updateDebugPanel();
@@ -1264,4 +1423,10 @@ window.saveSlot = saveSlot;
 window.loadSlot = loadSlot;
 window.openBranchingPrompt = openBranchingPrompt;
 window.openModalWithFocus = openModalWithFocus;
+window.closeModalWithFocus = closeModalWithFocus;
+window.renderAchievements = renderAchievements;
+window.progressState = progressState;
+window.selectedCharacter = selectedCharacter;
+window.getEffectiveDailyStreak = getEffectiveDailyStreak;
+window.getDayKey = getDayKey;
 window.closeModalWithFocus = closeModalWithFocus;

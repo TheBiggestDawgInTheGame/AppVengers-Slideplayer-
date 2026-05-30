@@ -85,6 +85,265 @@
     </section>
   </main>
 
+  <!-- ── Translate Section ─────────────────────────────────────── -->
+  <section class="translate-section" aria-label="Translate content">
+    <div class="translate-inner">
+      <div class="translate-header">
+        <span class="translate-icon">&#127760;</span>
+        <div>
+          <h2 class="translate-title">Translate Content</h2>
+          <p class="translate-sub">Translate slide text, quiz questions or any notes into another language using DeepL.</p>
+        </div>
+      </div>
+
+      <div class="translate-controls">
+        <select id="translateLangSelect" class="translate-lang-select" aria-label="Target language">
+          <option value="">Loading languages…</option>
+        </select>
+        <button id="translateBtn" type="button" class="translate-btn" disabled>
+          <span id="translateBtnText">Translate</span>
+          <span id="translateBtnSpinner" style="display:none">&#8635;</span>
+        </button>
+        <button id="translateCopyBtn" type="button" class="translate-copy-btn" style="display:none" title="Copy translation">
+          &#128203; Copy
+        </button>
+      </div>
+
+      <div class="translate-io">
+        <div class="translate-box">
+          <label for="translateInput" class="translate-box-label">Source text</label>
+          <textarea id="translateInput" class="translate-textarea" placeholder="Paste text here… (e.g. slide content, quiz questions, notes)"></textarea>
+          <span class="translate-char-count"><span id="charCount">0</span> / 5000</span>
+        </div>
+        <div class="translate-box">
+          <label class="translate-box-label">Translation <span id="detectedLangBadge" style="display:none" class="lang-badge"></span></label>
+          <div id="translateOutput" class="translate-output-area" aria-live="polite">
+            <span class="translate-placeholder">Translation will appear here…</span>
+          </div>
+        </div>
+      </div>
+
+      <p id="translateError" class="translate-error" style="display:none"></p>
+    </div>
+  </section>
+
+  <style>
+    .translate-section {
+      max-width: 860px;
+      margin: 40px auto 60px;
+      padding: 0 24px;
+    }
+    .translate-inner {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(0,240,255,0.15);
+      border-radius: 16px;
+      padding: 32px;
+    }
+    .translate-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .translate-icon { font-size: 2rem; line-height: 1; }
+    .translate-title { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .translate-sub { font-size: 0.88rem; color: #7a8499; }
+    .translate-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .translate-lang-select {
+      flex: 1;
+      min-width: 200px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(0,240,255,0.2);
+      border-radius: 8px;
+      color: #e0e6f0;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+    }
+    .translate-btn {
+      background: linear-gradient(135deg, #00f0ff, #3dffc0);
+      color: #0a0e1a;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .translate-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .translate-btn #translateBtnSpinner { animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .translate-copy-btn {
+      background: transparent;
+      border: 1px solid rgba(0,240,255,0.3);
+      color: #00f0ff;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .translate-copy-btn:hover { background: rgba(0,240,255,0.08); }
+    .translate-io {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 640px) { .translate-io { grid-template-columns: 1fr; } }
+    .translate-box { display: flex; flex-direction: column; gap: 8px; position: relative; }
+    .translate-box-label { font-size: 0.8rem; font-weight: 600; color: #7a8499; text-transform: uppercase; letter-spacing: 0.5px; }
+    .translate-textarea {
+      flex: 1;
+      min-height: 160px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(0,240,255,0.15);
+      border-radius: 10px;
+      color: #e0e6f0;
+      padding: 14px;
+      font-size: 0.9rem;
+      resize: vertical;
+      font-family: inherit;
+      line-height: 1.6;
+    }
+    .translate-textarea:focus { outline: none; border-color: rgba(0,240,255,0.4); }
+    .translate-char-count { font-size: 0.75rem; color: #555; text-align: right; }
+    .translate-output-area {
+      min-height: 160px;
+      background: rgba(0,240,255,0.03);
+      border: 1px solid rgba(0,240,255,0.1);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 0.9rem;
+      color: #e0e6f0;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .translate-placeholder { color: #444; font-style: italic; }
+    .lang-badge {
+      background: rgba(0,240,255,0.12);
+      border: 1px solid rgba(0,240,255,0.3);
+      color: #00f0ff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 1px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+    .translate-error { color: #ff4d6d; font-size: 0.85rem; margin-top: 10px; }
+  </style>
+
   <script src="script.js"></script>
+  <script>
+    // ── Translate Panel ─────────────────────────────────────
+    (async function initTranslate() {
+      const langSelect   = document.getElementById('translateLangSelect');
+      const translateBtn = document.getElementById('translateBtn');
+      const copyBtn      = document.getElementById('translateCopyBtn');
+      const input        = document.getElementById('translateInput');
+      const output       = document.getElementById('translateOutput');
+      const charCount    = document.getElementById('charCount');
+      const errorEl      = document.getElementById('translateError');
+      const detectedBadge= document.getElementById('detectedLangBadge');
+      const btnText      = document.getElementById('translateBtnText');
+      const btnSpinner   = document.getElementById('translateBtnSpinner');
+
+      const MAX_CHARS = 5000;
+
+      // Load language list
+      try {
+        const res  = await fetch('/api/translate/languages');
+        const data = await res.json();
+        if (data.languages && data.languages.length) {
+          langSelect.innerHTML = data.languages
+            .map(l => `<option value="${l.code}">${l.name}</option>`)
+            .join('');
+          // Default to saved preference
+          const saved = localStorage.getItem('sp_translate_lang');
+          if (saved) langSelect.value = saved;
+          translateBtn.disabled = false;
+        }
+      } catch (_) {
+        langSelect.innerHTML = '<option value="ES">Spanish</option><option value="FR">French</option><option value="DE">German</option>';
+        translateBtn.disabled = false;
+      }
+
+      // Save language preference
+      langSelect.addEventListener('change', () => {
+        localStorage.setItem('sp_translate_lang', langSelect.value);
+      });
+
+      // Char counter
+      input.addEventListener('input', () => {
+        const len = input.value.length;
+        charCount.textContent = Math.min(len, MAX_CHARS);
+        if (len > MAX_CHARS) input.value = input.value.slice(0, MAX_CHARS);
+      });
+
+      // Translate
+      translateBtn.addEventListener('click', async () => {
+        const text = input.value.trim();
+        const lang = langSelect.value;
+        if (!text) { showError('Please enter some text to translate.'); return; }
+        if (!lang)  { showError('Please select a target language.'); return; }
+        clearError();
+        setLoading(true);
+        try {
+          const res  = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, targetLang: lang }),
+          });
+          const data = await res.json();
+          if (data.error) { showError(data.error); }
+          else {
+            output.textContent = data.translatedText;
+            copyBtn.style.display = '';
+            if (data.detectedSourceLang) {
+              detectedBadge.textContent = 'from ' + data.detectedSourceLang;
+              detectedBadge.style.display = '';
+            }
+          }
+        } catch (e) {
+          showError('Network error: ' + e.message);
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      copyBtn.addEventListener('click', () => {
+        const text = output.textContent;
+        if (!text || output.querySelector('.translate-placeholder')) return;
+        navigator.clipboard.writeText(text).then(() => {
+          copyBtn.textContent = '✓ Copied!';
+          setTimeout(() => { copyBtn.textContent = '📋 Copy'; }, 2000);
+        });
+      });
+
+      function setLoading(on) {
+        translateBtn.disabled = on;
+        btnText.style.display   = on ? 'none' : '';
+        btnSpinner.style.display = on ? '' : 'none';
+        if (on) output.innerHTML = '<span class="translate-placeholder">Translating…</span>';
+      }
+      function showError(msg) {
+        errorEl.textContent = msg;
+        errorEl.style.display = '';
+      }
+      function clearError() {
+        errorEl.textContent = '';
+        errorEl.style.display = 'none';
+      }
+    })();
+  </script>
 </body>
 </html>

@@ -2,11 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SlidePlay | Start Learning</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="UploadPage.css" />
     <link rel="stylesheet" href="page-transition.css" />
+    <link rel="stylesheet" href="responsive-shared.css" />
+    <script src="theme-sync.js"></script>
     <style>
       /* ── Student Upload Page — Step Flow ── */
       body { font-family: "Poppins", sans-serif; background: #100717; color: #e0e0e0; min-height: 100vh; }
@@ -135,6 +138,62 @@
         transition:all 0.25s; font-family:"Orbitron",sans-serif; letter-spacing:0.03em; }
       .su-primary-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 28px rgba(92,232,255,0.3); }
       .su-primary-btn:disabled { opacity:0.3; cursor:not-allowed; }
+    /* ── Study Tutor Chat ─────────────────────────────── */
+    #study-chat-btn {
+      display:none;position:fixed;bottom:28px;right:28px;z-index:1000;
+      background:linear-gradient(135deg,#5ce8ff,#8b5cf6);
+      border:none;border-radius:50px;padding:14px 22px;
+      color:#0a0412;font-family:'Orbitron',sans-serif;font-size:0.78rem;
+      font-weight:700;cursor:pointer;box-shadow:0 4px 24px rgba(92,232,255,0.35);
+      display:none;align-items:center;gap:8px;transition:transform 0.2s;
+    }
+    #study-chat-btn:hover { transform:scale(1.05); }
+    #study-chat-overlay {
+      display:none;position:fixed;inset:0;z-index:2000;
+      background:rgba(7,9,26,0.85);backdrop-filter:blur(12px);
+      align-items:flex-end;justify-content:center;padding:20px;
+    }
+    #study-chat-overlay.open { display:flex; }
+    #study-chat-box {
+      width:100%;max-width:640px;background:#12082a;
+      border:1px solid rgba(139,92,246,0.35);border-radius:20px;
+      display:flex;flex-direction:column;height:70vh;overflow:hidden;
+      box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    }
+    #study-chat-header {
+      padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.07);
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    #study-chat-header h3 {
+      font-family:'Orbitron',sans-serif;font-size:0.9rem;font-weight:700;
+      background:linear-gradient(135deg,#5ce8ff,#c084fc);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0;
+    }
+    #study-chat-close {
+      background:none;border:none;color:#888;font-size:1.2rem;cursor:pointer;
+    }
+    #study-chat-messages {
+      flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;
+    }
+    .chat-msg { max-width:85%;padding:10px 14px;border-radius:14px;font-size:0.88rem;line-height:1.5; }
+    .chat-msg.user { align-self:flex-end;background:rgba(139,92,246,0.25);color:#e2e8f0;border-bottom-right-radius:4px; }
+    .chat-msg.ai   { align-self:flex-start;background:rgba(92,232,255,0.1);color:#cbd5e1;border-bottom-left-radius:4px; }
+    .chat-msg.typing { color:#5ce8ff;font-style:italic; }
+    #study-chat-input-row {
+      padding:12px 16px;border-top:1px solid rgba(255,255,255,0.07);
+      display:flex;gap:10px;align-items:center;
+    }
+    #study-chat-input {
+      flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
+      border-radius:10px;padding:10px 14px;color:#e2e8f0;font-family:'Poppins',sans-serif;
+      font-size:0.88rem;outline:none;resize:none;
+    }
+    #study-chat-send {
+      background:linear-gradient(135deg,#5ce8ff,#8b5cf6);border:none;
+      border-radius:10px;padding:10px 16px;color:#0a0412;font-weight:700;
+      cursor:pointer;font-size:0.85rem;transition:opacity 0.2s;
+    }
+    #study-chat-send:disabled { opacity:0.45;cursor:not-allowed; }
     </style>
   </head>
   <body>
@@ -241,8 +300,8 @@
         <div class="su-upload-zone" id="chill-upload-zone">
           <i class="fa-solid fa-cloud-arrow-up"></i>
           <p>Drag &amp; drop your file here, or <button class="su-browse-link" id="chill-browse">browse</button></p>
-          <small>PDF, PPTX, DOCX, TXT — max 50 MB</small>
-          <input type="file" id="chill-file-input" accept=".pdf,.pptx,.docx,.txt,.md" hidden />
+          <small>PDF, PPTX, DOCX, TXT, PNG, JPG, WEBP — max 50 MB</small>
+          <input type="file" id="chill-file-input" accept=".pdf,.pptx,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.bmp" hidden />
         </div>
 
         <!-- File ready state -->
@@ -292,6 +351,111 @@
       </div>
 
     </div><!-- end .su-wrap -->
+
+    <!-- ── Study Tutor Floating Button ── -->
+    <button id="study-chat-btn">
+      <i class="fa-solid fa-robot"></i> Ask your slides
+    </button>
+
+    <!-- ── Study Tutor Chat Overlay ── -->
+    <div id="study-chat-overlay">
+      <div id="study-chat-box">
+        <div id="study-chat-header">
+          <h3><i class="fa-solid fa-robot"></i> &nbsp;Slide Tutor</h3>
+          <button id="study-chat-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="study-chat-messages">
+          <div class="chat-msg ai">Hi! I've read your uploaded slides. Ask me anything about the content and I'll answer using your notes.</div>
+        </div>
+        <div id="study-chat-input-row">
+          <textarea id="study-chat-input" rows="1" placeholder="Ask about your slides…"></textarea>
+          <button id="study-chat-send"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    // ── Study Tutor Chat Logic ────────────────────────────────────────────────
+    (function() {
+      const API_BASE = (
+        window.SLIDEPLAY_API_BASE ||
+        localStorage.getItem('sp_api_base') ||
+        window.location.origin
+      ).replace(/\/$/, '');
+
+      const chatBtn     = document.getElementById('study-chat-btn');
+      const overlay     = document.getElementById('study-chat-overlay');
+      const closeBtn    = document.getElementById('study-chat-close');
+      const messages    = document.getElementById('study-chat-messages');
+      const input       = document.getElementById('study-chat-input');
+      const sendBtn     = document.getElementById('study-chat-send');
+      let history = [];
+
+      // Show float button once a deck is embedded
+      function checkDeckReady() {
+        if (localStorage.getItem('sp_current_deck_id')) {
+          chatBtn.style.display = 'flex';
+        }
+      }
+      checkDeckReady();
+      window.addEventListener('storage', checkDeckReady);
+      // Also poll briefly after upload (embedding takes a few seconds)
+      setTimeout(checkDeckReady, 5000);
+      setTimeout(checkDeckReady, 15000);
+
+      chatBtn.addEventListener('click', () => overlay.classList.add('open'));
+      closeBtn.addEventListener('click', () => overlay.classList.remove('open'));
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+      function addMsg(text, role) {
+        const el = document.createElement('div');
+        el.className = 'chat-msg ' + role;
+        el.textContent = text;
+        messages.appendChild(el);
+        messages.scrollTop = messages.scrollHeight;
+        return el;
+      }
+
+      async function sendMessage() {
+        const question = input.value.trim();
+        if (!question) return;
+        const deckId = localStorage.getItem('sp_current_deck_id');
+        if (!deckId) { addMsg('Please upload your slides first so I can answer questions about them.', 'ai'); return; }
+
+        addMsg(question, 'user');
+        input.value = '';
+        sendBtn.disabled = true;
+
+        const typing = addMsg('Thinking…', 'ai typing');
+
+        try {
+          const resp = await fetch(API_BASE + '/api/study/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ deckId: parseInt(deckId), question, history }),
+          });
+          const data = await resp.json();
+          typing.remove();
+          const aiEl = addMsg(data.answer || 'Sorry, I could not find an answer.', 'ai');
+          // Track multi-turn history
+          history.push({ role: 'user',  parts: [{ text: question }] });
+          history.push({ role: 'model', parts: [{ text: data.answer }] });
+          if (history.length > 10) history = history.slice(-10); // keep last 5 turns
+        } catch (e) {
+          typing.remove();
+          addMsg('Server offline. Make sure the server is running.', 'ai');
+        } finally {
+          sendBtn.disabled = false;
+          input.focus();
+        }
+      }
+
+      sendBtn.addEventListener('click', sendMessage);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      });
+    })();
+    </script>
 
     <!-- AI Processing Overlay -->
     <div id="ai-processing-overlay" style="display:none;position:fixed;inset:0;background:rgba(16,7,23,0.92);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;">

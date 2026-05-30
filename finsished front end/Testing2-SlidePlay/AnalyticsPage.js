@@ -2,7 +2,29 @@
 
 document.addEventListener("DOMContentLoaded", function () {
   initializeAnalytics();
+  applySubscriptionUnlocks();
 });
+
+// ── Subscription-based unlocks ─────────────────────────────────────────────
+function applySubscriptionUnlocks() {
+  try {
+    var sub = JSON.parse(localStorage.getItem("sp_student_subscription") || "null");
+    var isPaid = sub && sub.status !== "cancelled" &&
+      (sub.plan === "student_elite" || sub.plan === "student_premium");
+    if (!isPaid) return;
+
+    // Unlock all locked premium badges
+    document.querySelectorAll(".badge.locked").forEach(function (badge) {
+      badge.classList.remove("locked");
+      badge.classList.add("earned");
+    });
+
+    // Hide any "unlock premium" upsell prompts on the page
+    document.querySelectorAll("[data-requires='premium'], .premium-upsell, .locked-overlay").forEach(function (el) {
+      el.style.display = "none";
+    });
+  } catch (_) {}
+}
 
 // Initialize all analytics features
 function initializeAnalytics() {
