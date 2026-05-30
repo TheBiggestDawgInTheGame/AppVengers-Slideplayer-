@@ -7,6 +7,9 @@ node_modules/
 **/.env
 .env.local
 .env.*.local
+*service-account*.json
+*firebase*service*account*.json
+finsished front end/Testing2-SlidePlay/firebase-service-account.json
 
 # Leaderboard data (runtime file)
 app-vengers/leaderboard.json
@@ -23,8 +26,3 @@ Thumbs.db
 # Build outputs
 dist/
 build/
-
-# Large media files
-*.mp4
-*.mov
-*.avi

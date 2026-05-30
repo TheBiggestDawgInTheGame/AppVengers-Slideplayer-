@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import fetch from "node-fetch";
 import path from "path";
 import Stripe from "stripe";
+import nodemailer from "nodemailer";
 import { fileURLToPath } from "url";
 import { promises as fs } from "fs";
 import crypto from "crypto";
@@ -28,6 +29,7 @@ const DEFAULT_MODEL = process.env.HF_MODEL || "Qwen/Qwen2.5-7B-Instruct";
 const frontendRoot = path.resolve(__dirname, "..");
 const dataRoot = path.resolve(__dirname, "data");
 const authUsersFile = path.join(dataRoot, "users.json");
+const subscriptionsFile = path.join(dataRoot, "subscriptions.json");
 const AUTH_SALT_BYTES = 16;
 const AUTH_SCRYPT_BYTES = 64;
 const AUTH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -44,6 +46,16 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 const demoCheckoutSessions = new Map();
+const isProduction = (process.env.NODE_ENV || "development").toLowerCase() === "production";
+const demoCheckoutRequested = String(
+  process.env.ALLOW_DEMO_CHECKOUT ??
+    (isProduction ? "false" : "true")
+).trim().toLowerCase() === "true";
+const demoCheckoutEnabled = isProduction ? false : demoCheckoutRequested;
+
+if (isProduction && demoCheckoutRequested) {
+  console.warn("[security] ALLOW_DEMO_CHECKOUT was true in production and has been forced off.");
+}
 
 const PLAN_CATALOG = {
   teacher: {
@@ -69,6 +81,132 @@ const COUPON_CATALOG = {
   },
 };
 
+const DEFAULT_ADMIN_CONTACT_EMAILS = [
+  "bossmk2209@gmail.com",
+  "mutevherichard@gmail.com",
+];
+
+function parseBooleanEnv(value, fallback = false) {
+  if (value == null) {
+    return fallback;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+  return fallback;
+}
+
+function isValidEmailAddress(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
+}
+
+function getAdminContactEmails() {
+  const raw = process.env.ADMIN_CONTACT_EMAILS;
+  const candidates = raw
+    ? raw.split(",").map((item) => item.trim().toLowerCase()).filter(Boolean)
+    : DEFAULT_ADMIN_CONTACT_EMAILS;
+
+  const unique = [...new Set(candidates)];
+  return unique.filter((email) => isValidEmailAddress(email));
+}
+
+function getEmailTransportConfig() {
+  const host = String(process.env.SMTP_HOST || "").trim();
+  const portNumber = Number(process.env.SMTP_PORT || 587);
+  const secure = parseBooleanEnv(process.env.SMTP_SECURE, portNumber === 465);
+  const user = String(process.env.SMTP_USER || "").trim();
+  const pass = String(process.env.SMTP_PASS || "").trim();
+
+  if (!host || !Number.isFinite(portNumber) || !user || !pass) {
+    return null;
+  }
+
+  return {
+    host,
+    port: portNumber,
+    secure,
+    auth: {
+      user,
+      pass,
+    },
+  };
+}
+
+function getSmtpTransporter() {
+  const config = getEmailTransportConfig();
+  if (!config) {
+    return null;
+  }
+
+  return nodemailer.createTransport(config);
+}
+
+function getEmailSenderAddress() {
+  const fallback = String(process.env.SMTP_USER || "").trim();
+  const candidate = String(process.env.SMTP_FROM || fallback).trim();
+  return isValidEmailAddress(candidate) ? candidate : "";
+}
+
+function getAppBaseUrl(req) {
+  const configured = String(process.env.APP_URL || process.env.PUBLIC_BASE_URL || "").trim();
+  if (configured) {
+    return configured.replace(/\/$/, "");
+  }
+  return `${req.protocol}://${req.get("host")}`;
+}
+
+function getPayFastBaseUrl() {
+  const isSandbox = String(process.env.PAYFAST_SANDBOX || "true").trim().toLowerCase() !== "false";
+  return isSandbox
+    ? "https://sandbox.payfast.co.za/eng/process"
+    : "https://www.payfast.co.za/eng/process";
+}
+
+function generatePayFastSignature(data, passphrase) {
+  const sanitized = {};
+  for (const [key, value] of Object.entries(data || {})) {
+    if (value == null) continue;
+    const asString = String(value).trim();
+    if (!asString) continue;
+    sanitized[key] = asString;
+  }
+
+  const query = Object.keys(sanitized)
+    .sort()
+    .map((key) => `${key}=${encodeURIComponent(sanitized[key]).replace(/%20/g, "+")}`)
+    .join("&");
+  const payload = passphrase ? `${query}&passphrase=${encodeURIComponent(passphrase).replace(/%20/g, "+")}` : query;
+  return crypto.createHash("md5").update(payload).digest("hex");
+}
+
+async function resolveUidFromEmail(email) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) return "";
+  const users = await readUsers();
+  const user = users.find((item) => String(item.email || "").trim().toLowerCase() === normalizedEmail);
+  return user?.id || "";
+}
+
+async function requestHasAdminAccess(req) {
+  const authUser = await resolveAuthUserFromRequest(req);
+  if (authUser?.role === "admin") {
+    return true;
+  }
+
+  const configuredApiKey = String(process.env.ADMIN_EMAIL_API_KEY || "").trim();
+  const providedApiKey = String(req.headers["x-admin-api-key"] || "").trim();
+  if (configuredApiKey && providedApiKey && configuredApiKey === providedApiKey) {
+    return true;
+  }
+
+  return false;
+}
+
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -82,7 +220,21 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
+app.use(express.json({
+  verify: (req, _res, buf) => {
+    if (req.path === "/api/crypto/webhook") {
+      req.rawBody = Buffer.from(buf);
+    }
+  },
+}));
+
+app.use((err, _req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    return res.status(400).json({ error: "Invalid JSON body." });
+  }
+  return next(err);
+});
+
 app.use(express.static(frontendRoot));
 
 function toCellKey(point) {
@@ -354,6 +506,12 @@ async function ensureAuthStorage() {
   } catch (_error) {
     await fs.writeFile(authUsersFile, "[]", "utf8");
   }
+
+  try {
+    await fs.access(subscriptionsFile);
+  } catch (_error) {
+    await fs.writeFile(subscriptionsFile, "{}", "utf8");
+  }
 }
 
 async function readUsers() {
@@ -366,6 +524,49 @@ async function readUsers() {
 async function writeUsers(users) {
   await ensureAuthStorage();
   await fs.writeFile(authUsersFile, JSON.stringify(users, null, 2), "utf8");
+}
+
+async function readSubscriptions() {
+  await ensureAuthStorage();
+  const raw = await fs.readFile(subscriptionsFile, "utf8");
+  const parsed = JSON.parse(raw);
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+}
+
+async function writeSubscriptions(subscriptionsByUid) {
+  await ensureAuthStorage();
+  await fs.writeFile(subscriptionsFile, JSON.stringify(subscriptionsByUid, null, 2), "utf8");
+}
+
+function normalizeSubscriptionRecord(uid, record) {
+  const plan = String(record?.plan || "free").trim().toLowerCase();
+  const status = String(record?.status || "inactive").trim().toLowerCase();
+  const billing = String(record?.billing || "monthly").trim().toLowerCase();
+
+  return {
+    uid,
+    plan,
+    status,
+    billing,
+    provider: String(record?.provider || "stripe").trim().toLowerCase(),
+    customerEmail: String(record?.customerEmail || "").trim().toLowerCase(),
+    sessionId: String(record?.sessionId || "").trim(),
+    activatedAt: Number(record?.activatedAt || Date.now()),
+    updatedAt: Date.now(),
+  };
+}
+
+async function upsertSubscription(uid, record) {
+  const normalizedUid = String(uid || "").trim();
+  if (!normalizedUid) {
+    return null;
+  }
+
+  const subscriptionsByUid = await readSubscriptions();
+  const normalized = normalizeSubscriptionRecord(normalizedUid, record);
+  subscriptionsByUid[normalizedUid] = normalized;
+  await writeSubscriptions(subscriptionsByUid);
+  return normalized;
 }
 
 function hashPassword(password) {
@@ -930,6 +1131,251 @@ app.get("/health", (req, res) => {
   });
 });
 
+app.post("/api/admin/email/send", async (req, res) => {
+  try {
+    const hasAdminAccess = await requestHasAdminAccess(req);
+    if (!hasAdminAccess) {
+      return res.status(403).json({
+        error: "Admin access required. Provide a valid admin bearer token or x-admin-api-key.",
+      });
+    }
+
+    const transporter = getSmtpTransporter();
+    const from = getEmailSenderAddress();
+    if (!transporter || !from) {
+      return res.status(500).json({
+        error: "SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and optional SMTP_FROM.",
+      });
+    }
+
+    const body = req.body || {};
+    const requestedRecipients = Array.isArray(body.to)
+      ? body.to
+      : typeof body.to === "string"
+        ? body.to.split(",")
+        : [];
+    const fallbackRecipients = getAdminContactEmails();
+    const recipients = [...new Set((requestedRecipients.length ? requestedRecipients : fallbackRecipients)
+      .map((item) => String(item || "").trim().toLowerCase())
+      .filter((email) => isValidEmailAddress(email)))];
+
+    if (!recipients.length) {
+      return res.status(400).json({ error: "No valid recipient emails were provided." });
+    }
+
+    const subject = String(body.subject || "SlidePlay admin message").trim().slice(0, 200);
+    const text = String(body.text || "").trim();
+    const html = String(body.html || "").trim();
+    if (!text && !html) {
+      return res.status(400).json({ error: "Provide at least one of text or html." });
+    }
+
+    const info = await transporter.sendMail({
+      from,
+      to: recipients.join(", "),
+      subject,
+      text: text || undefined,
+      html: html || undefined,
+    });
+
+    return res.status(201).json({
+      ok: true,
+      accepted: info.accepted || [],
+      rejected: info.rejected || [],
+      messageId: info.messageId || "",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to send email." });
+  }
+});
+
+app.post("/api/payfast/init", (req, res) => {
+  const merchantId = String(process.env.PAYFAST_MERCHANT_ID || "").trim();
+  const merchantKey = String(process.env.PAYFAST_MERCHANT_KEY || "").trim();
+  const passphrase = String(process.env.PAYFAST_PASSPHRASE || "").trim();
+  if (!merchantId || !merchantKey) {
+    return res.status(503).json({ error: "PayFast is not configured on this server." });
+  }
+
+  const amount = Number(req.body?.amount || 0);
+  const plan = String(req.body?.plan || "").trim().toLowerCase();
+  const userEmail = String(req.body?.user_email || req.body?.userEmail || "").trim().toLowerCase();
+  const userUid = String(req.body?.user_uid || req.body?.userUid || "").trim();
+  const billing = String(req.body?.billing || "monthly").trim().toLowerCase() === "yearly" ? "yearly" : "monthly";
+  if (!Number.isFinite(amount) || amount <= 0 || !plan) {
+    return res.status(400).json({ error: "Invalid amount or plan." });
+  }
+
+  const appBase = getAppBaseUrl(req);
+  const paymentPage = `${appBase}/payment.html`;
+  const payfastData = {
+    merchant_id: merchantId,
+    merchant_key: merchantKey,
+    return_url: String(req.body?.return_url || `${paymentPage}?payfast=success`).trim(),
+    cancel_url: String(req.body?.cancel_url || `${paymentPage}?payfast=cancel`).trim(),
+    notify_url: String(req.body?.notify_url || `${appBase}/api/payfast/ipn`).trim(),
+    amount: amount.toFixed(2),
+    item_name: String(req.body?.item_name || `SlidePlay ${plan}`).trim(),
+    email_address: userEmail,
+    custom_str1: plan,
+    custom_str2: userUid,
+    custom_str3: billing,
+  };
+  payfastData.signature = generatePayFastSignature(payfastData, passphrase);
+
+  const pfUrl = String(process.env.PAYFAST_URL || getPayFastBaseUrl()).trim();
+  const query = new URLSearchParams(payfastData).toString();
+  return res.json({ url: `${pfUrl}?${query}` });
+});
+
+app.post("/api/payfast/ipn", express.urlencoded({ extended: true }), async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const providedSignature = String(payload.signature || "").trim();
+    const passphrase = String(process.env.PAYFAST_PASSPHRASE || "").trim();
+    const payloadWithoutSignature = { ...payload };
+    delete payloadWithoutSignature.signature;
+    const expectedSignature = generatePayFastSignature(payloadWithoutSignature, passphrase);
+    if (!providedSignature || expectedSignature !== providedSignature) {
+      return res.status(400).send("Invalid signature.");
+    }
+
+    if (String(payload.payment_status || "").toUpperCase() !== "COMPLETE") {
+      return res.status(200).send("OK");
+    }
+
+    const uidFromPayload = String(payload.custom_str2 || "").trim();
+    const emailFromPayload = String(payload.email_address || "").trim().toLowerCase();
+    const uid = uidFromPayload || await resolveUidFromEmail(emailFromPayload);
+    if (uid) {
+      await upsertSubscription(uid, {
+        plan: String(payload.custom_str1 || "free").trim().toLowerCase(),
+        status: "active",
+        billing: String(payload.custom_str3 || "monthly").trim().toLowerCase() === "yearly" ? "yearly" : "monthly",
+        provider: "payfast",
+        customerEmail: emailFromPayload,
+        sessionId: String(payload.pf_payment_id || payload.m_payment_id || "").trim(),
+        activatedAt: Date.now(),
+      });
+    }
+
+    return res.status(200).send("OK");
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send("IPN error");
+  }
+});
+
+app.post("/api/crypto/create-charge", async (req, res) => {
+  try {
+    const apiKey = String(process.env.COINBASE_COMMERCE_API_KEY || "").trim();
+    if (!apiKey) {
+      return res.status(503).json({ error: "Crypto payments are not configured on this server." });
+    }
+
+    const plan = String(req.body?.plan || "").trim().toLowerCase();
+    const amount = Number(req.body?.amount || 0);
+    const customerEmail = String(req.body?.customer_email || req.body?.customerEmail || "").trim().toLowerCase();
+    const customerUid = String(req.body?.user_uid || req.body?.userUid || "").trim();
+    const billing = String(req.body?.billing || "monthly").trim().toLowerCase() === "yearly" ? "yearly" : "monthly";
+    if (!plan || !Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: "Invalid plan or amount." });
+    }
+
+    const appBase = getAppBaseUrl(req);
+    const redirectUrl = String(req.body?.redirect_url || `${appBase}/payment.html?payment=success&provider=crypto`).trim();
+    const cancelUrl = String(req.body?.cancel_url || `${appBase}/payment.html?payment=cancel&provider=crypto`).trim();
+
+    const response = await fetch("https://api.commerce.coinbase.com/charges", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CC-Api-Key": apiKey,
+        "X-CC-Version": "2018-03-22",
+      },
+      body: JSON.stringify({
+        name: String(req.body?.name || `SlidePlay ${plan}`).trim(),
+        description: String(req.body?.description || `SlidePlay ${plan} subscription`).trim(),
+        local_price: { amount: amount.toFixed(2), currency: "USD" },
+        pricing_type: "fixed_price",
+        metadata: {
+          plan,
+          billing,
+          user_uid: customerUid,
+          user_email: customerEmail,
+        },
+        redirect_url: redirectUrl,
+        cancel_url: cancelUrl,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      const apiMsg = data?.error?.message || data?.error || "Failed to create crypto charge.";
+      return res.status(502).json({ error: apiMsg });
+    }
+
+    const charge = data?.data;
+    if (!charge?.hosted_url) {
+      return res.status(502).json({ error: "No hosted URL returned from Coinbase Commerce." });
+    }
+
+    return res.json({
+      hosted_url: charge.hosted_url,
+      url: charge.hosted_url,
+      chargeId: charge.id,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(502).json({ error: "Failed to create crypto charge. Please try again." });
+  }
+});
+
+app.post("/api/crypto/webhook", async (req, res) => {
+  try {
+    const webhookSecret = String(process.env.COINBASE_COMMERCE_WEBHOOK_SECRET || "").trim();
+    const signature = String(req.headers["x-cc-webhook-signature"] || "").trim();
+    if (!webhookSecret) {
+      return res.status(503).send("Webhook secret not configured.");
+    }
+
+    if (!signature || !req.rawBody) {
+      return res.status(400).send("Missing signature or body.");
+    }
+
+    const expected = crypto.createHmac("sha256", webhookSecret).update(req.rawBody).digest("hex");
+    if (expected !== signature) {
+      return res.status(400).send("Invalid signature.");
+    }
+
+    const event = JSON.parse(req.rawBody.toString("utf8"));
+    const eventType = String(event?.event?.type || "").trim().toLowerCase();
+    if (!["charge:confirmed", "charge:resolved"].includes(eventType)) {
+      return res.status(200).send("OK");
+    }
+
+    const metadata = event?.event?.data?.metadata || {};
+    const uid = String(metadata.user_uid || "").trim() || await resolveUidFromEmail(metadata.user_email);
+    if (uid) {
+      await upsertSubscription(uid, {
+        plan: String(metadata.plan || "free").trim().toLowerCase(),
+        status: "active",
+        billing: String(metadata.billing || "monthly").trim().toLowerCase() === "yearly" ? "yearly" : "monthly",
+        provider: "coinbase",
+        customerEmail: String(metadata.user_email || "").trim().toLowerCase(),
+        sessionId: String(event?.event?.data?.id || "").trim(),
+        activatedAt: Date.now(),
+      });
+    }
+
+    return res.status(200).send("OK");
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send("Webhook error");
+  }
+});
+
 app.post("/api/stripe/create-checkout-session", async (req, res) => {
   try {
     const {
@@ -939,6 +1385,7 @@ app.post("/api/stripe/create-checkout-session", async (req, res) => {
       couponCode,
       customerEmail,
       customerName,
+      customerUid,
       successPath,
       cancelPath,
     } = req.body || {};
@@ -950,6 +1397,12 @@ app.post("/api/stripe/create-checkout-session", async (req, res) => {
     const checkout = resolveCheckoutPlan({ role, plan, billingPeriod, couponCode });
 
     if (!stripe) {
+      if (!demoCheckoutEnabled) {
+        return res.status(503).json({
+          error: "Stripe is not configured and demo checkout is disabled.",
+        });
+      }
+
       return res.json(createDemoCheckoutSession({
         req,
         checkout,
@@ -994,6 +1447,7 @@ app.post("/api/stripe/create-checkout-session", async (req, res) => {
         couponCode: checkout.couponCode,
         customerEmail: customerEmail.trim(),
         customerName: String(customerName || "").trim(),
+        customerUid: String(customerUid || "").trim(),
         discount: String(checkout.discount),
         plan: checkout.plan,
         role: checkout.role,
@@ -1012,6 +1466,10 @@ app.post("/api/stripe/create-checkout-session", async (req, res) => {
 });
 
 app.get("/api/demo-checkout/:sessionId", (req, res) => {
+  if (!demoCheckoutEnabled) {
+    return res.status(404).json({ error: "Demo checkout is disabled." });
+  }
+
   const session = demoCheckoutSessions.get(req.params.sessionId);
 
   if (!session) {
@@ -1033,6 +1491,10 @@ app.get("/api/demo-checkout/:sessionId", (req, res) => {
 });
 
 app.post("/api/demo-checkout/:sessionId/complete", (req, res) => {
+  if (!demoCheckoutEnabled) {
+    return res.status(404).json({ error: "Demo checkout is disabled." });
+  }
+
   const session = demoCheckoutSessions.get(req.params.sessionId);
 
   if (!session) {
@@ -1050,6 +1512,10 @@ app.post("/api/demo-checkout/:sessionId/complete", (req, res) => {
 });
 
 app.post("/api/demo-checkout/:sessionId/cancel", (req, res) => {
+  if (!demoCheckoutEnabled) {
+    return res.status(404).json({ error: "Demo checkout is disabled." });
+  }
+
   const session = demoCheckoutSessions.get(req.params.sessionId);
 
   if (!session) {
@@ -1070,7 +1536,7 @@ app.get("/api/stripe/checkout-session/:sessionId", async (req, res) => {
   try {
     const demoSession = demoCheckoutSessions.get(req.params.sessionId);
 
-    if (demoSession) {
+    if (demoSession && demoCheckoutEnabled) {
       return res.json({
         id: demoSession.id,
         status: demoSession.status,
@@ -1095,6 +1561,19 @@ app.get("/api/stripe/checkout-session/:sessionId", async (req, res) => {
 
     const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
 
+    const normalizedUid = String(session.metadata?.customerUid || "").trim();
+    if (session.payment_status === "paid" && normalizedUid) {
+      await upsertSubscription(normalizedUid, {
+        plan: session.metadata?.plan || "free",
+        status: "active",
+        billing: session.metadata?.billing || "monthly",
+        provider: "stripe",
+        customerEmail: session.customer_details?.email || session.customer_email || session.metadata?.customerEmail || "",
+        sessionId: session.id,
+        activatedAt: Date.now(),
+      });
+    }
+
     return res.json({
       id: session.id,
       status: session.status,
@@ -1106,6 +1585,7 @@ app.get("/api/stripe/checkout-session/:sessionId", async (req, res) => {
       metadata: {
         billing: session.metadata?.billing || "monthly",
         couponCode: session.metadata?.couponCode || "",
+        customerUid: session.metadata?.customerUid || "",
         discount: Number(session.metadata?.discount || 0),
         plan: session.metadata?.plan || "",
         role: session.metadata?.role || "teacher",
@@ -1114,6 +1594,36 @@ app.get("/api/stripe/checkout-session/:sessionId", async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: error.message || "Failed to fetch Stripe Checkout Session." });
+  }
+});
+
+app.get("/api/users/:uid/subscription", async (req, res) => {
+  try {
+    const uid = String(req.params.uid || "").trim();
+    if (!uid) {
+      return res.status(400).json({ error: "uid is required." });
+    }
+
+    const subscriptionsByUid = await readSubscriptions();
+    const subscription = subscriptionsByUid[uid] || null;
+    if (!subscription) {
+      return res.json({
+        uid,
+        plan: "free",
+        status: "locked",
+        billing: "monthly",
+        provider: "none",
+        active: false,
+      });
+    }
+
+    return res.json({
+      ...subscription,
+      active: subscription.status === "active" && subscription.plan !== "free",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to read subscription." });
   }
 });
 
