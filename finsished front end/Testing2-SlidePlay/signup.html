@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -32,7 +32,7 @@
         justify-content: center;
         align-items: center;
         position: relative;
-        padding: 40px 15px; /* ✅ Added top/bottom padding for space outside form */
+        padding: 40px 15px; /* âœ… Added top/bottom padding for space outside form */
       }
 
       h1,
@@ -100,7 +100,7 @@
         border: 1px solid rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(18px);
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-        margin: 20px 0; /* ✅ Extra space outside top and bottom of form */
+        margin: 20px 0; /* âœ… Extra space outside top and bottom of form */
       }
 
       .signup-header {
@@ -344,15 +344,15 @@
 
     <div class="signup-box">
       <div class="signup-header">
-        <h2>Create Account</h2>
-        <p>Join SlidePlay and start learning smarter</p>
+        <h2 data-i18n="Create Account">Create Account</h2>
+        <p data-i18n="Join SlidePlay and start learning smarter">Join SlidePlay and start learning smarter</p>
       </div>
 
       <form id="signupForm">
         <div class="input-group">
           <div class="input-box" id="usernameBox">
             <i class="fa-solid fa-user"></i>
-            <input id="username" class="input-field" placeholder="Username" />
+            <input id="username" class="input-field" placeholder="Username" data-i18n-placeholder="Username" />
           </div>
           <div class="error-text" id="usernameError"></div>
         </div>
@@ -360,7 +360,7 @@
         <div class="input-group">
           <div class="input-box" id="emailBox">
             <i class="fa-solid fa-envelope"></i>
-            <input id="email" class="input-field" placeholder="Email" />
+            <input id="email" class="input-field" placeholder="Email" data-i18n-placeholder="Email" />
           </div>
           <div class="error-text" id="emailError"></div>
         </div>
@@ -373,6 +373,7 @@
               type="password"
               class="input-field"
               placeholder="Password"
+              data-i18n-placeholder="Password"
             />
           </div>
           <div class="error-text" id="passwordError"></div>
@@ -386,6 +387,7 @@
               type="password"
               class="input-field"
               placeholder="Confirm Password"
+              data-i18n-placeholder="Confirm Password"
             />
           </div>
           <div class="error-text" id="confirmError"></div>
@@ -396,12 +398,12 @@
           <label class="role-option active" id="roleStudentLabel">
             <input type="radio" name="userRole" value="student" id="roleStudent" checked />
             <span class="role-icon"><i class="fa-solid fa-graduation-cap"></i></span>
-            <span class="role-label">Student</span>
+            <span class="role-label" data-i18n="Student">Student</span>
           </label>
           <label class="role-option teacher-option" id="roleTeacherLabel">
             <input type="radio" name="userRole" value="teacher" id="roleTeacher" />
             <span class="role-icon"><i class="fa-solid fa-chalkboard-user"></i></span>
-            <span class="role-label">Teacher</span>
+            <span class="role-label" data-i18n="Teacher">Teacher</span>
           </label>
         </div>
 
@@ -414,26 +416,27 @@
               id="teacherCode"
               class="input-field"
               placeholder="Teacher Access Code"
+              data-i18n-placeholder="Teacher Access Code"
               autocomplete="off"
             />
           </div>
           <div class="error-text" id="teacherCodeError"></div>
         </div>
 
-        <button class="signup-btn" type="submit">Create Account</button>
+        <button class="signup-btn" type="submit" data-i18n="Create Account">Create Account</button>
 
         <div class="divider">
-          <span>OR</span>
+          <span data-i18n="OR">OR</span>
         </div>
 
-        <button type="button" id="googleBtn" class="google">
+        <button type="button" id="googleBtn" class="google" data-i18n="Sign up with Google">
           <img src="google.png" alt="Google logo" />
           Sign up with Google
         </button>
       </form>
 
       <div class="login-link">
-        <p>Already have an account? <a href="login.html">Login</a></p>
+        <p><span data-i18n="Already have an account?">Already have an account?</span> <a href="login.html" data-i18n="Login">Login</a></p>
       </div>
     </div>
 
@@ -478,5 +481,6 @@
       });
     </script>
     <script type="module" src="authentication.js"></script>
-  </body>
+    <script src="i18n-sa.js"></script>
+</body>
 </html>

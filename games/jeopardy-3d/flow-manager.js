@@ -1,5 +1,7 @@
 /* flow-manager.js - Multi-screen game flow orchestration */
 (function (window) {
+  const QUESTION_COUNT_STORAGE_KEY = 'slidePlayJeopardy3dQuestionCount';
+
   const GameFlowManager = {
     // Available game modes
     AVAILABLE_MODES: [
@@ -20,6 +22,7 @@
       selectedGame: null,
       selectedPlayStyle: null,
       desiredPlayers: null,
+      questionCount: 20,
       uploadedFileName: null,
       players: [],
     },
@@ -37,6 +40,7 @@
     // Initialize flow manager
     init() {
       this.cacheDOM();
+      this.syncQuestionCountInput();
       this.ensureLobbyScreen();
       this.bindFlowEvents();
       if (!this.applyDeepLinkFromQuery()) {
@@ -49,6 +53,7 @@
       const gameParam = (params.get('game') || '').toLowerCase();
       const playStyleParam = (params.get('playStyle') || '').toLowerCase();
       const playersParam = Number(params.get('players') || '0');
+      const countParam = params.get('count');
       const sourceParam = params.get('source');
 
       const gameAliasMap = {
@@ -88,6 +93,8 @@
       if (Number.isFinite(playersParam) && playersParam >= 1) {
         this.currentFlow.desiredPlayers = Math.min(8, Math.floor(playersParam));
       }
+      this.currentFlow.questionCount = this.normalizeQuestionCount(countParam || this.currentFlow.questionCount);
+      this.syncQuestionCountInput(this.currentFlow.questionCount);
 
       // ── If coming from the slide upload page, check for existing quiz data ──
       // Skip the upload screen entirely if content already exists in localStorage.
@@ -221,6 +228,8 @@
     },
 
     proceedToGameSelector() {
+      this.currentFlow.questionCount = this.getSelectedQuestionCount();
+
       if (!this.currentFlow.uploadedContent) {
         const statusEl = document.getElementById('upload-status');
         if (statusEl) {
@@ -290,14 +299,32 @@
       const container = document.querySelector('#play-style-screen .play-style-options');
       if (!container) return;
 
+      const styleMeta = {
+        solo: {
+          icon: '🎮',
+          title: 'Solo',
+          description: 'Play alone at your own pace',
+        },
+        multiplayer: {
+          icon: '👥',
+          title: 'Multiplayer / 2 Players',
+          description: 'Take turns with friends, best score wins',
+        },
+        tournament: {
+          icon: '🏆',
+          title: 'Tournament',
+          description: 'Bracket competition, leaderboard finale',
+        },
+      };
+
       container.innerHTML = this.PLAY_STYLES.map(style => `
         <div class="play-style-option" data-style="${style}">
           <div class="play-style-icon">
-            ${style === 'solo' ? '🎮' : style === 'multiplayer' ? '👥' : '🏆'}
+            ${styleMeta[style]?.icon || '🎮'}
           </div>
-          <div class="play-style-title">${style.charAt(0).toUpperCase() + style.slice(1)}</div>
+          <div class="play-style-title">${styleMeta[style]?.title || style}</div>
           <div class="play-style-desc">
-            ${style === 'solo' ? 'Play alone at your own pace' : style === 'multiplayer' ? 'Take turns with friends' : 'Bracket competition, best score wins'}
+            ${styleMeta[style]?.description || ''}
           </div>
         </div>
       `).join('');
@@ -422,6 +449,7 @@
         mode: this.currentFlow.selectedMode,
         game: this.currentFlow.selectedGame,
         playStyle: this.currentFlow.selectedPlayStyle,
+        questionCount: this.getSelectedQuestionCount(),
         content: this.currentFlow.uploadedContent,
         fileName: this.currentFlow.uploadedFileName,
         players: this.currentFlow.players,
@@ -440,12 +468,13 @@
         selectedMode: null,
         uploadedContent: null,
         selectedGame: null,
+        questionCount: this.getSelectedQuestionCount(),
         selectedPlayStyle: null,
         desiredPlayers: null,
         uploadedFileName: null,
         players: [],
       };
-
+ 
       // Reset upload status
       const statusEl = document.getElementById('upload-status');
       if (statusEl) {
@@ -458,6 +487,52 @@
       }
 
       this.showScreen('mode-chooser');
+    },
+
+    normalizeQuestionCount(count) {
+      const parsed = Number.parseInt(count, 10);
+      if (!Number.isFinite(parsed)) return 20;
+      return Math.max(5, Math.min(40, parsed));
+    },
+
+    getQuestionCountInput() {
+      return document.getElementById('question-count-input');
+    },
+
+    syncQuestionCountInput(count) {
+      let stored = null;
+      try {
+        stored = localStorage.getItem(QUESTION_COUNT_STORAGE_KEY);
+      } catch (_error) {
+        stored = null;
+      }
+
+      const normalized = this.normalizeQuestionCount(count || stored || this.currentFlow.questionCount || 20);
+      const input = this.getQuestionCountInput();
+      if (input) {
+        input.value = String(normalized);
+        if (!input.dataset.bound) {
+          input.addEventListener('input', () => {
+            const liveValue = this.normalizeQuestionCount(input.value);
+            this.currentFlow.questionCount = liveValue;
+            try {
+              localStorage.setItem(QUESTION_COUNT_STORAGE_KEY, String(liveValue));
+            } catch (_error) {}
+          });
+          input.dataset.bound = '1';
+        }
+      }
+
+      this.currentFlow.questionCount = normalized;
+      try {
+        localStorage.setItem(QUESTION_COUNT_STORAGE_KEY, String(normalized));
+      } catch (_error) {}
+      return normalized;
+    },
+
+    getSelectedQuestionCount() {
+      const input = this.getQuestionCountInput();
+      return this.syncQuestionCountInput(input ? input.value : this.currentFlow.questionCount);
     },
 
     getFlowState() {

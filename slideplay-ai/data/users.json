@@ -1,0 +1,38 @@
+[
+  {
+    "id": "7608a0c8-6ff3-43f4-985b-511671d2f134",
+    "username": "audit-user",
+    "email": "auditc227a51b@example.com",
+    "age": 20,
+    "role": "student",
+    "passwordHash": "863c689e584d3750478ea62249f8aced:39593d92d41a976aa3ce59b5b9466e1eef31abc293e5a44ec49d909dd0be75ecfdb30dfb37d2125fa47ba05b0ec63791e511de4223a118295cb7768811d68f1a",
+    "createdAt": 1780090918836
+  },
+  {
+    "id": "e98a7167-9bb1-439a-9e0e-b75eb14fe5c9",
+    "username": "flow-user",
+    "email": "flowcedd5151@example.com",
+    "age": 20,
+    "role": "student",
+    "passwordHash": "749131c301933f6a496426e11e7d89e4:f978174f0052abd2d9aac45dbff524242463dfe695f795ef8a329f542b48339c6dc1aaffeb839e04b81fdd0278a0605fc3e82f5084a0e718d16fdd0f3d6a513d",
+    "createdAt": 1780121051021
+  },
+  {
+    "id": "4e9ad64d-a0d1-4b5a-a06a-3cf0d4270434",
+    "username": "flow-user",
+    "email": "flow2cf83369@example.com",
+    "age": 20,
+    "role": "student",
+    "passwordHash": "f4ae91fdd3ff9f07edb3870ffb46fb8f:53f823adb72e16957fdfcf26d1bbb5d6b50b258cbb18edf5da9fb8faf59ab997afa60d84c9fd6c44e6d00923b73e41083c659517ba505ef8f9ede86b373d28d9",
+    "createdAt": 1780121064367
+  },
+  {
+    "id": "f568081a-5001-4860-a264-39cfc61ad71b",
+    "username": "flow-user",
+    "email": "flow879965d6@example.com",
+    "age": 20,
+    "role": "student",
+    "passwordHash": "997200cc5ab372228f72f25dc1716f38:533f0993cb01c37b272b11fe6a46d684f69551166ec578bdbd5b24fed750f591c33c088fa485c2a1c2b489154525a34f1a1d5e40d5ead8506bcb72fef96d114d",
+    "createdAt": 1780121125501
+  }
+]

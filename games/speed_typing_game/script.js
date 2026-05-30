@@ -60,6 +60,9 @@ let previousInputLength = 0;
 let bestScore = Number(localStorage.getItem('typingBestScore') || 0);
 let countdownTimer = null;
 let isCountingDown = false;
+let typingRunStartedAt = 0;
+let premiumTypingReportSubmitted = false;
+let typingAttempts = [];
 
 function readJsonStorage(key, fallback) {
     try {
@@ -162,6 +165,9 @@ function startGame() {
     attemptCharsCurrent = 0;
     previousInputLength = 0;
     startTime = 0;
+    typingRunStartedAt = 0;
+    premiumTypingReportSubmitted = false;
+    typingAttempts = [];
 
     updateUI();
 
@@ -201,6 +207,7 @@ function beginRound() {
     currentChallenge = getRandomChallenge(currentDifficulty);
     challengeText.textContent = currentChallenge;
     startTime = Date.now();
+    typingRunStartedAt = startTime;
     gameActive = true;
     startBtn.textContent = 'Running...';
     resetBtn.disabled = false;
@@ -285,6 +292,16 @@ function onInput() {
 
         score += calculateScore(currentDifficulty, typedValue.length);
 
+        typingAttempts.push({
+            questionNumber: typingAttempts.length + 1,
+            questionText: currentChallenge,
+            userAnswer: typedValue,
+            correctAnswer: currentChallenge,
+            correct: true,
+            responseSeconds: 0,
+            outcome: 'typed'
+        });
+
         if (score > bestScore) {
             bestScore = score;
             localStorage.setItem('typingBestScore', String(bestScore));
@@ -357,6 +374,7 @@ function endGame(won) {
     if (window.GameModes) GameModes.roundEnd(score);
     if (typeof window.saveLeaderboardScore === 'function') window.saveLeaderboardScore('typing', score);
     showSummaryModal();
+    void submitPremiumTypingReport();
 
     if (window.StudyAdventure) {
         if (score >= 80) {
@@ -370,6 +388,52 @@ function endGame(won) {
             });
         }
         window.StudyAdventure.endSession(score);
+    }
+}
+
+async function submitPremiumTypingReport() {
+    if (premiumTypingReportSubmitted) {
+        return;
+    }
+
+    if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== 'function') {
+        return;
+    }
+
+    const stats = getCurrentStats();
+    const durationSec = Math.max(0, Math.round((Date.now() - Number(typingRunStartedAt || Date.now())) / 1000));
+    const attempts = typingAttempts.length > 0
+        ? typingAttempts
+        : [{
+            questionNumber: 1,
+            questionText: currentChallenge || 'Typing session',
+            userAnswer: '',
+            correctAnswer: currentChallenge || '',
+            correct: false,
+            responseSeconds: durationSec,
+            outcome: 'session-ended'
+        }];
+
+    const payload = {
+        gameType: 'speed-typing',
+        score,
+        totalQuestions: attempts.length,
+        correctCount: attempts.filter((attempt) => attempt.correct).length,
+        durationSec,
+        questionAttempts: attempts,
+        meta: {
+            source: 'speed_typing_game',
+            difficulty: currentDifficulty,
+            wpm: stats.wpm,
+            accuracy: stats.accuracy,
+            wordsCompleted,
+            bestScore
+        }
+    };
+
+    const result = await window.PremiumGameReporter.submitReport(payload);
+    if (result && result.ok) {
+        premiumTypingReportSubmitted = true;
     }
 }
 

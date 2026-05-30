@@ -1,7 +1,8 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Student Notebook | SlidePlay</title>
     <link rel="stylesheet" href="Choose_expo.css" />
     <link rel="stylesheet" href="page-transition.css" />
@@ -58,49 +59,469 @@
         text-align: center;
         margin-top: 40px;
       }
+      .entry-toolbar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+      }
+      .entry-toolbar input,
+      .entry-toolbar textarea {
+        width: 100%;
+        background: #0f1322;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        color: #e9eeff;
+        padding: 10px 12px;
+        font: inherit;
+      }
+      .entry-toolbar textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+      .entry-toolbar .row {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+      .btn {
+        border: 0;
+        border-radius: 8px;
+        padding: 9px 12px;
+        cursor: pointer;
+        font: inherit;
+      }
+      .btn.primary {
+        background: #2de2ff;
+        color: #091018;
+        font-weight: 700;
+      }
+      .btn.ghost {
+        background: rgba(255,255,255,0.08);
+        color: #e9eeff;
+      }
+      .item-actions {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        margin-left: 8px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        color: #9bb3ff;
+      }
+      .status {
+        margin-top: 12px;
+        font-size: 0.9rem;
+        color: #a5b4e7;
+      }
+      .is-hidden {
+        display: none;
+      }
+      .section-title {
+        margin: 20px 0 10px;
+        font-family: "Orbitron", sans-serif;
+        font-size: 1rem;
+        color: #b9cbff;
+      }
+      .report-item {
+        border-left-color: #6ef3bf;
+      }
+      @media (max-width: 640px) {
+        .entry-toolbar .row {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="notebook-container">
       <div class="notebook-title">Student Notebook</div>
+      <div class="entry-toolbar">
+        <input id="noteTitle" type="text" placeholder="Note title" />
+        <textarea id="noteContent" placeholder="Write your study note..."></textarea>
+        <div class="row">
+          <input id="noteSubject" type="text" placeholder="Subject (optional)" />
+          <input id="noteTags" type="text" placeholder="Tags (comma separated)" />
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="saveNoteBtn">Save Note</button>
+          <button class="btn ghost is-hidden" id="cancelEditBtn">Cancel Edit</button>
+        </div>
+      </div>
+      <div class="section-title">AI Game Reports (Premium)</div>
+      <ul class="entry-list" id="reportList"></ul>
+      <div class="no-entries is-hidden" id="noReports">No game reports yet.</div>
       <ul class="entry-list" id="entryList"></ul>
       <div class="no-entries" id="noEntries">No previous work found.</div>
+      <div class="status" id="statusText"></div>
     </div>
     <script>
-      // Example: { title, content, date }
-      function getNotebookEntries() {
+      const API_BASE = (
+        window.SLIDEPLAY_API_BASE ||
+        localStorage.getItem('sp_api_base') ||
+        window.location.origin
+      ).replace(/\/$/, '');
+
+      const uid = localStorage.getItem('sp_user_uid') || '';
+      const list = document.getElementById('entryList');
+      const reportList = document.getElementById('reportList');
+      const noEntries = document.getElementById('noEntries');
+      const noReports = document.getElementById('noReports');
+      const statusText = document.getElementById('statusText');
+      const titleInput = document.getElementById('noteTitle');
+      const contentInput = document.getElementById('noteContent');
+      const subjectInput = document.getElementById('noteSubject');
+      const tagsInput = document.getElementById('noteTags');
+      const saveBtn = document.getElementById('saveNoteBtn');
+      const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+      let entries = [];
+      let reports = [];
+      let editingNoteId = null;
+      let apiOnline = true;
+
+      function setStatus(text) {
+        statusText.textContent = text || '';
+      }
+
+      function safeText(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function getLocalFallbackEntries() {
         try {
-          return JSON.parse(localStorage.getItem('sp_notebook') || '[]');
-        } catch (e) {
+          const raw = JSON.parse(localStorage.getItem('sp_notebook') || '[]');
+          return raw.map((entry, idx) => ({
+            noteId: 'local-' + idx,
+            title: entry.title || 'Untitled Entry',
+            content: entry.content || entry.notes || '',
+            subject: entry.subject || '',
+            tags: Array.isArray(entry.tags) ? entry.tags : [],
+            createdAt: entry.date || new Date().toISOString(),
+            updatedAt: entry.date || new Date().toISOString(),
+            localOnly: true,
+          }));
+        } catch (_) {
           return [];
         }
       }
+
+      function resetForm() {
+        editingNoteId = null;
+        titleInput.value = '';
+        contentInput.value = '';
+        subjectInput.value = '';
+        tagsInput.value = '';
+        saveBtn.textContent = 'Save Note';
+        cancelEditBtn.style.display = 'none';
+      }
+
       function renderEntries() {
-        const entries = getNotebookEntries();
-        const list = document.getElementById('entryList');
-        const noEntries = document.getElementById('noEntries');
         list.innerHTML = '';
         if (!entries.length) {
           noEntries.style.display = 'block';
           return;
         }
         noEntries.style.display = 'none';
-        entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-        entries.forEach((entry, idx) => {
-          const li = document.createElement('li');
-          li.className = 'entry-item';
-          li.innerHTML = `
-            <div class="entry-title">${entry.title || 'Untitled Entry'}</div>
-            <div class="entry-date">${new Date(entry.date).toLocaleString()}</div>
-            <div class="entry-content">${entry.content || ''}</div>
-          `;
-          li.addEventListener('click', function() {
-            li.classList.toggle('open');
+        entries
+          .slice()
+          .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+          .forEach((entry) => {
+            const li = document.createElement('li');
+            li.className = 'entry-item';
+            const tags = Array.isArray(entry.tags) && entry.tags.length
+              ? '<span class="badge">' + safeText(entry.tags.join(', ')) + '</span>'
+              : '';
+            const localBadge = entry.localOnly ? '<span class="badge">local</span>' : '';
+            li.innerHTML =
+              '<div class="entry-title">' + safeText(entry.title || 'Untitled Entry') + tags + localBadge + '</div>' +
+              '<div class="entry-date">' + new Date(entry.updatedAt || entry.createdAt).toLocaleString() + '</div>' +
+              '<div class="entry-content">' + safeText(entry.content || '') + '</div>' +
+              '<div class="item-actions">' +
+              '<button class="btn ghost" data-act="edit">Edit</button>' +
+              '<button class="btn ghost" data-act="delete">Delete</button>' +
+              '</div>';
+
+            li.querySelector('[data-act="edit"]').addEventListener('click', function (ev) {
+              ev.stopPropagation();
+              editingNoteId = entry.noteId;
+              titleInput.value = entry.title || '';
+              contentInput.value = entry.content || '';
+              subjectInput.value = entry.subject || '';
+              tagsInput.value = Array.isArray(entry.tags) ? entry.tags.join(', ') : '';
+              saveBtn.textContent = 'Update Note';
+              cancelEditBtn.style.display = 'inline-flex';
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            li.querySelector('[data-act="delete"]').addEventListener('click', async function (ev) {
+              ev.stopPropagation();
+              if (!confirm('Delete this note?')) return;
+              await deleteNote(entry);
+            });
+
+            li.addEventListener('click', function () {
+              li.classList.toggle('open');
+            });
+
+            list.appendChild(li);
           });
-          list.appendChild(li);
-        });
       }
-      renderEntries();
+
+      function renderReports() {
+        reportList.innerHTML = '';
+        if (!reports.length) {
+          noReports.style.display = 'block';
+          return;
+        }
+        noReports.style.display = 'none';
+
+        reports
+          .slice()
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .forEach((report) => {
+            const li = document.createElement('li');
+            li.className = 'entry-item report-item';
+            const accuracy = report.totalQuestions > 0
+              ? Math.round((report.correctCount / report.totalQuestions) * 100)
+              : 0;
+            li.innerHTML =
+              '<div class="entry-title">' + safeText((report.gameType || 'Quiz') + ' Report') +
+                '<span class="badge">Score ' + safeText(report.score) + '</span>' +
+                '<span class="badge">Accuracy ' + safeText(accuracy) + '%</span>' +
+              '</div>' +
+              '<div class="entry-date">' + new Date(report.createdAt).toLocaleString() + '</div>' +
+              '<div class="entry-content">' + safeText(report.reportText || 'No AI summary yet.') + '</div>';
+
+            li.addEventListener('click', function () {
+              li.classList.toggle('open');
+            });
+            reportList.appendChild(li);
+          });
+      }
+
+      async function loadReports() {
+        if (!uid) {
+          const local = (() => {
+            try { return JSON.parse(localStorage.getItem('sp_game_reports') || '[]'); }
+            catch (_) { return []; }
+          })();
+          reports = local.map((r) => ({
+            gameType: r.gameType || 'quiz',
+            score: Number(r.score || 0),
+            totalQuestions: Number(r.totalQuestions || 0),
+            correctCount: Number(r.correctCount || 0),
+            createdAt: r.date || new Date().toISOString(),
+            reportText: r.reportText || '',
+          }));
+          renderReports();
+          return;
+        }
+
+        try {
+          const resp = await fetch(API_BASE + '/api/students/' + encodeURIComponent(uid) + '/game-reports?limit=30');
+          if (!resp.ok) throw new Error('reports_offline');
+          const payload = await resp.json();
+          reports = (payload.reports || []).map((r) => ({
+            gameType: r.gameType || 'quiz',
+            score: Number(r.score || 0),
+            totalQuestions: Number(r.totalQuestions || 0),
+            correctCount: Number(r.correctCount || 0),
+            createdAt: r.createdAt || new Date().toISOString(),
+            reportText: r.reportText || '',
+          }));
+        } catch (_) {
+          const local = (() => {
+            try { return JSON.parse(localStorage.getItem('sp_game_reports') || '[]'); }
+            catch (_) { return []; }
+          })();
+          reports = local.map((r) => ({
+            gameType: r.gameType || 'quiz',
+            score: Number(r.score || 0),
+            totalQuestions: Number(r.totalQuestions || 0),
+            correctCount: Number(r.correctCount || 0),
+            createdAt: r.date || new Date().toISOString(),
+            reportText: r.reportText || '',
+          }));
+        }
+
+        renderReports();
+      }
+
+      async function loadNotes() {
+        if (!uid) {
+          apiOnline = false;
+          entries = getLocalFallbackEntries();
+          renderEntries();
+          setStatus('Not signed in. Showing local notebook only.');
+          return;
+        }
+
+        try {
+          const resp = await fetch(API_BASE + '/api/users/' + encodeURIComponent(uid) + '/notes');
+          if (!resp.ok) throw new Error('api_offline');
+          const data = await resp.json();
+          entries = (data.notes || []).map((n) => ({
+            noteId: n.noteId,
+            title: n.title || 'Untitled Entry',
+            content: n.content || '',
+            subject: n.subject || '',
+            tags: Array.isArray(n.tags) ? n.tags : [],
+            createdAt: n.createdAt || new Date().toISOString(),
+            updatedAt: n.updatedAt || n.createdAt || new Date().toISOString(),
+            localOnly: false,
+          }));
+          apiOnline = true;
+          setStatus('Synced with your account notes.');
+        } catch (_) {
+          apiOnline = false;
+          entries = getLocalFallbackEntries();
+          setStatus('API unavailable. Showing local notebook fallback.');
+        }
+
+        renderEntries();
+      }
+
+      async function saveNote() {
+        const title = titleInput.value.trim();
+        const content = contentInput.value.trim();
+        const subject = subjectInput.value.trim();
+        const tags = tagsInput.value
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean);
+
+        if (!title && !content) {
+          setStatus('Please provide a title or note content.');
+          return;
+        }
+
+        if (!uid || !apiOnline) {
+          const nowIso = new Date().toISOString();
+          if (editingNoteId && String(editingNoteId).startsWith('local-')) {
+            const idx = parseInt(String(editingNoteId).replace('local-', ''), 10);
+            const fallback = getLocalFallbackEntries();
+            if (!Number.isNaN(idx) && fallback[idx]) {
+              fallback[idx].title = title || fallback[idx].title;
+              fallback[idx].content = content;
+              fallback[idx].subject = subject;
+              fallback[idx].tags = tags;
+              fallback[idx].updatedAt = nowIso;
+              localStorage.setItem('sp_notebook', JSON.stringify(fallback.map((e) => ({
+                title: e.title,
+                content: e.content,
+                subject: e.subject,
+                tags: e.tags,
+                date: e.updatedAt,
+              }))));
+            }
+          } else {
+            const fallback = getLocalFallbackEntries();
+            fallback.unshift({
+              noteId: 'local-' + fallback.length,
+              title: title || 'Untitled Entry',
+              content,
+              subject,
+              tags,
+              createdAt: nowIso,
+              updatedAt: nowIso,
+              localOnly: true,
+            });
+            localStorage.setItem('sp_notebook', JSON.stringify(fallback.map((e) => ({
+              title: e.title,
+              content: e.content,
+              subject: e.subject,
+              tags: e.tags,
+              date: e.updatedAt,
+            }))));
+          }
+          resetForm();
+          await loadNotes();
+          setStatus('Saved locally.');
+          return;
+        }
+
+        const payload = { title, content, subject, tags };
+        try {
+          let resp;
+          if (editingNoteId) {
+            resp = await fetch(
+              API_BASE + '/api/users/' + encodeURIComponent(uid) + '/notes/' + encodeURIComponent(editingNoteId),
+              {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              }
+            );
+          } else {
+            resp = await fetch(
+              API_BASE + '/api/users/' + encodeURIComponent(uid) + '/notes',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              }
+            );
+          }
+          if (!resp.ok) throw new Error('save_failed');
+          resetForm();
+          await loadNotes();
+          setStatus(editingNoteId ? 'Note updated.' : 'Note created.');
+        } catch (_) {
+          setStatus('Could not save note right now.');
+        }
+      }
+
+      async function deleteNote(entry) {
+        if (entry.localOnly || !uid || !apiOnline) {
+          const fallback = getLocalFallbackEntries().filter((e) => e.noteId !== entry.noteId);
+          localStorage.setItem('sp_notebook', JSON.stringify(fallback.map((e) => ({
+            title: e.title,
+            content: e.content,
+            subject: e.subject,
+            tags: e.tags,
+            date: e.updatedAt,
+          }))));
+          await loadNotes();
+          setStatus('Local note deleted.');
+          return;
+        }
+
+        try {
+          const resp = await fetch(
+            API_BASE + '/api/users/' + encodeURIComponent(uid) + '/notes/' + encodeURIComponent(entry.noteId),
+            { method: 'DELETE' }
+          );
+          if (!resp.ok) throw new Error('delete_failed');
+          await loadNotes();
+          setStatus('Note deleted.');
+        } catch (_) {
+          setStatus('Could not delete note right now.');
+        }
+      }
+
+      saveBtn.addEventListener('click', saveNote);
+      cancelEditBtn.addEventListener('click', resetForm);
+      loadNotes();
+      loadReports();
     </script>
-  </body>
+    <script src="i18n-sa.js"></script>
+</body>
 </html>

@@ -28,6 +28,19 @@
               📁 Choose Learning Material
             </label>
             <div id="file-list"></div>
+            <div class="quiz-config-row">
+              <label class="quiz-config-field" for="question-count-input">
+                <span>Questions to Ask</span>
+                <input
+                  type="number"
+                  id="question-count-input"
+                  min="5"
+                  max="40"
+                  value="20"
+                />
+              </label>
+              <p class="quiz-config-hint">Choose between 5 and 40 questions for each round.</p>
+            </div>
             <button id="start-game-btn" class="btn-primary" disabled>
               Start Quiz
             </button>
@@ -75,6 +88,7 @@
     <script src="components/UploadScreen.js"></script>
     <script src="components/QuestionScreen.js"></script>
     <script src="components/ResultsScreen.js"></script>
+    <script src="../../shared/premium-game-reporter.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

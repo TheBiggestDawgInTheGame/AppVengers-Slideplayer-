@@ -3,6 +3,8 @@
  * app.js - Main application controller
  */
 (function () {
+  const DEFAULT_QUIZ_QUESTION_COUNT = 20;
+
   // DOM Elements
   const uploadPanel = document.getElementById("upload-panel");
   const fileDropZone = document.getElementById("file-drop-zone");
@@ -108,7 +110,7 @@
       // Small delay for visual feedback
       await new Promise((r) => setTimeout(r, 800));
 
-      const questionCount = QuizEngine.generateQuestions(text, 10);
+      const questionCount = QuizEngine.generateQuestions(text, DEFAULT_QUIZ_QUESTION_COUNT);
       uploadStatus.textContent = `✅ Generated ${questionCount} questions! Starting game...`;
       uploadStatus.style.color = "#2ecc71";
 
@@ -319,7 +321,7 @@
 
     // Reset HUD values
     hudQnum.textContent = "1";
-    hudQtotal.textContent = "10";
+    hudQtotal.textContent = String(DEFAULT_QUIZ_QUESTION_COUNT);
     hudScore.textContent = "0";
     hudStreak.textContent = "0";
 

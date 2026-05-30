@@ -393,6 +393,47 @@
       if (typeof window.saveLeaderboardScore === "function") {
         window.saveLeaderboardScore("memory", this.totalScore);
       }
+
+      void this.submitPremiumRoundReport(elapsedSeconds, correctCount);
+    }
+
+    async submitPremiumRoundReport(elapsedSeconds, correctCount) {
+      if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== "function") {
+        return;
+      }
+
+      const attempts = this.displayedSteps.map((step, index) => {
+        const expected = this.correctSteps[index];
+        const isCorrect = !!expected && step.id === expected.id;
+        return {
+          questionNumber: index + 1,
+          questionText: expected ? expected.text : "",
+          userAnswer: step.text,
+          correctAnswer: expected ? expected.text : "",
+          correct: isCorrect,
+          responseSeconds: 0,
+          outcome: isCorrect ? "correct-position" : "misplaced"
+        };
+      });
+
+      const payload = {
+        gameType: "memory-chain",
+        score: this.currentRoundPoints,
+        totalQuestions: this.correctSteps.length,
+        correctCount: correctCount,
+        durationSec: Number(elapsedSeconds || 0),
+        questionAttempts: attempts,
+        meta: {
+          source: "memory_chain_game",
+          difficulty: this.currentDifficulty,
+          round: this.round,
+          accuracy: this.currentAccuracy,
+          streak: this.streak,
+          totalScore: this.totalScore,
+        }
+      };
+
+      await window.PremiumGameReporter.submitReport(payload);
     }
 
     bumpDifficulty() {

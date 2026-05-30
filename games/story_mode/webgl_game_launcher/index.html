@@ -871,6 +871,7 @@
         </section>
     </div>
 
+    <script src="../../../shared/premium-game-reporter.js"></script>
     <script>
         /* BACKGROUND CANVAS */
         (function () {
@@ -931,6 +932,9 @@
         var introTimer = null;
         var introProgress = 0;
         var questionStartTime = 0;
+        var missionStartedAt = 0;
+        var premiumReportSubmitted = false;
+        var attemptLog = [];
 
         function readLaunchContext() {
             var params = new URLSearchParams(window.location.search);
@@ -1221,6 +1225,9 @@
             correctCount = 0;
             totalTimeTaken = 0;
             answered = false;
+            missionStartedAt = Date.now();
+            premiumReportSubmitted = false;
+            attemptLog = [];
 
             document.getElementById('quiz-op-avatar').textContent = initials(launch.characterName);
             document.getElementById('quiz-op-name').textContent = launch.characterName;
@@ -1293,6 +1300,24 @@
             buttons[correct].classList.add('correct');
 
             var isTimeout = selected < 0;
+            var currentQuestion = quizQuestions[currentQIndex] || null;
+            var selectedAnswer = (!isTimeout && currentQuestion && currentQuestion.options[selected])
+                ? String(currentQuestion.options[selected])
+                : '';
+            var correctAnswer = (currentQuestion && currentQuestion.options[correct])
+                ? String(currentQuestion.options[correct])
+                : '';
+
+            attemptLog.push({
+                questionNumber: currentQIndex + 1,
+                questionText: currentQuestion ? String(currentQuestion.question || '') : '',
+                userAnswer: selectedAnswer,
+                correctAnswer: correctAnswer,
+                correct: selected === correct,
+                responseSeconds: Math.max(0, Math.round(elapsed)),
+                outcome: isTimeout ? 'timeout' : (selected === correct ? 'correct' : 'wrong')
+            });
+
             if (selected === correct) {
                 correctCount++;
                 var mult = diffMult(launch.challengeDifficulty);
@@ -1370,6 +1395,14 @@
             var isWin = lives > 0 && accuracy >= Math.round(WIN_THRESHOLD * 100);
             var finalStatus = isWin ? 'win' : 'lose';
 
+            void submitPremiumWebglMissionReport({
+                isWin: isWin,
+                finalStatus: finalStatus,
+                accuracy: accuracy,
+                avgTime: avgTime,
+                total: total
+            });
+
             var badge = document.getElementById('result-status-badge');
             var headline = document.getElementById('result-headline');
             badge.className = 'result-status-badge ' + finalStatus;
@@ -1383,6 +1416,44 @@
             document.getElementById('res-time').textContent = avgTime + 's';
             document.getElementById('result-debrief').textContent = buildDebrief(isWin, launch.characterName, launch.missionTitle, accuracy, score);
             document.getElementById('result-screen').classList.add('active');
+        }
+
+        async function submitPremiumWebglMissionReport(summary) {
+            if (premiumReportSubmitted) {
+                return;
+            }
+
+            if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== 'function') {
+                return;
+            }
+
+            var durationSec = Math.max(0, Math.round((Date.now() - Number(missionStartedAt || Date.now())) / 1000));
+            var attempts = Array.isArray(attemptLog) ? attemptLog.slice() : [];
+
+            var payload = {
+                gameType: 'story-webgl-launcher',
+                score: Number(score || 0),
+                totalQuestions: Number(summary && summary.total ? summary.total : attempts.length),
+                correctCount: Number(correctCount || 0),
+                durationSec: durationSec,
+                questionAttempts: attempts,
+                meta: {
+                    source: 'story_mode_webgl_launcher',
+                    missionTitle: launch.missionTitle,
+                    characterName: launch.characterName,
+                    challengeType: launch.challengeType,
+                    challengeDifficulty: launch.challengeDifficulty,
+                    resultStatus: summary && summary.finalStatus ? summary.finalStatus : 'lose',
+                    isWin: !!(summary && summary.isWin),
+                    accuracy: Number(summary && summary.accuracy ? summary.accuracy : 0),
+                    averageResponseSeconds: Number(summary && summary.avgTime ? summary.avgTime : 0)
+                }
+            };
+
+            var resp = await window.PremiumGameReporter.submitReport(payload);
+            if (resp && resp.ok) {
+                premiumReportSubmitted = true;
+            }
         }
 
         function returnToStory(status) {

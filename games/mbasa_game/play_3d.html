@@ -26,16 +26,30 @@
       <span id="tuning">Tuning: --</span>
     </div>
 
+    <div id="tournamentBanner" class="tournament-banner hidden" aria-live="polite"></div>
+
     <div id="hitFlash" aria-hidden="true"></div>
 
     <div id="startOverlay" class="overlay">
       <h1>Road Runner 3D</h1>
-      <p>Use Left and Right Arrow keys (or swipe) to change lanes.</p>
+      <p id="controlsHint">P1: Left/Right Arrows (or swipe) to change lanes.</p>
       <p id="sourceInfo">No uploaded slide data found. Running default challenge track.</p>
       <div class="mode-select" role="group" aria-label="Play mode">
-        <button type="button" class="mode-btn active" data-mode="solo">Solo</button>
-        <button type="button" class="mode-btn" data-mode="multiplayer">2 Players</button>
-        <button type="button" class="mode-btn" data-mode="tournament">Tournament</button>
+        <button type="button" class="mode-btn active" data-mode="solo">
+          <span class="mode-icon">🎮</span>
+          <span class="mode-title">Solo</span>
+          <span class="mode-desc">Play alone at your own pace</span>
+        </button>
+        <button type="button" class="mode-btn" data-mode="multiplayer">
+          <span class="mode-icon">👥</span>
+          <span class="mode-title">Multiplayer / 2 Players</span>
+          <span class="mode-desc">Two players share one run and chase a best score</span>
+        </button>
+        <button type="button" class="mode-btn" data-mode="tournament">
+          <span class="mode-icon">🏆</span>
+          <span class="mode-title">Tournament</span>
+          <span class="mode-desc">Escalating heats with tougher waves each round</span>
+        </button>
       </div>
       <button id="startBtn" type="button">Start Run</button>
     </div>
@@ -64,8 +78,11 @@
     <div id="mobileControls" aria-hidden="true">
       <button id="mobileLeft" type="button" aria-label="Move left">&#8592;</button>
       <button id="mobileRight" type="button" aria-label="Move right">&#8594;</button>
+      <button id="mobileLeftP2" type="button" aria-label="Player 2 move left">A</button>
+      <button id="mobileRightP2" type="button" aria-label="Player 2 move right">D</button>
     </div>
 
+  <script src="../../shared/premium-game-reporter.js"></script>
   <script type="module" src="play_3d.js"></script>
 </body>
 </html>

@@ -176,6 +176,26 @@
       border-color: rgba(255, 140, 30, 0.3);
     }
 
+    .card-badge.badge-free {
+      color: #7dd3fc;
+      background: rgba(125, 211, 252, 0.12);
+      border-color: rgba(125, 211, 252, 0.3);
+    }
+
+    .card-badge.badge-premium {
+      color: #ffd86b;
+      background: rgba(255, 216, 107, 0.12);
+      border-color: rgba(255, 216, 107, 0.28);
+    }
+
+    .version-card.premium-locked {
+      border-color: rgba(255, 216, 107, 0.22);
+    }
+
+    .version-card.premium-locked .card-cta {
+      color: #ffd86b;
+    }
+
     .card-title {
       font-family: 'Creepster', cursive;
       font-size: 1.7rem;
@@ -248,29 +268,29 @@
   <div class="version-grid">
 
     <!-- 3D Version -->
-    <a class="version-card" id="btn-3d" href="index-3d.html">
+    <a class="version-card premium-locked" id="btn-3d" href="index-3d.html" data-requires="premium">
       <span class="card-icon">🌐</span>
-      <span class="card-badge">NEW</span>
+      <span class="card-badge badge-premium">PREMIUM</span>
       <h2 class="card-title">3D Version</h2>
-      <p class="card-desc">Full three-dimensional classroom.<br>First-person exploration, free movement, and immersive puzzles.</p>
+      <p class="card-desc">Full three-dimensional classroom.<br>First-person exploration, free movement, and immersive puzzles for premium players.</p>
       <div class="card-tags">
         <span class="tag">First-Person</span>
         <span class="tag">WebGL</span>
-        <span class="tag">Immersive</span>
+        <span class="tag">Premium</span>
       </div>
-      <span class="card-cta">▶ Enter 3D →</span>
+      <span class="card-cta">▶ Unlock 3D →</span>
     </a>
 
     <!-- 2D Version -->
     <a class="version-card" id="btn-2d" href="2d_escape_room/index.html">
       <span class="card-icon">🗺️</span>
-      <span class="card-badge badge-2d">CLASSIC</span>
+      <span class="card-badge badge-free">FREE</span>
       <h2 class="card-title">2D Version</h2>
-      <p class="card-desc">Point-and-click overhead view.<br>Lighter on hardware, faster to load. Same puzzles, different lens.</p>
+      <p class="card-desc">Point-and-click overhead view.<br>Lighter on hardware, faster to load. This is the free version.</p>
       <div class="card-tags">
         <span class="tag">Point & Click</span>
         <span class="tag">Lightweight</span>
-        <span class="tag">Classic</span>
+        <span class="tag">Free</span>
       </div>
       <span class="card-cta">▶ Enter 2D →</span>
     </a>
@@ -280,6 +300,29 @@
   <p class="er-note">⏱ You have 10 minutes. Choose wisely.</p>
 
   <script>
+    function getStudentPlan() {
+      try {
+        const sub = JSON.parse(localStorage.getItem('sp_student_subscription') || 'null');
+        if (sub && sub.status !== 'cancelled' && sub.plan) return sub.plan;
+      } catch (_) {}
+      return 'free';
+    }
+
+    function isPaidPlan() {
+      const plan = getStudentPlan();
+      return plan === 'student_elite' || plan === 'student_premium';
+    }
+
+    const upgradeUrl = '../../finsished front end/Testing2-SlidePlay/studentpayment.html';
+    const premiumCard = document.getElementById('btn-3d');
+    if (premiumCard && !isPaidPlan()) {
+      premiumCard.addEventListener('click', function (event) {
+        event.preventDefault();
+        const go = window.confirm('The 3D Escape Room is a premium feature.\n\nOpen the 2D free version now, or go to the upgrade page to unlock 3D?');
+        if (go) window.location.href = upgradeUrl;
+      });
+    }
+
     // Forward any existing URL query params (e.g. ?source=upload) to both links
     (function () {
       const search = window.location.search;

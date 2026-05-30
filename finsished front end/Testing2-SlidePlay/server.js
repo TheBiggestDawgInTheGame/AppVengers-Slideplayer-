@@ -107,7 +107,6 @@ function resolveAppUrl(req, clientAppUrl) {
 
   return (req.protocol + "://" + req.get("host")).replace(/\/$/, "");
 }
-
 const crypto = require("crypto");
 const querystring = require("querystring");
 const axios = require("axios");
@@ -129,6 +128,11 @@ app.use((_req, res, next) => {
 });
 
 app.use(express.static(__dirname));
+
+// Render health checks hit '/'; serve the app entry page instead of 404.
+app.get("/", (_req, res) => {
+  res.sendFile("main.html", { root: __dirname });
+});
 
 // --- AI Hint Endpoint for Escape Game ---
 app.post("/api/ai-hint", async (req, res) => {
@@ -655,5 +659,5 @@ app.listen(PORT, async () => {
     // Keep the web service running even when SQL is unreachable in hosted envs.
     console.warn("DB connection unavailable at startup:", err.message);
   }
-  console.log("Server running on port " + PORT);
+  console.log(`Server running on port ${PORT}`);
 });

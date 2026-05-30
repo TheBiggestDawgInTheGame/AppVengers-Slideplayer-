@@ -54,6 +54,10 @@ let streak = 0;
 let bestStreak = Number(localStorage.getItem('scrambleBestStreak') || 0);
 let lives = 0;
 let maxLives = 0;
+let runStartedAt = 0;
+let premiumReportSubmitted = false;
+let attemptLog = [];
+let solvedCount = 0;
 
 const GENERATED_QUIZ_KEY = 'slidePlayGeneratedQuizData';
 const UPLOADED_FILES_KEY = 'slidePlayUploadedFiles';
@@ -77,6 +81,10 @@ answerInput.addEventListener('keydown', event => {
 
 function setDifficulty(level) {
     currentLevel = level;
+    runStartedAt = Date.now();
+    premiumReportSubmitted = false;
+    attemptLog = [];
+    solvedCount = 0;
     if (window.StudyAdventure) {
         window.StudyAdventure.startSession('scramble_game', `Word Unscramble (${capitalize(level)})`);
         window.StudyAdventure.pushHint('Use letter clusters and suffix patterns to solve faster.');
@@ -141,6 +149,16 @@ function checkAnswer() {
 
     if (answer === expected) {
         clearInterval(timerInterval);
+        solvedCount += 1;
+        attemptLog.push({
+            questionNumber: attemptLog.length + 1,
+            questionText: currentText,
+            userAnswer: answer,
+            correctAnswer: expected,
+            correct: true,
+            responseSeconds: Number(remainingSeconds || 0),
+            outcome: 'correct'
+        });
         score += levelConfig[currentLevel].score;
         streak += 1;
         if (window.StudyAdventure) {
@@ -176,6 +194,15 @@ function checkAnswer() {
             }
         }, 900);
     } else {
+        attemptLog.push({
+            questionNumber: attemptLog.length + 1,
+            questionText: currentText,
+            userAnswer: answer,
+            correctAnswer: expected,
+            correct: false,
+            responseSeconds: Number(remainingSeconds || 0),
+            outcome: 'wrong'
+        });
         loseLife(`Wrong guess. The word is still scrambled as "${currentText}".`);
     }
 }
@@ -214,6 +241,15 @@ function updateTimerDisplay() {
 }
 
 function onTimerExpired() {
+    attemptLog.push({
+        questionNumber: attemptLog.length + 1,
+        questionText: currentText,
+        userAnswer: '',
+        correctAnswer: normalizeText(currentAnswer),
+        correct: false,
+        responseSeconds: 0,
+        outcome: 'timeout'
+    });
     loseLife(`Time is up! The word was "${currentAnswer}".`);
 }
 
@@ -239,6 +275,7 @@ function loseLife(reasonText) {
         answerInput.value = '';
         restartBtn.classList.remove('hidden');
         if (window.GameModes) GameModes.roundEnd(score);
+        void submitPremiumScrambleReport();
         if (window.StudyAdventure) window.StudyAdventure.endSession(score);
         return;
     }
@@ -289,6 +326,42 @@ function shuffleArray(array) {
 
 function capitalize(text) {
     return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+async function submitPremiumScrambleReport() {
+    if (premiumReportSubmitted) {
+        return;
+    }
+
+    if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== 'function') {
+        return;
+    }
+
+    const durationSec = Math.max(0, Math.round((Date.now() - Number(runStartedAt || Date.now())) / 1000));
+    const attempts = Array.isArray(attemptLog) ? attemptLog.slice() : [];
+
+    const payload = {
+        gameType: 'word-scramble',
+        score: Number(score || 0),
+        totalQuestions: Number(attempts.length || 0),
+        correctCount: Number(solvedCount || 0),
+        durationSec,
+        questionAttempts: attempts,
+        meta: {
+            source: 'scramble_game',
+            difficulty: currentLevel || 'easy',
+            maxLives: Number(maxLives || 0),
+            livesRemaining: Number(lives || 0),
+            bestStreak: Number(bestStreak || 0),
+            finalStreak: Number(streak || 0),
+            usedUploadedSource: !!useUploadedSource
+        }
+    };
+
+    const result = await window.PremiumGameReporter.submitReport(payload);
+    if (result && result.ok) {
+        premiumReportSubmitted = true;
+    }
 }
 
 function readJsonStorage(key, fallback) {

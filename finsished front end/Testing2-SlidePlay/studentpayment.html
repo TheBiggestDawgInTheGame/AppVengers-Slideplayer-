@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -40,7 +40,7 @@
   <div class="main-zone">
     <div class="top-bar">
       <div class="page-id">
-        <span class="page-tag">PORTAL › STUDENT PAYMENT</span>
+        <span class="page-tag">PORTAL â€º STUDENT PAYMENT</span>
         <h1 class="page-title">Upgrade Plan</h1>
       </div>
       <div class="top-controls">
@@ -117,8 +117,8 @@
     <div class="sub-info-panel sp-hidden" id="subInfoPanel">
       <div class="sub-info-inner">
         <div>
-          <h3 id="subPlanTitle">Student Elite — Active</h3>
-          <p id="subRenewalDate">Renews on —</p>
+          <h3 id="subPlanTitle">Student Elite â€” Active</h3>
+          <p id="subRenewalDate">Renews on â€”</p>
         </div>
         <div class="sub-actions">
           <button class="cancel-sub-btn" id="cancelSubBtn"><i class="fa-solid fa-ban"></i> Cancel Subscription</button>
@@ -162,7 +162,7 @@
           <div class="form-group">
             <label for="cardNumber">Card Number</label>
             <div class="card-input-wrap">
-              <input type="text" id="cardNumber" placeholder="•••• •••• •••• ••••" maxlength="19" autocomplete="cc-number" required />
+              <input type="text" id="cardNumber" placeholder="â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢" maxlength="19" autocomplete="cc-number" required />
               <span class="card-brand-icon" id="cardBrandIcon"><i class="fa-regular fa-credit-card"></i></span>
             </div>
           </div>
@@ -173,7 +173,7 @@
             </div>
             <div class="form-group">
               <label for="cardCvc">CVC</label>
-              <input type="text" id="cardCvc" placeholder="•••" maxlength="4" autocomplete="cc-csc" required />
+              <input type="text" id="cardCvc" placeholder="â€¢â€¢â€¢" maxlength="4" autocomplete="cc-csc" required />
             </div>
           </div>
         </div>
@@ -208,7 +208,7 @@
             <label for="transferProof">Upload Transfer Proof (optional)</label>
             <input type="file" id="transferProof" accept="image/*,.pdf" />
           </div>
-          <p class="method-note"><i class="fa-solid fa-circle-info"></i> Activation within 1–2 business days after transfer confirmation.</p>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> Activation within 1â€“2 business days after transfer confirmation.</p>
         </div>
         <!-- Crypto -->
         <div class="pay-method-panel" id="panel-crypto">
@@ -257,10 +257,10 @@
         <p class="coupon-msg" id="couponMsg"></p>
         <!-- Totals -->
         <div class="order-summary">
-          <div class="order-row"><span>Plan</span><span id="orderPlanName">—</span></div>
-          <div class="order-row"><span>Billing</span><span id="orderBilling">—</span></div>
-          <div class="order-row discount-row sp-hidden" id="discountRow"><span>Discount</span><span id="orderDiscount">—</span></div>
-          <div class="order-row total-row"><span>Total</span><span id="orderTotal">—</span></div>
+          <div class="order-row"><span>Plan</span><span id="orderPlanName">â€”</span></div>
+          <div class="order-row"><span>Billing</span><span id="orderBilling">â€”</span></div>
+          <div class="order-row discount-row sp-hidden" id="discountRow"><span>Discount</span><span id="orderDiscount">â€”</span></div>
+          <div class="order-row total-row"><span>Total</span><span id="orderTotal">â€”</span></div>
         </div>
         <!-- Terms -->
         <label class="terms-check">
@@ -269,7 +269,7 @@
         </label>
         <button type="submit" class="pay-btn" id="payBtn">
           <span id="payBtnText"><i class="fa-solid fa-lock"></i> Pay Now</span>
-          <span id="payBtnLoading" class="sp-hidden"><i class="fa-solid fa-spinner fa-spin"></i> Processing…</span>
+          <span id="payBtnLoading" class="sp-hidden"><i class="fa-solid fa-spinner fa-spin"></i> Processingâ€¦</span>
         </button>
       </form>
     </div>
@@ -292,5 +292,6 @@
     </div>
   </div>
   <script src="payment.js"></script>
+  <script src="i18n-sa.js"></script>
 </body>
 </html>

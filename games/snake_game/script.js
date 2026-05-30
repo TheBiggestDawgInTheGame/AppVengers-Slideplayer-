@@ -12,6 +12,7 @@ const checkpointQuestionEl = document.getElementById('checkpointQuestion');
 const checkpointOptionsEl = document.getElementById('checkpointOptions');
 const checkpointFeedbackEl = document.getElementById('checkpointFeedback');
 const mpDisplayNameEl = document.getElementById('mpDisplayName');
+const mpRoomCodeEl = document.getElementById('mpRoomCode');
 const mpRoomIdEl = document.getElementById('mpRoomId');
 const mpCreateBtn = document.getElementById('mpCreateBtn');
 const mpJoinBtn = document.getElementById('mpJoinBtn');
@@ -33,6 +34,7 @@ const CHECKPOINT_BONUS = 15;
 const CHECKPOINT_PENALTY = 5;
 const MP_TOKEN_PREFIX = 'snakeMpToken_';
 const MP_ROOM_QUERY_KEY = 'room';
+const MP_ROOM_PREFIX = 'room_';
 
 let snake = [];
 let direction = { x: 1, y: 0 };
@@ -49,6 +51,10 @@ let studyQuestions = [];
 let usedCheckpointIndexes = [];
 let foodsCollected = 0;
 let checkpointActive = false;
+let educationalModeLocked = false;
+let snakeRunStartedAt = 0;
+let premiumReportSubmitted = false;
+let snakeQuestionAttempts = [];
 let multiplayer = {
     enabled: false,
     roomId: '',
@@ -73,6 +79,19 @@ function getStoredTokenForRoom(roomId) {
 function setStoredTokenForRoom(roomId, token) {
     if (!roomId || !token) return;
     localStorage.setItem(MP_TOKEN_PREFIX + roomId, token);
+}
+
+function roomIdToCode(roomId) {
+    const raw = String(roomId || '').trim();
+    if (!raw) return '';
+    const noPrefix = raw.toLowerCase().startsWith(MP_ROOM_PREFIX) ? raw.slice(MP_ROOM_PREFIX.length) : raw;
+    return noPrefix.replace(/[^a-z0-9]/gi, '').toUpperCase();
+}
+
+function codeToRoomId(code) {
+    const normalized = String(code || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    if (!normalized) return '';
+    return MP_ROOM_PREFIX + normalized;
 }
 
 function getSelectedDisplayName() {
@@ -172,7 +191,10 @@ async function createRoom() {
         if (mpRoomIdEl) {
             mpRoomIdEl.value = payload.roomId;
         }
-        setMultiplayerHint(`Room created: ${payload.roomId}. Joining now...`);
+        if (mpRoomCodeEl) {
+            mpRoomCodeEl.value = roomIdToCode(payload.roomId);
+        }
+        setMultiplayerHint(`Code created: ${roomIdToCode(payload.roomId)}. Joining now...`);
         await joinRoom(payload.roomId);
     } catch (_error) {
         setMultiplayerHint('Could not create room. Check that the Node server is running.');
@@ -180,9 +202,10 @@ async function createRoom() {
 }
 
 async function joinRoom(roomIdValue) {
-    const roomId = String(roomIdValue || mpRoomIdEl?.value || '').trim();
+    const derivedFromCode = codeToRoomId(mpRoomCodeEl?.value || '');
+    const roomId = String(roomIdValue || derivedFromCode || mpRoomIdEl?.value || '').trim();
     if (!roomId) {
-        setMultiplayerHint('Enter a room ID first.');
+        setMultiplayerHint('Enter a session code first (or use Room ID advanced).');
         return;
     }
 
@@ -212,6 +235,8 @@ async function joinRoom(roomIdValue) {
         multiplayer.roomId = roomId;
         multiplayer.playerId = payload.playerId;
         multiplayer.enabled = true;
+        if (mpRoomIdEl) mpRoomIdEl.value = roomId;
+        if (mpRoomCodeEl) mpRoomCodeEl.value = roomIdToCode(roomId);
 
         clearSinglePlayerLoop();
         connectMultiplayerSocket(roomId, payload.playerToken, displayName);
@@ -223,7 +248,7 @@ async function joinRoom(roomIdValue) {
         if (payload.state) {
             applyMultiplayerState(payload.state);
         }
-        setMultiplayerHint(`Joined room ${roomId}. Share this ID with your friend.`);
+        setMultiplayerHint(`Joined code ${roomIdToCode(roomId)}. Share this code with your friend.`);
     } catch (_error) {
         setMultiplayerHint('Unable to join room. Check server connection and try again.');
     }
@@ -306,6 +331,9 @@ function resetState() {
     score = 0;
     tickSpeed = START_SPEED_MS;
     foodsCollected = 0;
+    snakeRunStartedAt = 0;
+    premiumReportSubmitted = false;
+    snakeQuestionAttempts = [];
     checkpointActive = false;
     hideCheckpoint();
     placeFood();
@@ -314,6 +342,11 @@ function resetState() {
 }
 
 function startGame() {
+    if (educationalModeLocked) {
+        statusEl.textContent = 'Locked: launch Snake from uploaded slides so gameplay uses your learning content.';
+        return;
+    }
+
     if (multiplayer.enabled) {
         statusEl.textContent = `Multiplayer active in room ${multiplayer.roomId}. Use arrow keys to control your snake.`;
         return;
@@ -322,6 +355,8 @@ function startGame() {
     if (gameLoopId) clearTimeout(gameLoopId);
     gameLoopId = null;
     resetState();
+    snakeRunStartedAt = Date.now();
+    premiumReportSubmitted = false;
     isRunning = true;
     if (window.StudyAdventure) {
         window.StudyAdventure.startSession('snake_game', 'Slide Snake');
@@ -360,7 +395,9 @@ function tick() {
         y: snake[0].y + direction.y
     };
 
-    if (isCollision(nextHead)) {
+    const willGrow = nextHead.x === food.x && nextHead.y === food.y;
+
+    if (isCollision(nextHead, willGrow)) {
         gameOver();
         return;
     }
@@ -379,6 +416,10 @@ function tick() {
             });
         }
         placeFood();
+        if (!isRunning) {
+            draw();
+            return;
+        }
         updateScore();
 
         if (shouldTriggerCheckpoint()) {
@@ -399,12 +440,14 @@ function getSpeedForScore(currentScore) {
     return Math.max(MIN_SPEED_MS, START_SPEED_MS - (steps * SPEED_STEP_MS));
 }
 
-function isCollision(pos) {
+function isCollision(pos, willGrow) {
     if (pos.x < 0 || pos.x >= GRID_SIZE || pos.y < 0 || pos.y >= GRID_SIZE) {
         return true;
     }
 
-    for (const segment of snake) {
+    const collisionLength = willGrow ? snake.length : Math.max(0, snake.length - 1);
+    for (let i = 0; i < collisionLength; i += 1) {
+        const segment = snake[i];
         if (segment.x === pos.x && segment.y === pos.y) {
             return true;
         }
@@ -414,18 +457,36 @@ function isCollision(pos) {
 }
 
 function placeFood() {
-    while (true) {
-        const candidate = {
-            x: Math.floor(Math.random() * GRID_SIZE),
-            y: Math.floor(Math.random() * GRID_SIZE)
-        };
-
-        const occupied = snake.some(segment => segment.x === candidate.x && segment.y === candidate.y);
-        if (!occupied) {
-            food = candidate;
-            return;
+    const freeCells = [];
+    for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+            const occupied = snake.some(segment => segment.x === x && segment.y === y);
+            if (!occupied) {
+                freeCells.push({ x, y });
+            }
         }
     }
+
+    if (freeCells.length === 0) {
+        handleBoardCleared();
+        return;
+    }
+
+    food = freeCells[Math.floor(Math.random() * freeCells.length)];
+}
+
+function handleBoardCleared() {
+    isRunning = false;
+    statusEl.textContent = `Perfect clear! You filled the entire board. Final score: ${score}.`;
+    void submitPremiumSnakeReport('perfect-clear');
+    if (window.StudyAdventure) {
+        window.StudyAdventure.recordSuccess({
+            points: 5,
+            message: 'Full board clear achieved. Exceptional control and planning.'
+        });
+        window.StudyAdventure.endSession(score);
+    }
+    if (window.GameModes) GameModes.roundEnd(score);
 }
 
 function updateScore() {
@@ -463,6 +524,41 @@ function gameOver() {
         window.StudyAdventure.endSession(score);
     }
     if (window.GameModes) GameModes.roundEnd(score);
+    void submitPremiumSnakeReport('collision');
+}
+
+async function submitPremiumSnakeReport(outcome) {
+    if (premiumReportSubmitted) {
+        return;
+    }
+
+    if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== 'function') {
+        return;
+    }
+
+    const correctCount = snakeQuestionAttempts.filter((attempt) => attempt.correct).length;
+    const durationSec = Math.max(0, Math.round((Date.now() - Number(snakeRunStartedAt || Date.now())) / 1000));
+
+    const payload = {
+        gameType: 'snake-game',
+        score,
+        totalQuestions: snakeQuestionAttempts.length,
+        correctCount,
+        durationSec,
+        questionAttempts: snakeQuestionAttempts,
+        meta: {
+            source: 'snake_game',
+            outcome: outcome || 'ended',
+            foodsCollected,
+            bestScore,
+            multiplayer: !!multiplayer.enabled
+        }
+    };
+
+    const result = await window.PremiumGameReporter.submitReport(payload);
+    if (result && result.ok) {
+        premiumReportSubmitted = true;
+    }
 }
 
 function readJsonStorage(key, fallback) {
@@ -505,6 +601,46 @@ function buildStudyQuestions() {
             && item.correct >= 0
             && item.correct < item.options.length;
     });
+}
+
+function hasUploadedLearningData() {
+    const generatedQuiz = readJsonStorage(GENERATED_QUIZ_KEY, []);
+    const uploadedFiles = readJsonStorage(UPLOADED_FILES_KEY, []);
+    const hasQuiz = Array.isArray(generatedQuiz) && generatedQuiz.some((item) => (
+        item
+        && typeof item.question === 'string'
+        && Array.isArray(item.options)
+        && item.options.length >= 2
+        && Number.isInteger(item.correct)
+        && item.correct >= 0
+        && item.correct < item.options.length
+    ));
+    const hasFileText = Array.isArray(uploadedFiles) && uploadedFiles.some((file) => {
+        if (!file || typeof file !== 'object') return false;
+        const extracted = String(file.extractedText || file.text || '').trim();
+        return extracted.length >= 20;
+    });
+    return hasQuiz || hasFileText;
+}
+
+function applyEducationalModeLock() {
+    educationalModeLocked = !(useUploadedSource && hasUploadedLearningData() && studyQuestions.length > 0);
+
+    if (startBtn) {
+        startBtn.disabled = educationalModeLocked;
+    }
+
+    const disableMp = educationalModeLocked;
+    if (mpCreateBtn) mpCreateBtn.disabled = disableMp;
+    if (mpJoinBtn) mpJoinBtn.disabled = disableMp;
+    if (mpLeaveBtn) mpLeaveBtn.disabled = disableMp;
+
+    if (educationalModeLocked) {
+        statusEl.textContent = 'Locked: open Snake via uploaded slides to enable study checkpoints and prompts.';
+        if (studyPromptEl) {
+            studyPromptEl.textContent = 'This game is locked outside upload mode. Upload slides first to activate learning play.';
+        }
+    }
 }
 
 function shouldTriggerCheckpoint() {
@@ -571,6 +707,16 @@ function resolveCheckpointAnswer(question, chosenIndex) {
     });
 
     const isCorrect = chosenIndex === question.correct;
+    snakeQuestionAttempts.push({
+        questionNumber: snakeQuestionAttempts.length + 1,
+        questionText: question.question,
+        userAnswer: String(question.options[chosenIndex] || ''),
+        correctAnswer: String(question.options[question.correct] || ''),
+        correct: isCorrect,
+        responseSeconds: 0,
+        outcome: isCorrect ? 'answered' : 'incorrect'
+    });
+
     if (isCorrect) {
         score += CHECKPOINT_BONUS;
         checkpointFeedbackEl.textContent = `Correct! +${CHECKPOINT_BONUS} bonus points.`;
@@ -725,6 +871,24 @@ if (mpJoinBtn) {
     });
 }
 
+if (mpRoomCodeEl) {
+    mpRoomCodeEl.addEventListener('input', () => {
+        const code = roomIdToCode(mpRoomCodeEl.value);
+        mpRoomCodeEl.value = code;
+        if (mpRoomIdEl && code) {
+            mpRoomIdEl.value = codeToRoomId(code);
+        }
+    });
+}
+
+if (mpRoomIdEl) {
+    mpRoomIdEl.addEventListener('input', () => {
+        if (mpRoomCodeEl) {
+            mpRoomCodeEl.value = roomIdToCode(mpRoomIdEl.value);
+        }
+    });
+}
+
 if (mpLeaveBtn) {
     mpLeaveBtn.addEventListener('click', () => {
         leaveRoom(true);
@@ -742,12 +906,15 @@ if (useUploadedSource) {
     }
 }
 
+applyEducationalModeLock();
+
 resetState();
 renderMultiplayerPlayers({ players: [] });
 
 const initialRoomId = new URLSearchParams(window.location.search).get(MP_ROOM_QUERY_KEY);
-if (initialRoomId) {
+if (initialRoomId && !educationalModeLocked) {
     if (mpRoomIdEl) mpRoomIdEl.value = initialRoomId;
+    if (mpRoomCodeEl) mpRoomCodeEl.value = roomIdToCode(initialRoomId);
     joinRoom(initialRoomId);
 }
 

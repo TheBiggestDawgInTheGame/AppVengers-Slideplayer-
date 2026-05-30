@@ -165,6 +165,35 @@
         color: #aac4e0;
         font-size: 0.85em;
       }
+      #question-config-section {
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        color: #dbe9ff;
+      }
+      #question-config-section label {
+        font-size: 0.9em;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #f7d774;
+      }
+      #question-count-input {
+        width: 130px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--gold);
+        background: rgba(0, 0, 0, 0.42);
+        color: var(--text);
+        text-align: center;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+      #question-count-help {
+        font-size: 0.78em;
+        color: #8ab4d8;
+      }
       #api-key-input {
         width: 80%;
         padding: 8px 12px;
@@ -389,37 +418,51 @@
       }
       .play-style-options {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 15px;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        max-width: 560px;
+        margin: 0 auto;
       }
       .play-style-option {
-        background: rgba(26, 58, 92, 0.4);
-        border: 2px solid rgba(212, 167, 69, 0.5);
-        border-radius: 14px;
-        padding: 25px 15px;
+        min-height: 84px;
+        background: linear-gradient(160deg, rgba(31, 42, 71, 0.9), rgba(24, 34, 58, 0.9));
+        border: 1px solid rgba(143, 172, 226, 0.26);
+        border-radius: 16px;
+        padding: 14px 18px;
         cursor: pointer;
-        transition: all 0.3s ease;
-        text-align: center;
+        transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+        text-align: left;
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        grid-template-rows: auto auto;
+        column-gap: 14px;
+        row-gap: 3px;
+        align-items: center;
+        justify-items: start;
       }
       .play-style-option:hover {
-        border-color: #f7d774;
-        background: rgba(74, 144, 217, 0.3);
-        box-shadow: 0 0 30px rgba(212, 167, 69, 0.4);
-        transform: scale(1.08);
+        border-color: rgba(136, 202, 255, 0.55);
+        background: linear-gradient(160deg, rgba(38, 52, 84, 0.95), rgba(29, 41, 68, 0.95));
+        box-shadow: 0 10px 24px rgba(0, 20, 40, 0.28);
+        transform: none;
       }
       .play-style-icon {
-        font-size: 3em;
-        margin-bottom: 10px;
+        grid-row: 1 / span 2;
+        width: 40px;
+        font-size: 30px;
+        margin-bottom: 0;
+        text-align: center;
       }
       .play-style-title {
-        font-size: 1.1em;
-        font-weight: 700;
-        margin-bottom: 8px;
-        color: #f7d774;
+        font-size: 19px;
+        font-weight: 800;
+        margin-bottom: 0;
+        color: #eef6ff;
+        letter-spacing: -0.01em;
       }
       .play-style-desc {
-        font-size: 0.8em;
-        color: #9fb6cd;
+        font-size: 14px;
+        color: #9ab1d8;
       }
 
       /* Game Engine Screen */
@@ -853,47 +896,6 @@
         box-shadow: 0 0 30px rgba(212, 167, 69, 0.5);
       }
 
-      @media (max-width: 768px) {
-        :root {
-          --controls-bottom: 14px;
-          --controls-height: 206px;
-          --controls-gap: 14px;
-          --play-area-width: 94vw;
-        }
-        #upload-panel h1 {
-          font-size: 1.5em;
-        }
-        #ladder-panel {
-          display: none;
-        }
-        #controls-panel {
-          width: var(--play-area-width);
-          padding: 10px 8px;
-          gap: 8px;
-        }
-        #answers-container {
-          width: var(--play-area-width);
-          grid-template-columns: 1fr;
-          gap: 8px;
-        }
-        .answer-btn {
-          padding: 12px 18px;
-          font-size: 0.85em;
-          min-width: 0;
-          min-height: 52px;
-        }
-        .hud-item {
-          padding: 8px 14px;
-          font-size: 0.8em;
-        }
-        #feedback-toast {
-          font-size: 2em;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <style>
       #paid-overlay {
         position: fixed; inset: 0; z-index: 9999;
         background: radial-gradient(ellipse at center, rgba(35,36,58,0.78) 60%, rgba(16,16,26,0.68) 100%);
@@ -901,6 +903,7 @@
         font-family: 'Space Grotesk', 'Share Tech Mono', monospace, sans-serif;
         color: #fff; animation: fadeInScale 0.7s cubic-bezier(.23,1.12,.32,1) 1;
         overflow: hidden;
+        -webkit-backdrop-filter: blur(2.5px);
         backdrop-filter: blur(2.5px);
       }
       #paid-overlay.hidden { display: none !important; }
@@ -951,23 +954,127 @@
         cursor: not-allowed; transition: opacity 0.2s;
       }
       #paid-modal button:active { opacity: 0.7; }
+
+      #paid-mute {
+        position: absolute;
+        top: 18px;
+        right: 22px;
+        z-index: 10;
+        background: rgba(30,30,60,0.7);
+        color: #ffd86b;
+        border: none;
+        border-radius: 50%;
+        width: 38px;
+        height: 38px;
+        font-size: 1.3rem;
+        cursor: pointer;
+        box-shadow: 0 2px 8px #0004;
+      }
+
+      #slide-quiz-wrap {
+        margin-top: 18px;
+        display: none;
+      }
+
+      #slide-quiz-wrap.visible {
+        display: block;
+      }
+
+      #slide-quiz-title {
+        font-size: 1.05rem;
+        color: #6be0ff;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      #slide-quiz-q {
+        color: #fff;
+        font-size: 1.01rem;
+        margin-bottom: 8px;
+      }
+
+      #slide-quiz-a {
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: none;
+        width: 70%;
+        max-width: 220px;
+        font-size: 1rem;
+      }
+
+      #slide-quiz-btn {
+        margin-left: 8px;
+        padding: 6px 18px;
+        font-size: 1rem;
+        background: #ffd86b;
+        color: #23243a;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      #slide-quiz-feedback {
+        margin-top: 6px;
+        font-size: 0.98rem;
+      }
+
+      @media (max-width: 768px) {
+        :root {
+          --controls-bottom: 14px;
+          --controls-height: 206px;
+          --controls-gap: 14px;
+          --play-area-width: 94vw;
+        }
+        #upload-panel h1 {
+          font-size: 1.5em;
+        }
+        #ladder-panel {
+          display: none;
+        }
+        #controls-panel {
+          width: var(--play-area-width);
+          padding: 10px 8px;
+          gap: 8px;
+        }
+        #answers-container {
+          width: var(--play-area-width);
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        .answer-btn {
+          padding: 12px 18px;
+          font-size: 0.85em;
+          min-width: 0;
+          min-height: 52px;
+        }
+        .hud-item {
+          padding: 8px 14px;
+          font-size: 0.8em;
+        }
+        #feedback-toast {
+          font-size: 2em;
+        }
+      }
     </style>
+  </head>
+  <body>
     <div id="paid-overlay">
       <audio id="paid-bgm" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b8b6b7.mp3" loop autoplay></audio>
       <audio id="paid-sfx" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b7b7b.mp3"></audio>
-      <button id="paid-mute" style="position:absolute;top:18px;right:22px;z-index:10;background:rgba(30,30,60,0.7);color:#ffd86b;border:none;border-radius:50%;width:38px;height:38px;font-size:1.3rem;cursor:pointer;box-shadow:0 2px 8px #0004;">🔈</button>
+      <button id="paid-mute">🔈</button>
       <div id="paid-objects"></div>
       <div id="paid-modal">
         <span class="lock">🔒</span>
         <div class="title">Paid Feature</div>
         <div class="desc">The 3D Quiz Game Show is a premium experience.<br><br><span class="highlight">Upgrade to unlock full access.</span></div>
         <button disabled>Upgrade Required</button>
-        <div id="slide-quiz-wrap" style="margin-top:18px;display:none;">
-          <div style="font-size:1.05rem;color:#6be0ff;font-weight:600;margin-bottom:6px;">Prof Byte's Slide Challenge</div>
-          <div id="slide-quiz-q" style="color:#fff;font-size:1.01rem;margin-bottom:8px;"></div>
-          <input id="slide-quiz-a" type="text" placeholder="Your answer..." style="padding:6px 12px;border-radius:6px;border:none;width:70%;max-width:220px;font-size:1rem;" />
-          <button id="slide-quiz-btn" style="margin-left:8px;padding:6px 18px;font-size:1rem;background:#ffd86b;color:#23243a;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Check</button>
-          <div id="slide-quiz-feedback" style="margin-top:6px;font-size:0.98rem;"></div>
+        <div id="slide-quiz-wrap">
+          <div id="slide-quiz-title">Prof Byte's Slide Challenge</div>
+          <div id="slide-quiz-q"></div>
+          <input id="slide-quiz-a" type="text" placeholder="Your answer..." />
+          <button id="slide-quiz-btn">Check</button>
+          <div id="slide-quiz-feedback"></div>
         </div>
           <script>
           // ...existing code...
@@ -978,7 +1085,7 @@
           }
           if (hasSlideContext()) {
             const quizWrap = document.getElementById('slide-quiz-wrap');
-            quizWrap.style.display = 'block';
+            quizWrap.classList.add('visible');
             // Example slide-related question (replace with dynamic if available)
             const question = "What is the main topic of the current slide?";
             const answer = "Sport Finance";
@@ -1082,6 +1189,11 @@
             placeholder="Paste your free key here"
           />
         </div>
+        <div id="question-config-section">
+          <label for="question-count-input">Questions to Ask</label>
+          <input type="number" id="question-count-input" min="5" max="40" value="20" />
+          <div id="question-count-help">Choose between 5 and 40 questions for this round.</div>
+        </div>
         <div id="upload-status"></div>
         <button id="btn-upload-proceed" class="proceed-btn" disabled>Proceed to Game Selection ➡️</button>
       </div>
@@ -1105,7 +1217,7 @@
         <!-- Game HUD -->
         <div id="game-hud">
           <div class="hud-item">
-            📋 Q <span id="hud-qnum">1</span>/<span id="hud-qtotal">10</span>
+            📋 Q <span id="hud-qnum">1</span>/<span id="hud-qtotal">20</span>
           </div>
           <div class="hud-item">⏱️ <span id="hud-timer">30</span>s</div>
           <div class="hud-item">
@@ -2055,179 +2167,218 @@ ${text.substring(0, 8000)}`;
 
         // ========== FALLBACK GENERATOR (guaranteed to produce questions) ==========
         function generateFallback(text, count = 8) {
-          // Clean and extract sentences
-          const cleaned = text
-            .replace(/\s+/g, " ")
-            .replace(/\n+/g, ". ")
-            .trim();
-          const sentences = cleaned
-            .split(/[.!?]+/)
-            .map((s) => s.trim())
-            .filter((s) => s.length > 25 && s.length < 500);
-          if (sentences.length < 5) {
-            // Ultimate fallback: create questions from whole chunks
-            const chunks = text.match(/.{80,300}[.!?]/g) || [
-              text.substring(0, 300),
-            ];
-            sentences.push(
-              ...chunks.map((c) => c.trim()).filter((c) => c.length > 25),
-            );
-          }
-
-          // Key terms
-          const stop = new Set([
-            "the",
-            "is",
-            "at",
-            "which",
-            "on",
-            "and",
-            "a",
-            "an",
-            "in",
-            "to",
-            "of",
-            "for",
-            "with",
-            "that",
-            "this",
-            "are",
-            "was",
-            "were",
-            "been",
-            "being",
-            "have",
-            "has",
-            "had",
-            "does",
-            "did",
-            "but",
-            "or",
-            "nor",
-            "not",
-            "so",
-            "if",
-            "then",
-            "than",
-            "too",
-            "very",
-            "can",
-            "will",
-            "just",
-            "about",
-          ]);
-          const freq = {};
-          sentences.forEach((s) => {
-            (s.toLowerCase().match(/\b[a-z]{4,}\b/g) || []).forEach((w) => {
-              if (!stop.has(w)) freq[w] = (freq[w] || 0) + 1;
-            });
-          });
-          const keywords = Object.entries(freq)
-            .sort((a, b) => b[1] - a[1])
-            .map((e) => e[0]);
-
+          const fragments = extractFragments(text);
+          const facts = fragments.map(extractFact).filter(Boolean);
+          const concepts = buildConceptPool(fragments);
           const questions = [];
-          const used = new Set();
-          for (const kw of keywords.slice(0, count * 2)) {
-            for (let i = 0; i < sentences.length; i++) {
-              if (used.has(i)) continue;
-              if (
-                sentences[i].toLowerCase().includes(kw) &&
-                sentences[i].length > 40
-              ) {
-                const q = createQuestionFromSentence(
-                  sentences[i],
-                  kw,
-                  keywords,
-                );
-                if (
-                  q &&
-                  !questions.some((qq) => qq.questionText === q.questionText)
-                ) {
-                  questions.push(q);
-                  used.add(i);
-                }
-                break;
-              }
-            }
-            if (questions.length >= count) break;
-          }
 
-          // Fill remaining slots
-          for (
-            let i = 0;
-            i < sentences.length && questions.length < count;
-            i++
-          ) {
-            if (!used.has(i) && sentences[i].length > 30) {
-              const kw = extractKeyword(sentences[i], keywords);
-              const q = createQuestionFromSentence(sentences[i], kw, keywords);
-              if (q) {
-                questions.push(q);
-                used.add(i);
-              }
+          fragments.forEach((fragment, index) => {
+            if (questions.length >= count) return;
+            const question = createQuestionFromFragment(
+              fragment,
+              index,
+              fragments,
+              facts,
+              concepts,
+            );
+            if (
+              question &&
+              !questions.some((item) => item.questionText === question.questionText)
+            ) {
+              questions.push(question);
             }
-          }
+          });
 
-          // Final fallback: if still < 3, create from words
           if (questions.length < 3) {
             const words = text.match(/\b[A-Z][a-z]{4,}\b/g) ||
               text.match(/\b[a-z]{5,}\b/g) || ["concept"];
             for (const w of words.slice(0, 5)) {
-              const q = {
-                questionText: `What does the term "${w}" refer to in the context of the material?`,
-                correctAnswer: w,
-                options: [w, w + "s", "Unknown", "None"],
-              };
-              questions.push(q);
+              questions.push({
+                questionText: `Which statement best describes ${w}?`,
+                correctAnswer: `${w} is highlighted in the learning material.`,
+                options: shuffleOptions([
+                  `${w} is highlighted in the learning material.`,
+                  "A different process from the material.",
+                  "Another explanation from the lesson.",
+                  "A separate supporting example.",
+                ]),
+              });
             }
           }
 
           return questions.slice(0, count);
         }
 
-        function createQuestionFromSentence(sentence, keyword, allKeywords) {
-          const regex = new RegExp(
-            "\\b" + keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b",
-            "i",
-          );
-          const qText = sentence.replace(regex, "__________");
-          const correct =
-            keyword.charAt(0).toUpperCase() + keyword.slice(1).toLowerCase();
-          const distractors = new Set();
-          distractors.add(keyword.toLowerCase());
-          for (const kw of allKeywords) {
-            if (distractors.size >= 4) break;
-            const lw = kw.toLowerCase();
-            if (lw !== keyword.toLowerCase() && lw.length >= 3)
-              distractors.add(lw);
-          }
-          const fallbacks = [
-            keyword + "s",
-            keyword + "ing",
-            keyword + "ed",
-            "un" + keyword,
-          ];
-          for (const f of fallbacks) {
-            if (distractors.size >= 4) break;
-            distractors.add(f.toLowerCase());
-          }
-          let distArr = Array.from(distractors)
-            .filter((d) => d !== keyword.toLowerCase())
-            .slice(0, 3);
-          while (distArr.length < 3) distArr.push("option_" + distArr.length);
-          const options = [
-            correct,
-            ...distArr.map((d) => d.charAt(0).toUpperCase() + d.slice(1)),
-          ];
-          shuffleArray(options);
-          return { questionText: qText, correctAnswer: correct, options };
+        function extractFragments(text) {
+          return String(text || "")
+            .replace(/\r/g, "")
+            .split(/\n+/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .flatMap((line) => line.split(/(?<=[.!?])\s+/))
+            .map((fragment) => cleanPhrase(fragment))
+            .filter((fragment) => fragment.length >= 24);
         }
 
-        function extractKeyword(sentence, keywords) {
-          for (const kw of keywords)
-            if (sentence.toLowerCase().includes(kw)) return kw;
-          return (sentence.match(/\b[a-z]{4,}\b/gi) || ["term"])[0];
+        function cleanPhrase(text) {
+          return String(text || "")
+            .replace(/[\u201c\u201d]/g, '"')
+            .replace(/[\u2018\u2019]/g, "'")
+            .replace(/\s+/g, " ")
+            .replace(/[\.:;,!?]+$/g, "")
+            .trim();
+        }
+
+        function isGenericConcept(term) {
+          const normalized = cleanPhrase(term).toLowerCase();
+          return !normalized ||
+            ["topic", "slide", "lesson", "chapter", "section", "unit", "content", "material", "notes", "concept"].includes(normalized) ||
+            /^(topic|slide|lesson|chapter|section|unit)\s*\d*$/i.test(normalized);
+        }
+
+        function extractFact(fragment) {
+          const sentence = cleanPhrase(fragment);
+          const match = sentence.match(
+            /^(.{3,70}?)\s+(is|are|means|refers to|defined as|describes|shows|explains|includes|contains|helps|allows|supports|uses|produces|creates|causes|comes from|requires)\s+(.{8,220})$/i,
+          );
+          if (!match) return null;
+          const subject = cleanPhrase(match[1]);
+          const relation = match[2].toLowerCase();
+          const answer = cleanPhrase(match[3]);
+          if (!subject || !answer || isGenericConcept(subject)) return null;
+          if (subject.split(/\s+/).length > 6) return null;
+          if (/\b(absorbs?|releases?|changes?|forms?|participates?|converts?|cools?|drives?|creates?|supports?|helps?|uses?|causes?)\b/i.test(subject)) return null;
+          return { subject, relation, answer };
+        }
+
+        function buildConceptPool(fragments) {
+          const concepts = [];
+          const seen = new Set();
+          fragments.forEach((fragment) => {
+            const concept = pickKeyConcept(fragment);
+            const key = cleanPhrase(concept).toLowerCase();
+            if (!concept || !key || seen.has(key)) return;
+            seen.add(key);
+            concepts.push(concept);
+          });
+          return concepts;
+        }
+
+        function pickKeyConcept(sentence) {
+          const fact = extractFact(sentence);
+          if (fact) return fact.subject;
+          const leadingPhrase = extractLeadingPhrase(sentence);
+          if (leadingPhrase) return leadingPhrase;
+          const capitalized = cleanPhrase(sentence).match(/\b([A-Z][a-zA-Z0-9-]{3,}(?:\s+[A-Z][a-zA-Z0-9-]{3,})*)\b/g) || [];
+          const strongCapitalized = capitalized
+            .map((item) => cleanPhrase(item))
+            .filter((item) => item.length > 3 && !isGenericConcept(item))
+            .sort((a, b) => b.length - a.length)[0];
+          if (strongCapitalized) return strongCapitalized;
+          const tokens = cleanPhrase(sentence)
+            .replace(/[^A-Za-z0-9\s-]/g, " ")
+            .split(/\s+/)
+            .map((token) => token.trim())
+            .filter((token) => token.length >= 5 && !isGenericConcept(token))
+            .sort((a, b) => b.length - a.length);
+          return tokens[0] || "this topic";
+        }
+
+        function extractLeadingPhrase(sentence) {
+          const cleaned = cleanPhrase(sentence).replace(/^(the|a|an)\s+/i, "");
+          const match = cleaned.match(
+            /^([A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z][A-Za-z0-9-]*){0,2})\s+(?:absorbs?|releases?|changes?|forms?|participates?|converts?|cools?|drives?|creates?|supports?|helps?|uses?|causes?|produces?|includes?|contains?|develops?|maintains?)\b/i,
+          );
+          if (!match) return null;
+          const phrase = cleanPhrase(match[1]);
+          if (!phrase || isGenericConcept(phrase)) return null;
+          return phrase;
+        }
+
+        function buildPromptFromFact(fact) {
+          if (/^(is|are|means|refers to|defined as|describes|shows|explains)$/.test(fact.relation)) {
+            return `Which statement best describes ${fact.subject}?`;
+          }
+          if (/^(includes|contains)$/.test(fact.relation)) {
+            return `What does ${fact.subject} include?`;
+          }
+          return `According to the material, what does ${fact.subject} ${fact.relation}?`;
+        }
+
+        function createStatementAnswer(fragment) {
+          const sentence = cleanPhrase(fragment);
+          if (sentence.length <= 120) return sentence;
+          return `${sentence.slice(0, 117).trimEnd()}...`;
+        }
+
+        function buildAnswerSet(correctAnswer, fragments, facts, concepts, seed, mode, currentIndex) {
+          const answers = [correctAnswer];
+          const seen = new Set([cleanPhrase(correctAnswer).toLowerCase()]);
+          const candidates = [];
+          const localFragments = fragments.slice(Math.max(0, currentIndex - 4), currentIndex + 5);
+          const localFacts = localFragments.map((fragment) => extractFact(fragment)).filter(Boolean);
+
+          function pushCandidate(value) {
+            const normalized = cleanPhrase(value);
+            const key = normalized.toLowerCase();
+            if (!normalized || normalized.length < 4 || seen.has(key)) return;
+            seen.add(key);
+            candidates.push(normalized);
+          }
+
+          if (mode === "fact") {
+            localFacts.forEach((fact) => pushCandidate(fact.answer));
+            facts.forEach((fact) => pushCandidate(fact.answer));
+          } else {
+            localFragments.forEach((fragment) => pushCandidate(createStatementAnswer(fragment)));
+            fragments.forEach((fragment) => pushCandidate(createStatementAnswer(fragment)));
+          }
+
+          concepts.forEach((concept) => pushCandidate(concept));
+          cleanPhrase(seed)
+            .split(/\s+/)
+            .filter((word) => word.length > 4 && !isGenericConcept(word))
+            .forEach((word) => pushCandidate(word));
+
+          [
+            "A different process from the material.",
+            "Another explanation from the lesson.",
+            "A separate supporting example.",
+            "A contrasting historical detail.",
+          ].forEach((item) => pushCandidate(item));
+
+          for (const candidate of candidates) {
+            if (answers.length >= 4) break;
+            answers.push(candidate);
+          }
+
+          return shuffleOptions(answers.slice(0, 4));
+        }
+
+        function createQuestionFromFragment(fragment, index, fragments, facts, concepts) {
+          const sentence = cleanPhrase(fragment);
+          const fact = extractFact(sentence);
+          if (fact) {
+            return {
+              questionText: buildPromptFromFact(fact),
+              correctAnswer: fact.answer,
+              options: buildAnswerSet(fact.answer, fragments, facts, concepts, fact.subject, "fact", index),
+            };
+          }
+
+          const concept = pickKeyConcept(sentence);
+          const answer = createStatementAnswer(sentence);
+          return {
+            questionText: `Which statement about ${concept} matches the material?`,
+            correctAnswer: answer,
+            options: buildAnswerSet(answer, fragments, facts, concepts, concept, "statement", index),
+          };
+        }
+
+        function shuffleOptions(options) {
+          const arr = [...options];
+          shuffleArray(arr);
+          return arr;
         }
 
         function shuffleArray(arr) {
@@ -2238,7 +2389,7 @@ ${text.substring(0, 8000)}`;
         }
 
         // Main generation function
-        async function generateQuestions(text, count = 10) {
+        async function generateQuestions(text, count = 20) {
           allQuestions = [];
           // Try Gemini first
           const geminiQuestions = await generateWithGemini(text, count);
@@ -2353,6 +2504,7 @@ ${text.substring(0, 8000)}`;
       });
     </script>
 
+    <script src="../../shared/premium-game-reporter.js"></script>
     <script src="millionaire-app.js"></script>
 
     <script>

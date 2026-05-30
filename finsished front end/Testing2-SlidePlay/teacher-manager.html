@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Manager | SlidePlay</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+      :root {
+        --bg: #070b16;
+        --panel: #111831;
+        --panel-2: #151f3f;
+        --text: #eaf0ff;
+        --muted: #93a2c8;
+        --accent: #4bd8ff;
+        --accent-2: #6ef3bf;
+        --danger: #ff7b9a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Poppins", "Segoe UI", sans-serif;
+        background: radial-gradient(circle at 10% 10%, #102149 0%, var(--bg) 45%),
+          radial-gradient(circle at 85% 20%, #1f1750 0%, transparent 40%), var(--bg);
+        color: var(--text);
+      }
+      .shell {
+        max-width: 1100px;
+        margin: 24px auto;
+        padding: 0 14px 28px;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .title {
+        margin: 0;
+        font-size: 1.7rem;
+        letter-spacing: 0.02em;
+      }
+      .muted { color: var(--muted); }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .card {
+        background: linear-gradient(160deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 1.1rem;
+      }
+      .stack {
+        display: grid;
+        gap: 8px;
+      }
+      input, textarea, select {
+        width: 100%;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 8px;
+        padding: 9px 10px;
+        background: var(--panel);
+        color: var(--text);
+      }
+      textarea { min-height: 80px; resize: vertical; }
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 9px 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .btn-main { background: var(--accent); color: #08131f; }
+      .btn-sub { background: rgba(255,255,255,0.12); color: var(--text); }
+      .btn-danger { background: rgba(255,123,154,0.2); color: #ffd3de; }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .list {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .item {
+        background: var(--panel-2);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+        padding: 10px;
+      }
+      .item-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+      }
+      .item-title { font-weight: 700; }
+      .item small { color: var(--muted); }
+      .item .actions {
+        margin-top: 8px;
+        display: flex;
+        gap: 8px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.75rem;
+        color: #b7e8ff;
+        background: rgba(75,216,255,0.18);
+        border-radius: 999px;
+        padding: 2px 8px;
+      }
+      #status { margin-top: 12px; color: #b6c5ec; font-size: 0.9rem; }
+      @media (max-width: 880px) {
+        .row { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="top">
+        <div>
+          <h1 class="title">Teacher CRUD Manager</h1>
+          <div class="muted">Create and manage classes, students, and assignments</div>
+        </div>
+        <div class="toolbar">
+          <a href="teacher.html"><button class="btn-sub"><i class="fa-solid fa-arrow-left"></i> Dashboard</button></a>
+          <button id="refreshBtn" class="btn-sub"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <section class="card">
+          <h2>Create Class</h2>
+          <div class="stack">
+            <input id="className" placeholder="Class name" />
+            <input id="classSubject" placeholder="Subject" />
+            <input id="classGrade" placeholder="Grade level" />
+            <textarea id="classDesc" placeholder="Description"></textarea>
+            <div class="toolbar">
+              <button class="btn-main" id="createClassBtn">Create Class</button>
+            </div>
+          </div>
+          <div class="list" id="classList"></div>
+        </section>
+
+        <section class="card">
+          <h2>Create Assignment</h2>
+          <div class="stack">
+            <label for="assignmentClass" class="muted">Class</label>
+            <select id="assignmentClass" title="Assignment class selector"></select>
+            <input id="assignmentTitle" placeholder="Assignment title" />
+            <textarea id="assignmentInstructions" placeholder="Instructions"></textarea>
+            <div class="toolbar">
+              <input id="assignmentDue" type="datetime-local" title="Assignment due date" placeholder="Due date" />
+              <input id="assignmentPoints" type="number" min="1" value="100" placeholder="Max points" />
+            </div>
+            <div class="toolbar">
+              <button class="btn-main" id="createAssignmentBtn">Create Assignment</button>
+            </div>
+          </div>
+          <div class="list" id="assignmentList"></div>
+        </section>
+      </div>
+
+      <div id="status"></div>
+    </div>
+
+    <script>
+      const API_BASE = (
+        window.SLIDEPLAY_API_BASE ||
+        localStorage.getItem("sp_api_base") ||
+        window.location.origin
+      ).replace(/\/$/, "");
+
+      const uid = localStorage.getItem("sp_user_uid") || "";
+      const statusEl = document.getElementById("status");
+      const classListEl = document.getElementById("classList");
+      const assignmentListEl = document.getElementById("assignmentList");
+      const assignmentClassEl = document.getElementById("assignmentClass");
+
+      let classes = [];
+      let assignments = [];
+
+      function setStatus(msg) {
+        statusEl.textContent = msg || "";
+      }
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      async function api(path, options) {
+        const resp = await fetch(API_BASE + path, options || {});
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => "");
+          throw new Error(text || ("HTTP " + resp.status));
+        }
+        return resp.json();
+      }
+
+      function classIdOf(cls) {
+        return cls.ClassID || cls.classId;
+      }
+
+      function classCodeOf(cls) {
+        return cls.ClassCode || cls.classCode || "";
+      }
+
+      function classNameOf(cls) {
+        return cls.Name || cls.name || "Untitled class";
+      }
+
+      function renderClassPicker() {
+        assignmentClassEl.innerHTML = classes.length
+          ? classes.map((cls) =>
+              '<option value="' + classIdOf(cls) + '">' +
+              escapeHtml(classNameOf(cls)) + ' (' + escapeHtml(classCodeOf(cls)) + ')' +
+              '</option>'
+            ).join("")
+          : '<option value="">No classes yet</option>';
+      }
+
+      function renderClasses() {
+        if (!classes.length) {
+          classListEl.innerHTML = '<div class="muted">No classes created yet.</div>';
+          return;
+        }
+        classListEl.innerHTML = classes.map((cls) => {
+          const classId = classIdOf(cls);
+          const title = classNameOf(cls);
+          const code = classCodeOf(cls);
+          const subject = cls.Subject || cls.subject || "General";
+          const grade = cls.GradeLevel || cls.gradeLevel || "";
+          return (
+            '<article class="item">' +
+              '<div class="item-head">' +
+                '<div class="item-title">' + escapeHtml(title) + ' <span class="pill">Code ' + escapeHtml(code) + '</span></div>' +
+                '<small>' + escapeHtml(subject + (grade ? ' | ' + grade : '')) + '</small>' +
+              '</div>' +
+              '<div class="actions">' +
+                '<button class="btn-sub" data-view-students="' + classId + '">Students</button>' +
+                '<button class="btn-danger" data-archive-class="' + classId + '">Archive</button>' +
+              '</div>' +
+            '</article>'
+          );
+        }).join("");
+
+        classListEl.querySelectorAll("[data-view-students]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const classId = btn.getAttribute("data-view-students");
+            try {
+              const payload = await api("/api/teacher/classes/" + encodeURIComponent(classId) + "/students");
+              const students = payload.students || [];
+              if (!students.length) {
+                setStatus("No students joined this class yet.");
+                return;
+              }
+              const names = students.map((s) => s.DisplayName || s.StudentUID || "student").join(", ");
+              setStatus("Students: " + names);
+            } catch (err) {
+              setStatus("Could not load class students.");
+            }
+          });
+        });
+
+        classListEl.querySelectorAll("[data-archive-class]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const classId = btn.getAttribute("data-archive-class");
+            if (!confirm("Archive this class?")) return;
+            try {
+              await api("/api/teacher/classes/" + encodeURIComponent(classId) + "?uid=" + encodeURIComponent(uid), {
+                method: "DELETE"
+              });
+              setStatus("Class archived.");
+              await loadClasses();
+              await loadAssignments();
+            } catch (_) {
+              setStatus("Failed to archive class.");
+            }
+          });
+        });
+      }
+
+      function renderAssignments() {
+        if (!assignments.length) {
+          assignmentListEl.innerHTML = '<div class="muted">No assignments yet.</div>';
+          return;
+        }
+        assignmentListEl.innerHTML = assignments.map((a) => {
+          const assignmentId = a.AssignmentID || a.assignmentId;
+          const title = a.Title || a.title || "Untitled assignment";
+          const due = a.DueAt || a.dueAt;
+          const points = a.MaxPoints || a.maxPoints || 100;
+          const status = a.Status || a.status || "draft";
+          return (
+            '<article class="item">' +
+              '<div class="item-head">' +
+                '<div class="item-title">' + escapeHtml(title) + ' <span class="pill">' + escapeHtml(status) + '</span></div>' +
+                '<small>' + (due ? new Date(due).toLocaleString() : 'No due date') + ' | ' + points + ' pts</small>' +
+              '</div>' +
+              '<div class="actions">' +
+                '<button class="btn-danger" data-del-assignment="' + assignmentId + '">Archive</button>' +
+              '</div>' +
+            '</article>'
+          );
+        }).join("");
+
+        assignmentListEl.querySelectorAll("[data-del-assignment]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const assignmentId = btn.getAttribute("data-del-assignment");
+            if (!confirm("Archive this assignment?")) return;
+            try {
+              await api("/api/teacher/assignments/" + encodeURIComponent(assignmentId) + "?uid=" + encodeURIComponent(uid), {
+                method: "DELETE"
+              });
+              setStatus("Assignment archived.");
+              await loadAssignments();
+            } catch (_) {
+              setStatus("Failed to archive assignment.");
+            }
+          });
+        });
+      }
+
+      async function loadClasses() {
+        if (!uid) {
+          setStatus("Not signed in as teacher.");
+          classes = [];
+          renderClassPicker();
+          renderClasses();
+          return;
+        }
+        try {
+          const payload = await api("/api/teacher/classes?uid=" + encodeURIComponent(uid));
+          classes = payload.classes || [];
+          renderClassPicker();
+          renderClasses();
+        } catch (_) {
+          classes = [];
+          renderClassPicker();
+          renderClasses();
+          setStatus("Could not load classes. Confirm API base and teacher role.");
+        }
+      }
+
+      async function loadAssignments() {
+        if (!uid) {
+          assignments = [];
+          renderAssignments();
+          return;
+        }
+        try {
+          const payload = await api("/api/teacher/assignments?uid=" + encodeURIComponent(uid));
+          assignments = payload.assignments || [];
+          renderAssignments();
+        } catch (_) {
+          assignments = [];
+          renderAssignments();
+          setStatus("Could not load assignments.");
+        }
+      }
+
+      async function createClass() {
+        const name = document.getElementById("className").value.trim();
+        const subject = document.getElementById("classSubject").value.trim();
+        const gradeLevel = document.getElementById("classGrade").value.trim();
+        const description = document.getElementById("classDesc").value.trim();
+        if (!name) {
+          setStatus("Class name is required.");
+          return;
+        }
+        try {
+          await api("/api/teacher/classes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uid, name, subject, gradeLevel, description }),
+          });
+          document.getElementById("className").value = "";
+          document.getElementById("classSubject").value = "";
+          document.getElementById("classGrade").value = "";
+          document.getElementById("classDesc").value = "";
+          setStatus("Class created.");
+          await loadClasses();
+        } catch (_) {
+          setStatus("Failed to create class.");
+        }
+      }
+
+      async function createAssignment() {
+        const classId = assignmentClassEl.value;
+        const title = document.getElementById("assignmentTitle").value.trim();
+        const instructions = document.getElementById("assignmentInstructions").value.trim();
+        const dueAt = document.getElementById("assignmentDue").value;
+        const maxPoints = document.getElementById("assignmentPoints").value;
+        if (!title) {
+          setStatus("Assignment title is required.");
+          return;
+        }
+        try {
+          await api("/api/teacher/assignments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              uid,
+              classId: classId || null,
+              title,
+              instructions,
+              dueAt: dueAt || null,
+              maxPoints: maxPoints ? Number(maxPoints) : 100,
+              status: "published",
+            }),
+          });
+          document.getElementById("assignmentTitle").value = "";
+          document.getElementById("assignmentInstructions").value = "";
+          document.getElementById("assignmentDue").value = "";
+          setStatus("Assignment created.");
+          await loadAssignments();
+        } catch (_) {
+          setStatus("Failed to create assignment.");
+        }
+      }
+
+      document.getElementById("createClassBtn").addEventListener("click", createClass);
+      document.getElementById("createAssignmentBtn").addEventListener("click", createAssignment);
+      document.getElementById("refreshBtn").addEventListener("click", async () => {
+        await loadClasses();
+        await loadAssignments();
+        setStatus("Refreshed.");
+      });
+
+      loadClasses().then(loadAssignments);
+    </script>
+  </body>
+</html>

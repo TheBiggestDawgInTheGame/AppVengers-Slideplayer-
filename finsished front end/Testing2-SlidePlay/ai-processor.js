@@ -11,7 +11,7 @@
  * Exposes: window.AIProcessor
  *   .processFile(file, opts) → Promise<{ questions[], count, topic, rawText }>
  *
- * opts: { difficulty:"easy"|"medium"|"hard", count:10, questionType:"mcq"|"true_false"|"mixed" }
+ * opts: { difficulty:"easy"|"medium"|"hard", count:10, questionType:"mcq"|"true_false"|"short_answer"|"mixed" }
  */
 
 (function () {
@@ -65,6 +65,14 @@
     return q.includes(a);
   }
 
+  function normalizeQuestionType(rawType) {
+    const t = String(rawType || "mixed").toLowerCase().trim();
+    if (t === "true-false" || t === "truefalse" || t === "tf") return "true_false";
+    if (t === "short" || t === "short-answer" || t === "shortanswer") return "short_answer";
+    if (t === "mcq" || t === "mixed" || t === "true_false" || t === "short_answer") return t;
+    return "mixed";
+  }
+
   function passesQualityGate(rawQ, questionType, expectedDifficulty) {
     const question = String(rawQ?.question || "").trim();
     const explanation = String(rawQ?.explanation || "").trim();
@@ -78,6 +86,13 @@
     }
 
     if (questionType !== "true_false") {
+      if (questionType === "short_answer") {
+        const accepted = Array.isArray(rawQ?.acceptedAnswers) ? rawQ.acceptedAnswers : [];
+        if (accepted.length < 1) return false;
+        if (accepted.some((a) => String(a || "").trim().length < 2)) return false;
+        return true;
+      }
+
       const options = Array.isArray(rawQ?.options) ? rawQ.options : [];
       if (options.length !== 4) return false;
       if (options.some(o => String(o || "").trim().length < 2)) return false;
@@ -89,6 +104,168 @@
     }
 
     return true;
+  }
+
+  function clamp01(v) {
+    return Math.max(0, Math.min(1, Number(v) || 0));
+  }
+
+  function safeJsonParse(str, fallback) {
+    try {
+      const parsed = JSON.parse(str);
+      return parsed == null ? fallback : parsed;
+    } catch (_err) {
+      return fallback;
+    }
+  }
+
+  function inferUserRole() {
+    const fromSession = safeJsonParse(localStorage.getItem("sp_session") || "null", null)?.role;
+    if (fromSession === "teacher" || fromSession === "student") return fromSession;
+    if (/student/i.test(window.location.pathname)) return "student";
+    if (/teacher/i.test(window.location.pathname)) return "teacher";
+    return "student";
+  }
+
+  function nextHarderDifficulty(level) {
+    if (level === "easy") return "medium";
+    if (level === "medium") return "hard";
+    return "hard";
+  }
+
+  function nextEasierDifficulty(level) {
+    if (level === "hard") return "medium";
+    if (level === "medium") return "easy";
+    return "easy";
+  }
+
+  function deriveStudentSkillSignal() {
+    const reports = safeJsonParse(localStorage.getItem("sp_game_reports") || "[]", []);
+    if (!Array.isArray(reports) || reports.length === 0) {
+      return { confidence: 0, meanAccuracy: 0.6 };
+    }
+
+    const recent = reports.slice(-20);
+    const accuracies = recent
+      .map((r) => {
+        if (!r) return null;
+        if (typeof r.accuracy === "number") return clamp01(r.accuracy > 1 ? r.accuracy / 100 : r.accuracy);
+        const total = Number(r.totalQuestions || r.total || 0);
+        const correct = Number(r.correctCount || r.correct || 0);
+        if (total > 0) return clamp01(correct / total);
+        return null;
+      })
+      .filter((v) => typeof v === "number");
+
+    if (accuracies.length === 0) {
+      return { confidence: 0, meanAccuracy: 0.6 };
+    }
+
+    const mean = accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
+    return { confidence: clamp01(accuracies.length / 8), meanAccuracy: clamp01(mean) };
+  }
+
+  function resolveAdaptiveDifficulty(inputDifficulty, role) {
+    const base = inputDifficulty || "medium";
+    if (role !== "student") return { effectiveDifficulty: base, adjusted: false };
+
+    const signal = deriveStudentSkillSignal();
+    if (signal.confidence < 0.35) {
+      return { effectiveDifficulty: base, adjusted: false };
+    }
+
+    if (signal.meanAccuracy >= 0.82 && base !== "hard") {
+      return { effectiveDifficulty: nextHarderDifficulty(base), adjusted: true };
+    }
+
+    if (signal.meanAccuracy <= 0.45 && base !== "easy") {
+      return { effectiveDifficulty: nextEasierDifficulty(base), adjusted: true };
+    }
+
+    return { effectiveDifficulty: base, adjusted: false };
+  }
+
+  function conceptOverlapRatio(questionText, sourceText) {
+    const qTokens = tokenize(questionText || "");
+    const srcTokens = new Set(tokenize(String(sourceText || "").slice(0, 12000)));
+    if (!qTokens.length || srcTokens.size === 0) return 0;
+    let hits = 0;
+    for (const t of qTokens) if (srcTokens.has(t)) hits += 1;
+    return clamp01(hits / Math.max(4, qTokens.length));
+  }
+
+  function estimateDistractorQuality(options, correctIdx) {
+    if (!Array.isArray(options) || options.length !== 4) return 0;
+    const correct = String(options[correctIdx] || "").trim();
+    if (!correct) return 0;
+    const wrong = options.filter((_, i) => i !== correctIdx).map((o) => String(o || "").trim()).filter(Boolean);
+    if (wrong.length !== 3) return 0;
+
+    const lengths = wrong.map((o) => wordCount(o));
+    const avgLen = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+    const lenBalance = clamp01(1 - Math.abs(avgLen - wordCount(correct)) / Math.max(6, wordCount(correct)));
+
+    const lexicalDistance = wrong
+      .map((o) => 1 - jaccard(o, correct))
+      .reduce((a, b) => a + b, 0) / wrong.length;
+
+    return clamp01(0.55 * lexicalDistance + 0.45 * lenBalance);
+  }
+
+  function scoreQuestionCandidate(rawQ, normalizedQ, questionType, difficulty, sourceText) {
+    const qText = String(rawQ?.question || "").trim();
+    const qWords = wordCount(qText);
+    const lengthScore = clamp01(Math.min(qWords, 20) / 20);
+    const trivialPenalty = looksTrivialStem(qText) ? 0.25 : 0;
+    const explanationScore = clamp01(Math.min(wordCount(rawQ?.explanation || ""), 24) / 24);
+    const anchorScore = conceptOverlapRatio(qText, sourceText);
+
+    let distractorScore = 0.7;
+    if (questionType !== "true_false") {
+      const idx = { A:0, B:1, C:2, D:3 }[rawQ?.correctAnswer];
+      distractorScore = estimateDistractorQuality(rawQ?.options || [], idx);
+    }
+
+    const difficultyAlignment = rawQ?.difficulty && String(rawQ.difficulty).toLowerCase() === difficulty ? 1 : 0.7;
+
+    const score =
+      0.26 * lengthScore +
+      0.24 * explanationScore +
+      0.2 * anchorScore +
+      0.2 * distractorScore +
+      0.1 * difficultyAlignment -
+      trivialPenalty;
+
+    return {
+      normalizedQ,
+      score: clamp01(score),
+      text: String(normalizedQ?.text || "")
+    };
+  }
+
+  function selectDiverseTopQuestions(scored, count) {
+    const sorted = scored.slice().sort((a, b) => b.score - a.score);
+    const selected = [];
+
+    for (const cand of sorted) {
+      if (selected.length === 0) {
+        selected.push(cand);
+      } else {
+        const maxSimilarity = selected.reduce((mx, s) => Math.max(mx, jaccard(s.text, cand.text)), 0);
+        if (maxSimilarity < 0.55) selected.push(cand);
+      }
+      if (selected.length >= count) break;
+    }
+
+    if (selected.length < count) {
+      for (const cand of sorted) {
+        if (selected.includes(cand)) continue;
+        selected.push(cand);
+        if (selected.length >= count) break;
+      }
+    }
+
+    return selected.map((x) => x.normalizedQ);
   }
 
   // ── Text extraction ─────────────────────────────────────────
@@ -224,6 +401,7 @@
   // ── Gemini vision call (image → questions directly) ──────────
   async function callGeminiVision(file, opts) {
     const { difficulty = "medium", count = 10, questionType = "mcq", strict = false } = opts;
+    const qType = normalizeQuestionType(questionType);
     const bloom = BLOOM[difficulty] || BLOOM.medium;
 
     // Read image as base64
@@ -236,10 +414,20 @@
 
     const mimeType = file.type || "image/png";
 
-    const typeInstructions = questionType === "true_false"
+        const typeInstructions = qType === "true_false"
       ? `- Generate TRUE/FALSE questions only. "correctAnswer" must be true or false (boolean).`
+      : qType === "short_answer"
+      ? `- Generate SHORT ANSWER questions only.
+    - Each question must expect a typed answer of 2-20 words.
+    - Provide "acceptedAnswers" as an array with at least 2 valid answer variants.
+    - Provide "sampleAnswer" as a concise ideal answer.`
+      : qType === "mixed"
+      ? `- Generate a MIX of multiple choice and short-answer questions.
+    - At least 30% must be short-answer when difficulty is hard.
+    - For MCQ: exactly 4 options and "correctAnswer" as "A"|"B"|"C"|"D".
+    - For short-answer: include "acceptedAnswers" (2+ variants) and "sampleAnswer".`
       : `- Generate MULTIPLE CHOICE questions with exactly 4 options (A, B, C, D).
-- All 4 options must be plausible. "correctAnswer" must be "A", "B", "C", or "D".`;
+    - All 4 options must be plausible. "correctAnswer" must be "A", "B", "C", or "D".`;
 
     const prompt = `You are an expert educator. The image contains slide content, a diagram, notes, or a whiteboard photo.
 Analyse the visual content thoroughly — including text, charts, diagrams, tables, and any handwriting — then generate quiz questions from it.
@@ -263,12 +451,15 @@ ${strict ? "- PRIORITY QUALITY MODE: reject weak/repetitive items and regenerate
 
 RESPONSE FORMAT: Return ONLY valid JSON — no markdown fences, no extra text.
 
-${questionType === "true_false" ? `{
+${qType === "true_false" ? `{
   "topic": "Brief topic inferred from the image",
   "questions": [{ "question": "...", "correctAnswer": true, "difficulty": "${difficulty}", "explanation": "..." }]
+}` : qType === "short_answer" ? `{
+  "topic": "Brief topic inferred from the image",
+  "questions": [{ "question": "...", "acceptedAnswers": ["...", "..."], "sampleAnswer": "...", "difficulty": "${difficulty}", "explanation": "...", "type": "short_answer" }]
 }` : `{
   "topic": "Brief topic inferred from the image",
-  "questions": [{ "question": "...", "options": ["A","B","C","D"], "correctAnswer": "A", "difficulty": "${difficulty}", "explanation": "...", "bloomLevel": "${bloom.levels[0]}" }]
+  "questions": [{ "question": "...", "options": ["A","B","C","D"], "correctAnswer": "A", "difficulty": "${difficulty}", "explanation": "...", "bloomLevel": "${bloom.levels[0]}", "type": "mcq" }, { "question": "...", "acceptedAnswers": ["...", "..."], "sampleAnswer": "...", "difficulty": "${difficulty}", "explanation": "...", "type": "short_answer" }]
 }`}`.trim();
 
     const resp = await fetch(`${AI_PROXY}`, {
@@ -293,21 +484,32 @@ ${questionType === "true_false" ? `{
 
   function buildPrompt(text, opts) {
     const { difficulty = "medium", count = 10, questionType = "mcq" } = opts;
+    const qType = normalizeQuestionType(questionType);
     const bloom = BLOOM[difficulty] || BLOOM.medium;
     const focusTerms = extractFocusTerms(text, 10);
 
     // Trim text to ~30 000 chars — Gemini 2.0 Flash supports ~1M tokens
     const excerpt = text.length > 30000 ? text.substring(0, 30000) + "\n[...content truncated...]" : text;
 
-    const typeInstructions = questionType === "true_false"
+        const typeInstructions = qType === "true_false"
       ? `- Generate TRUE/FALSE questions only.
 - Each question must be an unambiguous factual statement that is clearly true or false.
 - Aim for roughly half true, half false.
 - "correctAnswer" must be true or false (boolean).`
+      : qType === "short_answer"
+      ? `- Generate SHORT ANSWER questions only.
+    - Include "acceptedAnswers" with at least 2 valid variants.
+    - Include "sampleAnswer" as an exemplar answer under 25 words.
+    - Keep prompts answerable from the lesson content only.`
+      : qType === "mixed"
+      ? `- Generate a MIX of multiple choice and short-answer questions.
+    - For short-answer items, include "acceptedAnswers" and "sampleAnswer".
+    - For multiple choice, use exactly 4 plausible options with "correctAnswer" as "A"|"B"|"C"|"D".
+    - At hard difficulty, ensure at least 30% short-answer questions.`
       : `- Generate MULTIPLE CHOICE questions with exactly 4 options (A, B, C, D).
 - All 4 options must be plausible — avoid obviously wrong distractors.
 - "correctAnswer" must be "A", "B", "C", or "D".
-${questionType === "mixed" ? "- Vary question styles: definition, application, scenario, comparison." : ""}`;
+    ${qType === "mixed" ? "- Vary question styles: definition, application, scenario, comparison." : ""}`;
 
     return `You are an expert educator and quiz designer.
 Your job is to create pedagogically sound quiz questions based ONLY on the lesson content below.
@@ -343,7 +545,7 @@ ${typeInstructions}
 
 RESPONSE FORMAT: Return ONLY a single valid JSON object. No markdown, no extra text.
 
-${questionType === "true_false" ? `{
+${qType === "true_false" ? `{
   "topic": "Brief topic title inferred from content",
   "questions": [
     {
@@ -351,6 +553,19 @@ ${questionType === "true_false" ? `{
       "correctAnswer": true,
       "difficulty": "${difficulty}",
       "explanation": "Why this is true/false based on the lesson"
+    }
+  ]
+}` : qType === "short_answer" ? `{
+  "topic": "Brief topic title inferred from content",
+  "questions": [
+    {
+      "question": "Question text based on the lesson content",
+      "acceptedAnswers": ["Answer variant 1", "Answer variant 2"],
+      "sampleAnswer": "Model short answer",
+      "difficulty": "${difficulty}",
+      "explanation": "1-2 sentence explanation citing lesson content",
+      "bloomLevel": "${bloom.levels[0]}",
+      "type": "short_answer"
     }
   ]
 }` : `{
@@ -362,7 +577,8 @@ ${questionType === "true_false" ? `{
       "correctAnswer": "A",
       "difficulty": "${difficulty}",
       "explanation": "1-2 sentence explanation citing the lesson content",
-      "bloomLevel": "${bloom.levels[0]}"
+      "bloomLevel": "${bloom.levels[0]}",
+      "type": "mcq"
     }
   ]
 }`}`.trim();
@@ -421,6 +637,7 @@ QUALITY REGENERATION PASS:
   }
 
   function buildTextFallbackQuestions(rawText, count, difficulty, questionType) {
+    const qType = normalizeQuestionType(questionType);
     const terms = collectFallbackTerms(rawText, Math.max(8, count * 4));
     const topic = terms[0] || "lesson content";
     if (terms.length === 0) return { questions: [], count: 0, topic, rawText: "", source: "fallback" };
@@ -429,24 +646,34 @@ QUALITY REGENERATION PASS:
     for (let i = 0; i < terms.length && questions.length < count; i++) {
       const term = terms[i];
 
-      if (questionType === "true_false") {
+      if (qType === "true_false") {
         questions.push({
-          text: `The slide content mentions ${term}.`,
+          text: "The slide content mentions " + term + ".",
           options: ["True", "False"],
           correct: 0,
-          explanation: `The extracted slide text includes the term "${term}".`,
+          explanation: "The extracted slide text includes the term \"" + term + "\".",
           difficulty,
           type: "true_false"
         });
+      } else if (qType === "short_answer" || (qType === "mixed" && difficulty === "hard" && i % 3 === 0)) {
+        questions.push({
+          text: "In one short phrase, explain the meaning of \"" + term + "\" as used in the lesson content.",
+          acceptedAnswers: [term, "the concept of " + term],
+          sampleAnswer: term,
+          explanation: "A strong answer should correctly reference \"" + term + "\" in context.",
+          difficulty,
+          bloomLevel: difficulty === "hard" ? "evaluate" : "understand",
+          type: "short_answer"
+        });
       } else {
-        const distractors = terms.filter(t => t !== term).slice(0, 3);
-        while (distractors.length < 3) distractors.push(`option${distractors.length + 1}`);
+        const distractors = terms.filter((t) => t !== term).slice(0, 3);
+        while (distractors.length < 3) distractors.push("option" + (distractors.length + 1));
         const options = [term, ...distractors].sort(() => Math.random() - 0.5);
         questions.push({
           text: "Which of the following terms appears in the slide content?",
           options,
           correct: options.indexOf(term),
-          explanation: `The slide text includes "${term}" among its key terms.`,
+          explanation: "The slide text includes \"" + term + "\" among its key terms.",
           difficulty,
           bloomLevel: difficulty === "hard" ? "analyze" : difficulty === "medium" ? "understand" : "remember",
           type: "mcq"
@@ -479,6 +706,7 @@ QUALITY REGENERATION PASS:
 
   function parseAndFilter(rawText, count, questionType, opts = {}) {
     const expectedDifficulty = opts.difficulty || "medium";
+    const sourceText = opts.sourceText || "";
     // Strip markdown code fences if present
     const clean = rawText.replace(/```(?:json)?\s*([\s\S]*?)\s*```/, "$1").trim();
     let parsed;
@@ -494,7 +722,7 @@ QUALITY REGENERATION PASS:
     if (!Array.isArray(rawQs) || rawQs.length === 0) throw new Error("No questions in AI response");
 
     const seen = new Set();
-    const good = [];
+    const candidates = [];
 
     for (const q of rawQs) {
       // Basic validity
@@ -502,34 +730,59 @@ QUALITY REGENERATION PASS:
 
       if (questionType === "true_false") {
         if (typeof q.correctAnswer !== "boolean") continue;
+      } else if (questionType === "short_answer") {
+        const accepted = Array.isArray(q.acceptedAnswers) ? q.acceptedAnswers : [];
+        if (accepted.length < 1) continue;
       } else {
-        if (!Array.isArray(q.options) || q.options.length !== 4) continue;
-        if (!["A","B","C","D"].includes(q.correctAnswer)) continue;
-        const unique = new Set(q.options.map(o => o.trim().toLowerCase()));
-        if (unique.size < 4) continue; // duplicate options
-        if (q.options.some(o => !o || o.trim().length === 0)) continue;
+        const qType = normalizeQuestionType(q.type || questionType);
+        if (qType === "short_answer") {
+          const accepted = Array.isArray(q.acceptedAnswers) ? q.acceptedAnswers : [];
+          if (accepted.length < 1) continue;
+        } else {
+          if (!Array.isArray(q.options) || q.options.length !== 4) continue;
+          if (!["A","B","C","D"].includes(q.correctAnswer)) continue;
+          const unique = new Set(q.options.map(o => o.trim().toLowerCase()));
+          if (unique.size < 4) continue; // duplicate options
+          if (q.options.some(o => !o || o.trim().length === 0)) continue;
+        }
       }
 
       // Pedagogical quality gate
-      if (!passesQualityGate(q, questionType, expectedDifficulty)) continue;
+      const qType = normalizeQuestionType(q.type || questionType);
+      if (!passesQualityGate(q, qType, expectedDifficulty)) continue;
 
       // Semantic deduplication
       if (isDuplicate(q.question, seen)) continue;
       seen.add(q.question.trim().toLowerCase());
 
       // Normalise to SlidePlay format
-      if (questionType === "true_false") {
-        good.push({
+      if (qType === "true_false") {
+        const normalized = {
           text: q.question.trim(),
           options: ["True", "False"],
           correct: q.correctAnswer ? 0 : 1,
           explanation: q.explanation || "",
           difficulty: q.difficulty || "medium",
           type: "true_false"
-        });
+        };
+        candidates.push(scoreQuestionCandidate(q, normalized, qType, expectedDifficulty, sourceText));
+      } else if (qType === "short_answer") {
+        const acceptedAnswers = (Array.isArray(q.acceptedAnswers) ? q.acceptedAnswers : [])
+          .map((a) => String(a || "").trim())
+          .filter(Boolean);
+        const normalized = {
+          text: q.question.trim(),
+          acceptedAnswers: acceptedAnswers,
+          sampleAnswer: String(q.sampleAnswer || acceptedAnswers[0] || "").trim(),
+          explanation: q.explanation || "",
+          difficulty: q.difficulty || "medium",
+          bloomLevel: q.bloomLevel || "",
+          type: "short_answer"
+        };
+        candidates.push(scoreQuestionCandidate(q, normalized, "short_answer", expectedDifficulty, sourceText));
       } else {
         const idx = { A:0, B:1, C:2, D:3 }[q.correctAnswer];
-        good.push({
+        const normalized = {
           text: q.question.trim(),
           options: q.options.map(o => o.trim()),
           correct: idx,
@@ -537,12 +790,12 @@ QUALITY REGENERATION PASS:
           difficulty: q.difficulty || "medium",
           bloomLevel: q.bloomLevel || "",
           type: "mcq"
-        });
+        };
+        candidates.push(scoreQuestionCandidate(q, normalized, qType, expectedDifficulty, sourceText));
       }
-
-      if (good.length >= count) break;
     }
 
+    const good = selectDiverseTopQuestions(candidates, count);
     return { questions: good, topic: (parsed?.topic || "").trim() };
   }
 
@@ -550,18 +803,21 @@ QUALITY REGENERATION PASS:
 
   async function generateFromTopic(topic, opts) {
     const { difficulty="medium", count=10, questionType="mcq" } = opts;
+    const qType = normalizeQuestionType(questionType);
     const bloom = BLOOM[difficulty] || BLOOM.medium;
-    const type = questionType === "true_false" ? "TRUE/FALSE" : "multiple choice";
+    const type = qType === "true_false" ? "TRUE/FALSE" : qType === "short_answer" ? "short-answer" : "mixed";
 
     const prompt = `You are an expert quiz designer.
 Generate ${count} ${type} questions about: "${topic}"
 Difficulty: ${difficulty.toUpperCase()} — Bloom's levels: ${bloom.levels.join(", ")} (${bloom.verbs})
-${questionType !== "true_false"
+${qType === "mcq" || qType === "mixed"
   ? `Each question: 4 options (A-D), correctAnswer as letter, plausible distractors.`
-  : `Each question: a clear statement, correctAnswer as true/false boolean.`}
+  : qType === "true_false"
+  ? `Each question: a clear statement, correctAnswer as true/false boolean.`
+  : `Each question: include acceptedAnswers array and sampleAnswer for typed response.`}
 Include a 1-sentence explanation per question.
 Return ONLY valid JSON:
-{ "topic": "${topic}", "questions": [{ "question":"...", ${questionType!=="true_false"?'"options":["...","...","...","..."], "correctAnswer":"A",':'"correctAnswer":true,'} "difficulty":"${difficulty}", "explanation":"..." }] }`;
+{ "topic": "${topic}", "questions": [{ "question":"...", ${qType==="true_false"?'"correctAnswer":true,':qType==="short_answer"?'"acceptedAnswers":["...","..."], "sampleAnswer":"...",':'"options":["...","...","...","..."], "correctAnswer":"A",'} "difficulty":"${difficulty}", "explanation":"..." }] }`;
 
     const raw = await callGemini(prompt);
     return parseAndFilter(raw, count, questionType);
@@ -579,6 +835,10 @@ Return ONLY valid JSON:
    */
   async function processFile(file, opts = {}, onProgress = () => {}) {
     const { difficulty = "medium", count = 10, questionType = "mcq" } = opts;
+    const normalizedQuestionType = normalizeQuestionType(questionType);
+    const role = inferUserRole();
+    const adaptive = resolveAdaptiveDifficulty(difficulty, role);
+    const effectiveDifficulty = adaptive.effectiveDifficulty;
 
     // ── Stage 1: extract text ──────────────────────────────────
     onProgress("Extracting slide content…", 15);
@@ -587,12 +847,12 @@ Return ONLY valid JSON:
     if (isImageFile(file)) {
       onProgress("Analysing image with AI vision…", 30);
       try {
-        const raw = await callGeminiVision(file, { difficulty, count, questionType });
+        const raw = await callGeminiVision(file, { difficulty: effectiveDifficulty, count, questionType: normalizedQuestionType });
         onProgress("Reviewing question quality…", 80);
-        let result = parseAndFilter(raw, count, questionType, { difficulty });
+        let result = parseAndFilter(raw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: "" });
         if (result.questions.length < Math.ceil(count * 0.75)) {
-          const retryRaw = await callGeminiVision(file, { difficulty, count: Math.ceil(count * 1.5), questionType, strict: true });
-          result = parseAndFilter(retryRaw, count, questionType, { difficulty });
+          const retryRaw = await callGeminiVision(file, { difficulty: effectiveDifficulty, count: Math.ceil(count * 1.5), questionType: normalizedQuestionType, strict: true });
+          result = parseAndFilter(retryRaw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: "" });
         }
         if (result.questions.length > 0) {
           onProgress("Done!", 100);
@@ -607,14 +867,14 @@ Return ONLY valid JSON:
         const ocrText = await extractImageTextOCR(file);
         if (ocrText.length > 80) {
           onProgress("Generating questions from OCR text…", 65);
-          const prompt = buildPrompt(ocrText, { difficulty, count: Math.ceil(count * 1.5), questionType });
+          const prompt = buildPrompt(ocrText, { difficulty: effectiveDifficulty, count: Math.ceil(count * 1.5), questionType: normalizedQuestionType });
           const raw = await callGemini(prompt);
           onProgress("Reviewing question quality…", 85);
-          let result = parseAndFilter(raw, count, questionType, { difficulty });
+          let result = parseAndFilter(raw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: ocrText });
           if (result.questions.length < Math.ceil(count * 0.75)) {
-            const retryPrompt = buildRegenerationPrompt(ocrText, { difficulty, count: Math.ceil(count * 1.5), questionType }, result.questions.length);
+            const retryPrompt = buildRegenerationPrompt(ocrText, { difficulty: effectiveDifficulty, count: Math.ceil(count * 1.5), questionType: normalizedQuestionType }, result.questions.length);
             const retryRaw = await callGemini(retryPrompt);
-            result = parseAndFilter(retryRaw, count, questionType, { difficulty });
+            result = parseAndFilter(retryRaw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: ocrText });
           }
           if (result.questions.length > 0) {
             onProgress("Done!", 100);
@@ -631,7 +891,7 @@ Return ONLY valid JSON:
         console.warn("OCR fallback failed:", e.message);
       }
 
-        return _fallback(file.name, count, difficulty, ocrText || "");
+        return _fallback(file.name, count, effectiveDifficulty, "");
     }
 
     let rawText = "";
@@ -646,7 +906,7 @@ Return ONLY valid JSON:
     if (!AI_PROXY) {
       onProgress("AI service unreachable — using topic fallback…", 60);
       console.warn("[AIProcessor] Proxy URL not set. Check server is running.");
-        return _fallback(file.name, count, difficulty, rawText);
+        return _fallback(file.name, count, effectiveDifficulty, rawText);
     }
 
     // ── Stage 2: call Gemini ───────────────────────────────────
@@ -660,21 +920,21 @@ Return ONLY valid JSON:
 
         if (attempt === 0 && hasText) {
           onProgress("Generating questions from your slides…", 40);
-          const prompt = buildPrompt(rawText, { difficulty, count: Math.ceil(count * 1.5), questionType });
+          const prompt = buildPrompt(rawText, { difficulty: effectiveDifficulty, count: Math.ceil(count * 1.5), questionType: normalizedQuestionType });
           const raw = await callGemini(prompt);
           onProgress("Reviewing question quality…", 80);
-          result = parseAndFilter(raw, count, questionType, { difficulty });
+          result = parseAndFilter(raw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: rawText });
         } else if (attempt === 1 && hasText) {
           onProgress("Strengthening weak questions…", 62);
-          const prompt = buildRegenerationPrompt(rawText, { difficulty, count: Math.ceil(count * 1.7), questionType }, result?.questions?.length || 0);
+          const prompt = buildRegenerationPrompt(rawText, { difficulty: effectiveDifficulty, count: Math.ceil(count * 1.7), questionType: normalizedQuestionType }, result?.questions?.length || 0);
           const raw = await callGemini(prompt);
           onProgress("Applying strict quality checks…", 86);
-          result = parseAndFilter(raw, count, questionType, { difficulty });
+          result = parseAndFilter(raw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: rawText });
         } else {
           // Fallback: use filename as topic
           const topic = file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ");
           onProgress(`Generating from topic: "${topic}"…`, 50);
-          result = await generateFromTopic(topic, { difficulty, count, questionType });
+          result = await generateFromTopic(topic, { difficulty: effectiveDifficulty, count, questionType: normalizedQuestionType });
         }
 
         if (result.questions.length > 0) break;
@@ -686,7 +946,7 @@ Return ONLY valid JSON:
 
     if (!result || result.questions.length === 0) {
       console.warn("[AIProcessor] All AI attempts failed, using built-in fallback. Last error:", lastErr?.message);
-        return _fallback(file.name, count, difficulty, rawText);
+        return _fallback(file.name, count, effectiveDifficulty, rawText);
     }
 
     onProgress("Done!", 100);

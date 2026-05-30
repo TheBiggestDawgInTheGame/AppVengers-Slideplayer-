@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Live Session — SlidePlay</title>
+  <title>Live Session â€” SlidePlay</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="live-game.css" />
@@ -26,11 +26,11 @@
     </div>
   </div>
 
-  <!-- ── WAITING room (student only, before game starts) ───── -->
+  <!-- â”€â”€ WAITING room (student only, before game starts) â”€â”€â”€â”€â”€ -->
   <div class="lg-screen" id="lgWaiting">
     <div class="lg-waiting-box">
       <div class="lg-waiting-icon"><i class="fa-solid fa-satellite-dish"></i></div>
-      <h2>Waiting for teacher to start…</h2>
+      <h2>Waiting for teacher to startâ€¦</h2>
       <p>You've joined the session. Sit tight!</p>
       <div class="lg-code-display">Session code: <strong id="lgWaitCode">------</strong></div>
       <div class="lg-dots-row">
@@ -39,7 +39,7 @@
     </div>
   </div>
 
-  <!-- ── TEACHER CONTROL PANEL ─────────────────────────────── -->
+  <!-- â”€â”€ TEACHER CONTROL PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <div class="lg-screen hidden" id="lgTeacher">
     <div class="lg-teacher-layout">
 
@@ -48,7 +48,7 @@
         <div class="lg-q-counter">
           Question <span id="lgTQNum">1</span> / <span id="lgTQTotal">10</span>
         </div>
-        <div class="lg-question-card" id="lgTQuestion">Loading question…</div>
+        <div class="lg-question-card" id="lgTQuestion">Loading questionâ€¦</div>
         <div class="lg-options-teacher" id="lgTOptions"></div>
         <div class="lg-answer-status">
           <i class="fa-solid fa-users"></i>
@@ -76,7 +76,7 @@
     </div>
   </div>
 
-  <!-- ── STUDENT QUESTION SCREEN ───────────────────────────── -->
+  <!-- â”€â”€ STUDENT QUESTION SCREEN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <div class="lg-screen hidden" id="lgStudent">
     <div class="lg-student-layout">
 
@@ -93,9 +93,13 @@
         <span class="lg-timer-num" id="lgTimerNum">20</span>
       </div>
 
-      <div class="lg-question-card" id="lgSQuestion">Loading question…</div>
+      <div class="lg-question-card" id="lgSQuestion">Loading questionâ€¦</div>
 
       <div class="lg-options-grid" id="lgSOptions"></div>
+        <div class="lg-short-wrap hidden" id="lgSShortWrap">
+          <textarea id="lgSShortInput" class="lg-short-input" rows="3" placeholder="Type your short answer..."></textarea>
+          <button id="lgSShortSubmit" class="lg-short-submit" type="button">Submit Answer</button>
+        </div>
 
       <!-- Answer feedback (hidden until answered) -->
       <div class="lg-feedback hidden" id="lgFeedback">
@@ -107,7 +111,7 @@
     </div>
   </div>
 
-  <!-- ── GAME OVER SCREEN ───────────────────────────────────── -->
+  <!-- â”€â”€ GAME OVER SCREEN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <div class="lg-screen hidden" id="lgGameOver">
     <div class="lg-gameover-box">
       <div class="lg-go-icon"><i class="fa-solid fa-flag-checkered"></i></div>
@@ -138,5 +142,6 @@
 
   <script src="firebase-session.js"></script>
   <script src="live-game.js"></script>
+  <script src="i18n-sa.js"></script>
 </body>
 </html>

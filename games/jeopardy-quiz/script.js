@@ -5,6 +5,10 @@ let currentQuestionIndex = 0;
 let score = 0;
 let timerInterval;
 let timeLeft = 30;
+let questionResults = [];
+let questionAttempts = [];
+let gameStartedAt = 0;
+let reportSubmitted = false;
 
 // Initialize Three.js scene for 3D background
 function initThreeJSScene() {
@@ -102,6 +106,25 @@ function stopTimer() {
 
 function handleTimeUp() {
   // Show correct answer and move to next question
+  const currentQuestion = quizData[currentQuestionIndex] || {};
+  const startedAt = Number(window.__jeopardyQuizQuestionStartedAt || Date.now());
+  const responseSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+
+  questionResults.push({
+    category: currentQuestion?.category || "General",
+    correct: false,
+  });
+  questionAttempts.push({
+    questionNumber: currentQuestionIndex + 1,
+    questionText: currentQuestion.question || "",
+    userAnswer: "",
+    correctAnswer: currentQuestion.correctAnswer || "",
+    correct: false,
+    responseSeconds,
+    category: currentQuestion.category || "General",
+    outcome: "timeout",
+  });
+
   const answerButtons = document.querySelectorAll(".answer-btn");
   answerButtons.forEach((btn) => {
     if (btn.dataset.correct === "true") {
@@ -132,6 +155,33 @@ function showResults() {
 
   // Create simple performance chart
   createPerformanceChart();
+  void submitPremiumReportForJeopardyQuiz();
+}
+
+async function submitPremiumReportForJeopardyQuiz() {
+  if (reportSubmitted) return;
+  if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== "function") return;
+
+  const correctCount = questionAttempts.filter((item) => item.correct).length;
+  const durationSec = Math.max(0, Math.round((Date.now() - gameStartedAt) / 1000));
+
+  const payload = {
+    gameType: "jeopardy-quiz",
+    score,
+    totalQuestions: quizData.length,
+    correctCount,
+    durationSec,
+    questionAttempts,
+    meta: {
+      source: "jeopardy-quiz",
+      categoryCount: new Set(questionAttempts.map((item) => item.category || "General")).size,
+    },
+  };
+
+  const result = await window.PremiumGameReporter.submitReport(payload);
+  if (result && result.ok) {
+    reportSubmitted = true;
+  }
 }
 
 function createPerformanceChart() {
@@ -139,20 +189,24 @@ function createPerformanceChart() {
   chartContainer.innerHTML = "";
 
   const categories = {};
-  quizData.forEach((q) => {
+  quizData.forEach((q, index) => {
     const category = q.category || "General";
     if (!categories[category]) {
       categories[category] = { total: 0, correct: 0 };
     }
     categories[category].total++;
-    // This would need more complex tracking in a real implementation
+
+    if (questionResults[index]?.correct) {
+      categories[category].correct++;
+    }
   });
 
-  Object.keys(categories).forEach((category) => {
+  Object.entries(categories).forEach(([category, data]) => {
     const bar = document.createElement("div");
     bar.className = "chart-bar";
-    bar.style.height = `${Math.random() * 150 + 50}px`;
-    bar.innerHTML = `<div class="chart-label">${category}</div>`;
+    const percentage = data.total > 0 ? (data.correct / data.total) * 100 : 0;
+    bar.style.height = `${Math.max(36, percentage * 1.45)}px`;
+    bar.innerHTML = `<div class="chart-label">${category}<span>${Math.round(percentage)}%</span></div>`;
     chartContainer.appendChild(bar);
   });
 }
@@ -160,4 +214,12 @@ function createPerformanceChart() {
 // Event listeners
 document.getElementById("restart-btn").addEventListener("click", () => {
   location.reload();
+});
+
+gameStartedAt = Date.now();
+window.__jeopardyQuizAttempts = questionAttempts;
+
+window.addEventListener("beforeunload", () => {
+  questionResults = [];
+  questionAttempts = [];
 });

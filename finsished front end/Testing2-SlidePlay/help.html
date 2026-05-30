@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -98,8 +98,34 @@
       }
 
       .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
         font-size: 2rem;
-        color: #8b5cf6;
+        line-height: 1;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .logo-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: #ffffff;
+        background: radial-gradient(circle at 20% 20%, #22d3ee 0%, #8b5cf6 55%, #0ea5e9 100%);
+        box-shadow: 0 8px 18px rgba(14, 165, 233, 0.35), 0 2px 8px rgba(139, 92, 246, 0.45);
+      }
+
+      .logo-word {
+        background: linear-gradient(90deg, #22d3ee 0%, #8b5cf6 45%, #06b6d4 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 0 28px rgba(34, 211, 238, 0.15);
       }
 
       .nav-links {
@@ -311,7 +337,7 @@
     </div>
 
     <header class="navbar">
-      <h1 class="logo">SlidePlay</h1>
+      <h1 class="logo"><span class="logo-mark">⚡</span><span class="logo-word">SlidePlay</span></h1>
 
       <nav class="nav-links">
         <a href="main.html">Home</a>
@@ -325,7 +351,7 @@
 
     <section class="help-hero">
       <h2>Help Center</h2>
-      <p>Everything you need to start learning like a game 🎮</p>
+      <p>Everything you need to start learning like a game.</p>
     </section>
 
     <section class="how-it-works">
@@ -418,7 +444,7 @@
     </section>
 
     <footer>
-      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+      <p>(c) 2026 SlidePlay. All Rights Reserved.</p>
     </footer>
 
     <script>
@@ -457,7 +483,7 @@
         }
 
         formMessage.textContent =
-          "Message sent successfully! We’ll get back to you soon.";
+          "Message sent successfully! We'll get back to you soon.";
         formMessage.style.color = "#06d6a0";
 
         form.reset();
@@ -495,5 +521,6 @@
 
       setInterval(createParticle, 150);
     </script>
-  </body>
+    <script src="i18n-sa.js"></script>
+</body>
 </html>

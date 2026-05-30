@@ -131,7 +131,7 @@
 <div id="pause-overlay">
   <div id="pause-panel">
     <h2>⏸️ PAUSED</h2>
-    <div class="settings-row"><label>🔊 SFX Volume</label><input type="range" id="vol-sfx" min="0" max="100" value="70"><span id="vol-sfx-val">70</span></div>
+    <div class="settings-row"><label for="vol-sfx">🔊 SFX Volume</label><input type="range" id="vol-sfx" min="0" max="100" value="70" aria-label="SFX Volume"><span id="vol-sfx-val">70</span></div>
     <div class="pause-btn-row">
       <button class="btn-resume" id="resume-btn">▶ Resume</button>
       <button class="btn-leaderboard" id="show-lb-btn">🏆 Leaderboard</button>
@@ -187,6 +187,7 @@
 <button id="pause-btn-fixed">⏸️ Pause</button>
 <button id="help-btn-fixed">❓ Help</button>
 
+<script src="../../../shared/premium-game-reporter.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,13 @@
+{
+  "flow-coinbase-uid": {
+    "uid": "flow-coinbase-uid",
+    "plan": "student_elite",
+    "status": "active",
+    "billing": "yearly",
+    "provider": "coinbase",
+    "customerEmail": "flowcoin@example.com",
+    "sessionId": "charge_test_001",
+    "activatedAt": 1780122165729,
+    "updatedAt": 1780122165732
+  }
+}

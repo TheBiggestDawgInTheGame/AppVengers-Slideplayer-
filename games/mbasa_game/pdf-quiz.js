@@ -11,6 +11,10 @@ const playGameBtn = document.getElementById('playGameBtn');
 let questions = [];
 let currentQuestionIndex = 0;
 let answered = false;
+let quizStartedAt = 0;
+let correctCount = 0;
+let attemptLog = [];
+let reportSubmitted = false;
 
 function updateLoadButton() {
   const hasFile = pdfFileInput.files.length > 0 || pdfFileInput.value;
@@ -48,8 +52,13 @@ loadBtn.addEventListener('click', async () => {
       return;
     }
     currentQuestionIndex = 0;
+    quizStartedAt = Date.now();
+    correctCount = 0;
+    attemptLog = [];
+    reportSubmitted = false;
     saveQuestionsToStorage(questions, file.name);
     statusText.textContent = 'Questions generated! Launching the 3D game...';
+    await submitPremiumPdfQuizReport('auto-launch');
     window.location.href = 'play_3d.html?source=upload';
   }
   catch{
@@ -65,6 +74,10 @@ restartQuizBtn.addEventListener('click', () => {
   playGameBtn.classList.add('hidden');
   questions = [];
   currentQuestionIndex = 0;
+  quizStartedAt = 0;
+  correctCount = 0;
+  attemptLog = [];
+  reportSubmitted = false;
 });
 
 playGameBtn.addEventListener('click', () => {
@@ -109,10 +122,23 @@ function selectAnswer(index) {
   });
 
   if (question.options[index].correct) {
+    correctCount += 1;
     statusText.textContent = 'Correct! Click Next Question to continue.';
   } else {
     statusText.textContent = 'Wrong answer. Click Next Question to continue.';
   }
+
+  const selectedOption = question.options[index];
+  const correctOption = question.options.find((opt) => opt.correct);
+  attemptLog.push({
+    questionNumber: currentQuestionIndex + 1,
+    questionText: String(question.prompt || ''),
+    userAnswer: selectedOption ? String(selectedOption.text || '') : '',
+    correctAnswer: correctOption ? String(correctOption.text || '') : '',
+    correct: !!(selectedOption && selectedOption.correct),
+    responseSeconds: 0,
+    outcome: selectedOption && selectedOption.correct ? 'correct' : 'wrong'
+  });
 
   nextQuestionBtn.classList.remove('hidden');
   if (currentQuestionIndex === questions.length - 1) {
@@ -309,6 +335,41 @@ function launchGame() {
     statusText.textContent = 'No questions available. Please load a PDF first.';
     return;
   }
-  window.location.href = 'play_3d.html?source=upload';
+  submitPremiumPdfQuizReport('manual-launch').finally(() => {
+    window.location.href = 'play_3d.html?source=upload';
+  });
+}
+
+async function submitPremiumPdfQuizReport(reason) {
+  if (reportSubmitted) {
+    return;
+  }
+
+  if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== 'function') {
+    return;
+  }
+
+  const totalQuestions = Array.isArray(questions) ? questions.length : 0;
+  const attempts = Array.isArray(attemptLog) ? attemptLog.slice() : [];
+  const durationSec = Math.max(0, Math.round((Date.now() - Number(quizStartedAt || Date.now())) / 1000));
+
+  const payload = {
+    gameType: 'road-runner-pdf-quiz',
+    score: Number(correctCount || 0),
+    totalQuestions: Number(totalQuestions || attempts.length),
+    correctCount: Number(correctCount || 0),
+    durationSec,
+    questionAttempts: attempts,
+    meta: {
+      source: 'mbasa_pdf_quiz',
+      launchMode: String(reason || 'unknown'),
+      answeredCount: Number(attempts.length || 0)
+    }
+  };
+
+  const result = await window.PremiumGameReporter.submitReport(payload);
+  if (result && result.ok) {
+    reportSubmitted = true;
+  }
 }
 

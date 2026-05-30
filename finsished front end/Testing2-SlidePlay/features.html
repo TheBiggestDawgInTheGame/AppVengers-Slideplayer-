@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -93,8 +93,34 @@
       }
 
       .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
         font-size: 2rem;
-        color: #8b5cf6;
+        line-height: 1;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .logo-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: #ffffff;
+        background: radial-gradient(circle at 20% 20%, #22d3ee 0%, #8b5cf6 55%, #0ea5e9 100%);
+        box-shadow: 0 8px 18px rgba(14, 165, 233, 0.35), 0 2px 8px rgba(139, 92, 246, 0.45);
+      }
+
+      .logo-word {
+        background: linear-gradient(90deg, #22d3ee 0%, #8b5cf6 45%, #06b6d4 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 0 28px rgba(34, 211, 238, 0.15);
       }
 
       .nav-links {
@@ -269,7 +295,7 @@
 
     <!-- NAVBAR -->
     <header class="navbar">
-      <h1 class="logo">SlidePlay</h1>
+      <h1 class="logo"><span class="logo-mark">⚡</span><span class="logo-word">SlidePlay</span></h1>
 
       <nav class="nav-links">
         <a href="main.html">Home</a>
@@ -284,7 +310,7 @@
     <section>
       <!-- HERO -->
       <div class="features-hero">
-        <h1>⚡ Features Overview ⚡</h1>
+        <h1>Features Overview</h1>
         <p>
           Discover how SlidePlay transforms learning into a game experience.
         </p>
@@ -328,45 +354,44 @@
 
       <div class="features-grid">
         <div class="feature-card">
-          <h3>🎮 Gamified Learning</h3>
+          <h3>Gamified Learning</h3>
           <p>Learning content feels like missions instead of boring lessons.</p>
         </div>
 
         <div class="feature-card">
-          <h3>⚡ XP Rewards</h3>
+          <h3>XP Rewards</h3>
           <p>Earn XP for every completed quiz and lesson.</p>
         </div>
 
         <div class="feature-card">
-          <h3>🏆 Level System</h3>
+          <h3>Level System</h3>
           <p>Advance through levels as your skills improve.</p>
         </div>
 
         <div class="feature-card">
-          <h3>📊 Progress Tracking</h3>
+          <h3>Progress Tracking</h3>
           <p>Track your performance and consistency over time.</p>
         </div>
 
         <div class="feature-card">
-          <h3>🎯 Interactive Quizzes</h3>
+          <h3>Interactive Quizzes</h3>
           <p>Challenge yourself with engaging quiz missions.</p>
         </div>
 
         <div class="feature-card">
-          <h3>🧠 Smart Learning Flow</h3>
+          <h3>Smart Learning Flow</h3>
           <p>Structured content improves focus, memory, and retention.</p>
         </div>
       </div>
     </section>
 
     <footer>
-      <p>© 2026 SlidePlay. All Rights Reserved.</p>
+      <p>(c) 2026 SlidePlay. All Rights Reserved.</p>
     </footer>
 
     <script>
       const container = document.getElementById("particles");
 
-      .
       function createParticle() {
         const particle = document.createElement("div");
         particle.classList.add("particle");
@@ -389,5 +414,6 @@
 
       setInterval(createParticle, 150);
     </script>
-  </body>
+    <script src="i18n-sa.js"></script>
+</body>
 </html>

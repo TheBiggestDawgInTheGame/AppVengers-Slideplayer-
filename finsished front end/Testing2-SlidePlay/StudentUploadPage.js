@@ -193,28 +193,63 @@ function initStudyStep() {
     if (codeInput) codeInput.classList.remove("error");
     if (errorEl)   errorEl.textContent = "";
 
-    // Validate against teacher-created classes in localStorage
-    var classes = [];
-    try { classes = JSON.parse(localStorage.getItem("sp_classes") || "[]"); } catch (_) {}
-    var match = null;
-    for (var i = 0; i < classes.length; i++) {
-      if (String(classes[i].code || "").trim().toUpperCase() === raw) {
-        match = classes[i]; break;
-      }
-    }
+    var uid = localStorage.getItem("sp_user_uid") || "";
+    var displayName =
+      localStorage.getItem("sp_user_name") ||
+      localStorage.getItem("sp_user_display_name") ||
+      localStorage.getItem("sp_user_email") ||
+      "Student";
 
-    if (!match) {
-      if (errorEl) errorEl.textContent = "Code not recognised. Check with your teacher.";
-      if (codeInput) {
-        codeInput.classList.add("error");
-        setTimeout(function () { codeInput.classList.remove("error"); }, 1400);
-      }
-      return;
-    }
+    fetch(API_BASE + "/api/classes/" + encodeURIComponent(raw))
+      .then(function (resp) {
+        if (!resp.ok) throw new Error("not_found");
+        return resp.json();
+      })
+      .then(function (payload) {
+        var match = payload && payload.class ? payload.class : null;
+        if (!match) throw new Error("not_found");
 
-    // Store active class and redirect to live game / study page
-    try { localStorage.setItem("sp_active_class", JSON.stringify(match)); } catch (_) {}
-    window.location.href = "StudentUploadPage.html?mode=study&class=" + encodeURIComponent(raw);
+        if (!uid) return match;
+        return fetch(API_BASE + "/api/classes/" + encodeURIComponent(raw) + "/join", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uid: uid, displayName: displayName }),
+        }).then(function () { return match; });
+      })
+      .then(function (match) {
+        try {
+          localStorage.setItem("sp_active_class", JSON.stringify({
+            classId: match.ClassID || match.classId || null,
+            code: match.ClassCode || raw,
+            name: match.Name || "Class",
+            subject: match.Subject || "",
+            teacherUid: match.TeacherUID || "",
+          }));
+        } catch (_) {}
+        window.location.href = "StudentUploadPage.html?mode=study&class=" + encodeURIComponent(raw);
+      })
+      .catch(function () {
+        // Fallback: local demo class storage for offline/dev mode.
+        var classes = [];
+        try { classes = JSON.parse(localStorage.getItem("sp_classes") || "[]"); } catch (_) {}
+        var localMatch = null;
+        for (var i = 0; i < classes.length; i++) {
+          if (String(classes[i].code || "").trim().toUpperCase() === raw) {
+            localMatch = classes[i];
+            break;
+          }
+        }
+        if (!localMatch) {
+          if (errorEl) errorEl.textContent = "Code not recognised. Check with your teacher.";
+          if (codeInput) {
+            codeInput.classList.add("error");
+            setTimeout(function () { codeInput.classList.remove("error"); }, 1400);
+          }
+          return;
+        }
+        try { localStorage.setItem("sp_active_class", JSON.stringify(localMatch)); } catch (_) {}
+        window.location.href = "StudentUploadPage.html?mode=study&class=" + encodeURIComponent(raw);
+      });
   }
 
   if (joinBtn)  joinBtn.addEventListener("click", joinClass);

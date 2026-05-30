@@ -1,6 +1,7 @@
 function displayQuestion(index) {
   const question = quizData[index];
   currentQuestionIndex = index;
+  window.__jeopardyQuizQuestionStartedAt = Date.now();
 
   // Update question display
   document.getElementById("question-text").textContent = question.question;
@@ -36,6 +37,9 @@ function displayQuestion(index) {
 function handleAnswerClick(event) {
   const button = event.target;
   const isCorrect = button.dataset.correct === "true";
+  const question = quizData[currentQuestionIndex] || {};
+  const startedAt = Number(window.__jeopardyQuizQuestionStartedAt || Date.now());
+  const responseSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
 
   // Stop timer
   stopTimer();
@@ -55,6 +59,24 @@ function handleAnswerClick(event) {
     // Add points for correct answer
     score += 100;
     document.getElementById("current-score").textContent = score;
+  }
+
+  questionResults.push({
+    category: question.category || "General",
+    correct: isCorrect,
+  });
+
+  if (Array.isArray(window.__jeopardyQuizAttempts)) {
+    window.__jeopardyQuizAttempts.push({
+      questionNumber: currentQuestionIndex + 1,
+      questionText: question.question || "",
+      userAnswer: button.textContent || "",
+      correctAnswer: question.correctAnswer || "",
+      correct: isCorrect,
+      responseSeconds,
+      category: question.category || "General",
+      outcome: "answered",
+    });
   }
 
   // Move to next question after delay

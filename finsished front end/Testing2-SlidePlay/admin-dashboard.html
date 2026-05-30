@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -134,6 +134,8 @@
     .search-bar input{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.6rem 1rem;border-radius:10px;font-size:.85rem;outline:none;transition:.2s;}
     .search-bar input:focus{border-color:rgba(139,92,246,.5);}
     .search-bar input::placeholder{color:var(--muted);}
+    .email-btn{background:linear-gradient(90deg,var(--purple),var(--cyan));border:none;color:#fff;padding:.5rem .95rem;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;display:inline-flex;align-items:center;gap:.45rem;}
+    .email-btn:hover{filter:brightness(1.08);}
     .user-row-clickable{cursor:pointer;}
     .user-row-clickable:hover td{background:rgba(139,92,246,.07)!important;}
 
@@ -206,15 +208,16 @@
       <div class="breadcrumb">SlidePlay Admin &rsaquo; Users &nbsp;|&nbsp; All registered accounts</div>
     </div>
     <div class="topbar-right">
+      <button class="email-btn" onclick="emailAdminContacts()"><i class="fa fa-envelope"></i> Email Admin Contacts</button>
       <button class="refresh-btn" onclick="loadUsers()"><i class="fa fa-rotate-right"></i> Refresh</button>
     </div>
   </div>
   <div class="pay-summary">
-    <div class="pay-stat"><div class="ps-val" id="usTotalUsers" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div><div class="ps-lbl">Total Users</div></div>
-    <div class="pay-stat"><div class="ps-val" id="usStudents" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div><div class="ps-lbl">Students</div></div>
-    <div class="pay-stat"><div class="ps-val" id="usTeachers" style="background:linear-gradient(135deg,#a78bfa,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div><div class="ps-lbl">Teachers</div></div>
-    <div class="pay-stat"><div class="ps-val" id="usPremium" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div><div class="ps-lbl">Premium</div></div>
-    <div class="pay-stat"><div class="ps-val" id="usTotalSpend" style="background:linear-gradient(135deg,#22c55e,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div><div class="ps-lbl">Total Spent (ZAR)</div></div>
+    <div class="pay-stat"><div class="ps-val" id="usTotalUsers" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Total Users</div></div>
+    <div class="pay-stat"><div class="ps-val" id="usStudents" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Students</div></div>
+    <div class="pay-stat"><div class="ps-val" id="usTeachers" style="background:linear-gradient(135deg,#a78bfa,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Teachers</div></div>
+    <div class="pay-stat"><div class="ps-val" id="usPremium" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Premium</div></div>
+    <div class="pay-stat"><div class="ps-val" id="usTotalSpend" style="background:linear-gradient(135deg,#22c55e,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Total Spent (ZAR)</div></div>
   </div>
   <div class="panel">
     <div class="search-bar">
@@ -245,15 +248,15 @@
   </div>
   <div class="pay-summary">
     <div class="pay-stat">
-      <div class="ps-val" id="psTotalRev" style="background:linear-gradient(135deg,#22c55e,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div>
+      <div class="ps-val" id="psTotalRev" style="background:linear-gradient(135deg,#22c55e,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div>
       <div class="ps-lbl">Total Revenue (ZAR)</div>
     </div>
     <div class="pay-stat">
-      <div class="ps-val" id="psTotalCount" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div>
+      <div class="ps-val" id="psTotalCount" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div>
       <div class="ps-lbl">Total Payments</div>
     </div>
     <div class="pay-stat">
-      <div class="ps-val" id="psSucceeded" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div>
+      <div class="ps-val" id="psSucceeded" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div>
       <div class="ps-lbl">Succeeded</div>
     </div>
   </div>
@@ -274,9 +277,9 @@
     </div>
   </div>
   <div class="pay-summary">
-    <div class="pay-stat"><div class="ps-val" id="ssTotalGames" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div><div class="ps-lbl">Total Games</div></div>
-    <div class="pay-stat"><div class="ps-val" id="ssLiveNow" style="background:linear-gradient(135deg,#22c55e,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div><div class="ps-lbl">Live Right Now</div></div>
-    <div class="pay-stat"><div class="ps-val" id="ssMultiplayer" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">—</div><div class="ps-lbl">Multiplayer</div></div>
+    <div class="pay-stat"><div class="ps-val" id="ssTotalGames" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Total Games</div></div>
+    <div class="pay-stat"><div class="ps-val" id="ssLiveNow" style="background:linear-gradient(135deg,#22c55e,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Live Right Now</div></div>
+    <div class="pay-stat"><div class="ps-val" id="ssMultiplayer" style="background:linear-gradient(135deg,#06b6d4,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Multiplayer</div></div>
   </div>
   <div class="panel" style="margin-bottom:1.2rem;">
     <div class="panel-header"><div class="panel-title"><i class="fa fa-circle-dot" style="color:#22c55e"></i> Live Rooms</div><div class="panel-sub">In-memory, currently active</div></div>
@@ -312,32 +315,32 @@
   <div class="cards">
     <div class="card c-purple" style="--card-glow:rgba(139,92,246,.1)">
       <div class="card-icon"><i class="fa fa-users"></i></div>
-      <div class="card-val" id="cTotal">—</div>
+      <div class="card-val" id="cTotal">--</div>
       <div class="card-label">Total Users</div>
     </div>
     <div class="card c-cyan" style="--card-glow:rgba(6,182,212,.1)">
       <div class="card-icon"><i class="fa fa-user-graduate"></i></div>
-      <div class="card-val" id="cStudents">—</div>
+      <div class="card-val" id="cStudents">--</div>
       <div class="card-label">Students</div>
     </div>
     <div class="card c-blue" style="--card-glow:rgba(59,130,246,.1)">
       <div class="card-icon"><i class="fa fa-chalkboard-teacher"></i></div>
-      <div class="card-val" id="cTeachers">—</div>
+      <div class="card-val" id="cTeachers">--</div>
       <div class="card-label">Teachers</div>
     </div>
     <div class="card c-green" style="--card-glow:rgba(34,197,94,.1)">
       <div class="card-icon"><i class="fa fa-circle-check"></i></div>
-      <div class="card-val" id="cSubs">—</div>
+      <div class="card-val" id="cSubs">--</div>
       <div class="card-label">Active Subscriptions</div>
     </div>
     <div class="card c-yellow" style="--card-glow:rgba(245,158,11,.1)">
       <div class="card-icon"><i class="fa fa-coins"></i></div>
-      <div class="card-val" id="cMrr">—</div>
+      <div class="card-val" id="cMrr">--</div>
       <div class="card-label">Est. MRR (ZAR)</div>
     </div>
     <div class="card c-red" style="--card-glow:rgba(239,68,68,.1)">
       <div class="card-icon"><i class="fa fa-money-bill-wave"></i></div>
-      <div class="card-val" id="cRevenue">—</div>
+      <div class="card-val" id="cRevenue">--</div>
       <div class="card-label">All-time Revenue</div>
     </div>
   </div>
@@ -347,7 +350,7 @@
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title"><i class="fa fa-chart-line"></i> New Users &mdash; Last 14 Days</div>
-        <div class="panel-sub" id="newUsersTotal">—</div>
+        <div class="panel-sub" id="newUsersTotal">--</div>
       </div>
       <div style="position:relative;height:200px;"><canvas id="chartUsers"></canvas></div>
     </div>
@@ -378,7 +381,7 @@
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title"><i class="fa fa-gamepad"></i> Game Sessions</div>
-        <div class="panel-sub" id="loginsToday">— logins today</div>
+        <div class="panel-sub" id="loginsToday">-- logins today</div>
       </div>
       <div id="recentSessionsList"><div class="empty-msg">Loading...</div></div>
     </div>
@@ -399,8 +402,89 @@
     appId:"1:902561315134:web:3bfd74c4124acd4d1e546f"
   });
   const API_BASE=(window.SLIDEPLAY_API_BASE||localStorage.getItem('sp_api_base')||window.location.origin).replace(/\/$/, '');
-  const auth=firebase.auth(), db=firebase.database(), API=API_BASE;
+  const API_CANDIDATES=[...new Set([
+    API_BASE,
+    window.SLIDEPLAY_API_BASE,
+    localStorage.getItem('sp_api_base'),
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ].filter(Boolean).map(v=>String(v).replace(/\/$/, '')))];
+  let API=API_BASE;
+  const auth=firebase.auth(), db=firebase.database();
+  const ADMIN_CONTACT_EMAILS=['bossmk2209@gmail.com','mutevherichard@gmail.com'];
   let cU=null, cR=null;
+  const API_REQUEST_TIMEOUT_MS=1200;
+
+  async function fetchWithTimeout(url, options={}){
+    const controller=new AbortController();
+    const timeoutId=setTimeout(()=>controller.abort(), API_REQUEST_TIMEOUT_MS);
+    try{
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  async function fetchJsonWithApiFallback(path, options={}){
+    let lastError=null;
+    for(const base of API_CANDIDATES){
+      try{
+        const resp=await fetchWithTimeout(base+path, options);
+        const data=await resp.json().catch(()=>({}));
+        if(resp.status===404){
+          throw new Error('Route not found at '+base);
+        }
+        if(!resp.ok){
+          if(resp.status>=500){
+            throw new Error(data?.error||('HTTP '+resp.status+' at '+base));
+          }
+          API=base;
+          localStorage.setItem('sp_api_base', base);
+          throw new Error(data?.error||('HTTP '+resp.status));
+        }
+        API=base;
+        localStorage.setItem('sp_api_base', base);
+        return data;
+      }catch(err){
+        lastError=err?.name==='AbortError'
+          ? new Error('Timed out contacting '+base)
+          : err;
+      }
+    }
+    throw lastError||new Error('API unavailable');
+  }
+
+  async function emailAdminContacts(){
+    const subject=prompt('Email subject:', 'SlidePlay Admin Update');
+    if(subject===null)return;
+    const text=prompt('Email message:', 'Hello team,\n\nThis message was sent from the SlidePlay admin dashboard.\n\nRegards,\nSlidePlay Admin');
+    if(text===null)return;
+
+    const adminApiKey=localStorage.getItem('sp_admin_email_api_key')||'';
+    const authToken=localStorage.getItem('sp_auth_token')||'';
+    const headers={ 'Content-Type':'application/json' };
+    if(adminApiKey)headers['x-admin-api-key']=adminApiKey;
+    if(authToken)headers['Authorization']='Bearer '+authToken;
+
+    try{
+      const data=await fetchJsonWithApiFallback('/api/admin/email/send',{
+        method:'POST',
+        headers,
+        body:JSON.stringify({
+          to:ADMIN_CONTACT_EMAILS,
+          subject,
+          text
+        })
+      });
+      alert('Email sent. Accepted: '+(data.accepted||[]).join(', '));
+    }catch(err){
+      const useMailto=confirm('Backend email failed ('+err.message+'). Open your mail app instead?');
+      if(useMailto){
+        const to=ADMIN_CONTACT_EMAILS.join(',');
+        window.location.href='mailto:'+to+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(text);
+      }
+    }
+  }
 
   auth.onAuthStateChanged(async(user)=>{
     if(!user){showDenied();return;}
@@ -422,8 +506,7 @@
 
   async function loadStats(){
     try{
-      const data=await(await fetch(API+'/api/admin/stats')).json();
-      if(data.error)throw new Error(data.error);
+      const data=await fetchJsonWithApiFallback('/api/admin/stats');
 
       document.getElementById('dbStatus').innerHTML='<span class="dot g"></span> SQL DB Connected';
       document.getElementById('cTotal').textContent=fmt(data.counts.total);
@@ -526,7 +609,7 @@
       }
 
     }catch(err){
-      document.getElementById('dbStatus').innerHTML='<span class="dot r"></span> DB Unavailable';
+      document.getElementById('dbStatus').innerHTML='<span class="dot r"></span> DB/API Unavailable';
       console.warn('Admin stats error:',err.message);
     }
   }
@@ -548,8 +631,7 @@
     const wrap=document.getElementById('usersTableWrap');
     wrap.innerHTML='<div class="empty-msg">Loading...</div>';
     try{
-      const data=await(await fetch(API+'/api/admin/users')).json();
-      if(data.error)throw new Error(data.error);
+      const data=await fetchJsonWithApiFallback('/api/admin/users');
       _allUsers=data.users||[];
       const students=_allUsers.filter(u=>(u.Role||'').toLowerCase()==='student').length;
       const teachers=_allUsers.filter(u=>(u.Role||'').toLowerCase()==='teacher').length;
@@ -575,15 +657,15 @@
     wrap.innerHTML='<table class="pay-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Auth</th><th>Plan</th><th>Total Spent</th><th>Games Played</th><th>Last Login</th><th>Joined</th></tr></thead><tbody>'+
       list.map(u=>
         '<tr class="user-row-clickable" onclick="showUserProfile(\''+esc(u.FirebaseUID)+'\')">'+
-        '<td style="font-weight:500">'+esc(u.DisplayName||'—')+'</td>'+
-        '<td style="color:var(--muted)">'+esc(u.Email||'—')+'</td>'+
+        '<td style="font-weight:500">'+esc(u.DisplayName||'--')+'</td>'+
+        '<td style="color:var(--muted)">'+esc(u.Email||'--')+'</td>'+
         '<td><span class="rb '+(u.Role||'').toLowerCase()+'">'+esc(u.Role||'?')+'</span></td>'+
-        '<td style="color:var(--muted);font-size:.78rem">'+esc(u.AuthProvider||'—')+'</td>'+
+        '<td style="color:var(--muted);font-size:.78rem">'+esc(u.AuthProvider||'--')+'</td>'+
         '<td>'+(u.CurrentPlan?'<span class="rb teacher">'+esc(u.CurrentPlan)+'</span>':'<span style="color:var(--muted);font-size:.78rem">free</span>')+'</td>'+
         '<td style="color:var(--green);font-family:Orbitron,sans-serif;font-size:.78rem">R'+fmt(Math.round(u.TotalSpent||0))+'</td>'+
         '<td style="text-align:center;color:var(--cyan)">'+fmt(u.GamesPlayed||0)+'</td>'+
         '<td style="color:var(--muted);font-size:.76rem">'+(u.LastLoginAt?timeAgo(u.LastLoginAt):'Never')+'</td>'+
-        '<td style="color:var(--muted);font-size:.76rem">'+(u.CreatedAt?new Date(u.CreatedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'—')+'</td>'+
+        '<td style="color:var(--muted);font-size:.76rem">'+(u.CreatedAt?new Date(u.CreatedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'--')+'</td>'+
         '</tr>'
       ).join('')+'</tbody></table>';
   }
@@ -591,8 +673,7 @@
     document.getElementById('profileModal').classList.add('open');
     document.getElementById('profileContent').innerHTML='<div class="modal-loading"><div class="spin" style="margin:0 auto"></div><p style="margin-top:.75rem">Loading profile...</p></div>';
     try{
-      const data=await(await fetch(API+'/api/admin/users/'+encodeURIComponent(uid))).json();
-      if(data.error)throw new Error(data.error);
+      const data=await fetchJsonWithApiFallback('/api/admin/users/'+encodeURIComponent(uid));
       const u=data.user;
       const totalSpent=data.payments.reduce((s,p)=>s+(p.Status==='succeeded'?parseFloat(p.AmountZAR||0):0),0);
       const initials=(u.DisplayName||u.Email||'?').charAt(0).toUpperCase();
@@ -612,8 +693,8 @@
           '<div class="profile-section-title">Account Details</div>'+
           '<div class="profile-grid">'+
             '<div class="pf-item"><div class="pf-lbl">Firebase UID</div><div class="pf-val" style="font-family:monospace;font-size:.75rem;word-break:break-all">'+esc(u.FirebaseUID)+'</div></div>'+
-            '<div class="pf-item"><div class="pf-lbl">Auth Provider</div><div class="pf-val">'+esc(u.AuthProvider||'—')+'</div></div>'+
-            '<div class="pf-item"><div class="pf-lbl">Joined</div><div class="pf-val">'+(u.CreatedAt?new Date(u.CreatedAt).toLocaleDateString('en-ZA',{weekday:'short',day:'2-digit',month:'long',year:'numeric'}):'—')+'</div></div>'+
+            '<div class="pf-item"><div class="pf-lbl">Auth Provider</div><div class="pf-val">'+esc(u.AuthProvider||'--')+'</div></div>'+
+            '<div class="pf-item"><div class="pf-lbl">Joined</div><div class="pf-val">'+(u.CreatedAt?new Date(u.CreatedAt).toLocaleDateString('en-ZA',{weekday:'short',day:'2-digit',month:'long',year:'numeric'}):'--')+'</div></div>'+
             '<div class="pf-item"><div class="pf-lbl">Last Login</div><div class="pf-val">'+(u.LastLoginAt?new Date(u.LastLoginAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'})+'&nbsp;<span style="color:var(--muted);font-size:.78rem">'+timeAgo(u.LastLoginAt)+'</span>':'Never')+'</div></div>'+
           '</div>'+
         '</div>'+
@@ -627,10 +708,10 @@
           '</div>'+
         '</div>'+
         (data.payments.length?'<div class="profile-section"><div class="profile-section-title">Payment History</div><table class="pay-table"><thead><tr><th>Plan</th><th>Amount</th><th>Billing</th><th>Provider</th><th>Status</th><th>Date</th></tr></thead><tbody>'+
-          data.payments.map(p=>'<tr><td>'+esc(p.Plan)+'</td><td style="color:var(--green);font-family:Orbitron,sans-serif;font-size:.78rem">R'+fmt(p.AmountZAR)+'</td><td>'+esc(p.BillingCycle||'—')+'</td><td>'+esc(p.Provider||'—')+'</td><td><span class="rb '+(p.Status||'').toLowerCase()+'">'+esc(p.Status)+'</span></td><td style="color:var(--muted);font-size:.76rem">'+(p.CreatedAt?new Date(p.CreatedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'—')+'</td></tr>').join('')+
+          data.payments.map(p=>'<tr><td>'+esc(p.Plan)+'</td><td style="color:var(--green);font-family:Orbitron,sans-serif;font-size:.78rem">R'+fmt(p.AmountZAR)+'</td><td>'+esc(p.BillingCycle||'--')+'</td><td>'+esc(p.Provider||'--')+'</td><td><span class="rb '+(p.Status||'').toLowerCase()+'">'+esc(p.Status)+'</span></td><td style="color:var(--muted);font-size:.76rem">'+(p.CreatedAt?new Date(p.CreatedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'--')+'</td></tr>').join('')+
           '</tbody></table></div>':'<div class="profile-section"><div class="profile-section-title">Payment History</div><div class="empty-msg">No payments yet</div></div>')+
         (data.sessions.length?'<div class="profile-section"><div class="profile-section-title">Game Sessions</div><table class="pay-table"><thead><tr><th>Code</th><th>Game</th><th>Mode</th><th>Score</th><th>Status</th><th>Date</th></tr></thead><tbody>'+
-          data.sessions.map(s=>'<tr><td style="font-family:Orbitron,sans-serif;color:var(--purple);font-size:.78rem">'+esc(s.SessionCode)+'</td><td>'+esc(s.GameType||'—')+'</td><td>'+modeTag(s.GameMode)+'</td><td style="color:var(--cyan);font-family:Orbitron,sans-serif;font-size:.78rem">'+(s.TotalScore!=null?s.TotalScore:'—')+'</td><td><span class="rb '+(s.Status||'').toLowerCase()+'">'+esc(s.Status||'?')+'</span></td><td style="color:var(--muted);font-size:.76rem">'+(s.JoinedAt?new Date(s.JoinedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'—')+'</td></tr>').join('')+
+          data.sessions.map(s=>'<tr><td style="font-family:Orbitron,sans-serif;color:var(--purple);font-size:.78rem">'+esc(s.SessionCode)+'</td><td>'+esc(s.GameType||'--')+'</td><td>'+modeTag(s.GameMode)+'</td><td style="color:var(--cyan);font-family:Orbitron,sans-serif;font-size:.78rem">'+(s.TotalScore!=null?s.TotalScore:'--')+'</td><td><span class="rb '+(s.Status||'').toLowerCase()+'">'+esc(s.Status||'?')+'</span></td><td style="color:var(--muted);font-size:.76rem">'+(s.JoinedAt?new Date(s.JoinedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'--')+'</td></tr>').join('')+
           '</tbody></table></div>':'<div class="profile-section"><div class="profile-section-title">Game Sessions</div><div class="empty-msg">No game sessions yet</div></div>');
     }catch(err){
       document.getElementById('profileContent').innerHTML='<div class="empty-msg">Could not load profile: '+esc(err.message)+'</div>';
@@ -645,8 +726,7 @@
     const lWrap=document.getElementById('liveRoomsWrap');
     tWrap.innerHTML='<div class="empty-msg">Loading...</div>';
     try{
-      const data=await(await fetch(API+'/api/admin/sessions')).json();
-      if(data.error)throw new Error(data.error);
+      const data=await fetchJsonWithApiFallback('/api/admin/sessions');
       const sessions=data.sessions||[];
       const live=data.liveRooms||[];
       document.getElementById('ssTotalGames').textContent=fmt(sessions.length+live.length);
@@ -666,7 +746,7 @@
         tWrap.innerHTML='<div class="empty-msg">No session history yet &mdash; sessions are recorded once a game is played</div>';
       }else{
         tWrap.innerHTML='<table class="pay-table"><thead><tr><th>Code</th><th>Game</th><th>Mode</th><th>Host</th><th>Winner</th><th>Score</th><th>Players</th><th>Status</th><th>Date</th></tr></thead><tbody>'+
-        sessions.map(s=>'<tr><td style="font-family:Orbitron,sans-serif;color:var(--purple)">'+esc(s.SessionCode)+'</td><td>'+esc(s.GameType||'—')+'</td><td>'+modeTag(s.GameMode)+'</td><td>'+esc(s.HostName||'—')+'</td><td style="color:var(--yellow)">'+esc(s.WinnerName||'—')+'</td><td style="color:var(--green);font-family:Orbitron,sans-serif;font-size:.78rem">'+(s.WinnerScore!=null?s.WinnerScore:'—')+'</td><td style="text-align:center">'+(s.PlayerCount||'—')+'</td><td><span class="rb '+(s.Status||'').toLowerCase()+'">'+esc(s.Status||'?')+'</span></td><td style="color:var(--muted);font-size:.76rem">'+(s.CreatedAt?new Date(s.CreatedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'—')+'</td></tr>').join('')+
+        sessions.map(s=>'<tr><td style="font-family:Orbitron,sans-serif;color:var(--purple)">'+esc(s.SessionCode)+'</td><td>'+esc(s.GameType||'--')+'</td><td>'+modeTag(s.GameMode)+'</td><td>'+esc(s.HostName||'--')+'</td><td style="color:var(--yellow)">'+esc(s.WinnerName||'--')+'</td><td style="color:var(--green);font-family:Orbitron,sans-serif;font-size:.78rem">'+(s.WinnerScore!=null?s.WinnerScore:'--')+'</td><td style="text-align:center">'+(s.PlayerCount||'--')+'</td><td><span class="rb '+(s.Status||'').toLowerCase()+'">'+esc(s.Status||'?')+'</span></td><td style="color:var(--muted);font-size:.76rem">'+(s.CreatedAt?new Date(s.CreatedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'--')+'</td></tr>').join('')+
         '</tbody></table>';
       }
     }catch(err){
@@ -681,8 +761,7 @@
     const wrap=document.getElementById('paymentsTableWrap');
     wrap.innerHTML='<div class="empty-msg">Loading...</div>';
     try{
-      const data=await(await fetch(API+'/api/admin/payments')).json();
-      if(data.error)throw new Error(data.error);
+      const data=await fetchJsonWithApiFallback('/api/admin/payments');
       const rows=data.payments||[];
       const total=rows.reduce((s,r)=>s+(r.Status==='succeeded'?parseFloat(r.AmountZAR||0):0),0);
       const succeeded=rows.filter(r=>r.Status==='succeeded').length;
@@ -690,7 +769,7 @@
       document.getElementById('psTotalCount').textContent=fmt(rows.length);
       document.getElementById('psSucceeded').textContent=fmt(succeeded);
       if(!rows.length){wrap.innerHTML='<div class="empty-msg">No payment records yet</div>';return;}
-      wrap.innerHTML='<table class="pay-table"><thead><tr><th>User</th><th>Email</th><th>Plan</th><th>Amount</th><th>Billing</th><th>Provider</th><th>Status</th><th>Date</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.DisplayName||r.FirebaseUID)+'</td><td style="color:var(--muted)">'+esc(r.Email||'—')+'</td><td>'+esc(r.Plan)+'</td><td style="color:var(--green);font-family:Orbitron,sans-serif;font-size:.78rem">R'+fmt(r.AmountZAR)+'</td><td>'+esc(r.BillingCycle||'—')+'</td><td>'+esc(r.Provider||'—')+'</td><td><span class="rb '+(r.Status||'').toLowerCase()+'">'+esc(r.Status||'?')+'</span></td><td style="color:var(--muted);font-size:.76rem">'+(r.CreatedAt?new Date(r.CreatedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'—')+'</td></tr>').join('')+'</tbody></table>';
+      wrap.innerHTML='<table class="pay-table"><thead><tr><th>User</th><th>Email</th><th>Plan</th><th>Amount</th><th>Billing</th><th>Provider</th><th>Status</th><th>Date</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.DisplayName||r.FirebaseUID)+'</td><td style="color:var(--muted)">'+esc(r.Email||'--')+'</td><td>'+esc(r.Plan)+'</td><td style="color:var(--green);font-family:Orbitron,sans-serif;font-size:.78rem">R'+fmt(r.AmountZAR)+'</td><td>'+esc(r.BillingCycle||'--')+'</td><td>'+esc(r.Provider||'--')+'</td><td><span class="rb '+(r.Status||'').toLowerCase()+'">'+esc(r.Status||'?')+'</span></td><td style="color:var(--muted);font-size:.76rem">'+(r.CreatedAt?new Date(r.CreatedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'--')+'</td></tr>').join('')+'</tbody></table>';
     }catch(err){
       wrap.innerHTML='<div class="empty-msg">Could not load payments: '+esc(err.message)+'</div>';
     }
@@ -706,5 +785,6 @@
     return Math.floor(s/86400)+'d ago';
   }
 </script>
+  <script src="i18n-sa.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 ﻿// ── Session state ─────────────────────────────────────────────
 const UP_GAMES = [
-  { id: "quiz",     name: "Quiz Battle",    icon: "fa-circle-question",  color: "#8b5cf6" },
-  { id: "jeopardy", name: "Jeopardy",       icon: "fa-table-columns",    color: "#06b6d4" },
+  { id: "quiz",     name: "Jeopardy Modes",      icon: "fa-cubes",            color: "#8b5cf6", kicker: "2D + 3D", note: "Choose classic board or immersive stage" },
+  { id: "jeopardy", name: "Classic Slide Quiz",  icon: "fa-table-columns",    color: "#06b6d4", kicker: "2D Only", note: "Direct quiz with timer and instant feedback" },
   { id: "scramble", name: "Word Scramble",  icon: "fa-shuffle",          color: "#f59e0b" },
   { id: "memory",   name: "Memory Chain",   icon: "fa-brain",            color: "#10b981" },
   { id: "snake",    name: "Snake Quiz",     icon: "fa-worm",             color: "#84cc16" },
@@ -13,7 +13,7 @@ const UP_GAMES = [
 ];
 
 const UP_GAME_URLS = {
-  quiz:     "../../games/jeopardy-3d/",
+  quiz:     "../../games/jeopardy/",
   jeopardy: "../../games/jeopardy-quiz/",
   scramble: "../../games/scramble_game/",
   memory:   "../../games/memory_chain_game/",
@@ -24,6 +24,8 @@ const UP_GAME_URLS = {
   pacman:   "../../games/pacman_game/",
   mbasa:    "../../games/mbasa_game/"
 };
+
+const UP_COMING_SOON_GAMES = new Set(["snake", "pacman"]);
 
 const UP_FAKE_NAMES = [
   "Sipho M.","Ayanda K.","Thabo N.","Zanele D.","Lebo P.",
@@ -157,18 +159,33 @@ function upBuildGameGrid() {
   const grid = document.getElementById("upGameGrid");
   if (!grid) return;
   grid.innerHTML = UP_GAMES.map(g => `
-    <div class="up-game-card" data-gid="${g.id}" onclick="upPickGame('${g.id}')" style="--gc:${g.color}">
+    <div class="up-game-card ${UP_COMING_SOON_GAMES.has(g.id) ? "up-game-card-soon" : ""}" data-gid="${g.id}" onclick="${UP_COMING_SOON_GAMES.has(g.id) ? `upShowComingSoon('${g.id}')` : `upPickGame('${g.id}')`}" style="--gc:${g.color}">
+      ${g.kicker ? `<span class="ugc-kicker">${g.kicker}</span>` : ''}
       <div class="ugc-icon"><i class="fa-solid ${g.icon}"></i></div>
       <span class="ugc-name">${g.name}</span>
+      ${g.note ? `<small class="ugc-note">${g.note}</small>` : ''}
+      ${UP_COMING_SOON_GAMES.has(g.id) ? '<span class="ugc-soon">Coming Soon</span>' : ''}
     </div>
   `).join("");
 }
 
 function upPickGame(id) {
+  if (UP_COMING_SOON_GAMES.has(id)) {
+    upShowComingSoon(id);
+    return;
+  }
   up.game = UP_GAMES.find(g => g.id === id) || null;
   document.querySelectorAll(".up-game-card").forEach(c => c.classList.toggle("sel", c.dataset.gid === id));
   const nb = document.getElementById("upNext3");
   if (nb) nb.disabled = false;
+}
+
+function upShowComingSoon(id) {
+  const card = document.querySelector(`.up-game-card[data-gid="${id}"]`);
+  if (card) {
+    card.classList.add("up-game-card-soon-pulse");
+    setTimeout(() => card.classList.remove("up-game-card-soon-pulse"), 380);
+  }
 }
 
 // ── Paid gate ─────────────────────────────────────────────────

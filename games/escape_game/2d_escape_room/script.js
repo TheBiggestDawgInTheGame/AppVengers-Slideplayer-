@@ -46,6 +46,8 @@ const state = {
   locks: { padlock: false, chain: false, keypad: false },
   sourceContext: null,
   hintIdx: 0,
+  runStartedAt: 0,
+  premiumReportSubmitted: false,
 };
 
 const $    = id => document.getElementById(id);
@@ -261,6 +263,7 @@ function openDoorModal() {
 
 function triggerVictory() {
   state.solved = true; clearInterval(state.timerRef); markDot('d6');
+  void submitPremiumEscape2dReport('win');
   const elapsed = TOTAL_TIME - state.timeLeft;
   saveLB(elapsed);
   const m = Math.floor(elapsed / 60), s = elapsed % 60;
@@ -276,6 +279,7 @@ function triggerVictory() {
 
 function triggerFailure() {
   state.solved = true;
+  void submitPremiumEscape2dReport('loss');
   const fo = $('failure-overlay');
   $('failure-text').innerHTML =
     '<div style="font-family:Creepster,cursive;font-size:2.5rem;color:#c0392b;text-shadow:0 0 20px #c0392b">TIME UP</div>'
@@ -284,6 +288,59 @@ function triggerFailure() {
     + 'color:#fff;border:none;border-radius:6px;font-size:1rem;cursor:pointer" type="button">Try Again</button>';
   fo.style.opacity = '0'; show(fo);
   requestAnimationFrame(function () { fo.style.opacity = '1'; });
+}
+
+function buildEscape2dAttempts() {
+  return Array.from(state.dotsCompleted || []).map(function (dotId, index) {
+    return {
+      questionNumber: index + 1,
+      questionText: 'Objective ' + String(dotId),
+      userAnswer: 'completed',
+      correctAnswer: 'completed',
+      correct: true,
+      responseSeconds: 0,
+      outcome: 'completed'
+    };
+  });
+}
+
+async function submitPremiumEscape2dReport(result) {
+  if (state.premiumReportSubmitted) {
+    return;
+  }
+
+  if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== 'function') {
+    return;
+  }
+
+  var attempts = buildEscape2dAttempts();
+  var correctCount = attempts.filter(function (attempt) { return !!attempt.correct; }).length;
+  var durationSec = Math.max(0, TOTAL_TIME - Number(state.timeLeft || 0));
+
+  var payload = {
+    gameType: 'escape-2d',
+    score: correctCount,
+    totalQuestions: attempts.length,
+    correctCount: correctCount,
+    durationSec: durationSec,
+    questionAttempts: attempts,
+    meta: {
+      source: 'escape_game_2d',
+      result: result || 'complete',
+      locks: {
+        padlock: !!state.locks.padlock,
+        chain: !!state.locks.chain,
+        keypad: !!state.locks.keypad,
+      },
+      inventoryCount: Number(state.inventory ? state.inventory.size : 0),
+      topicLabel: state.sourceContext && state.sourceContext.topicLabel ? state.sourceContext.topicLabel : ''
+    }
+  };
+
+  var response = await window.PremiumGameReporter.submitReport(payload);
+  if (response && response.ok) {
+    state.premiumReportSubmitted = true;
+  }
 }
 
 const LB_KEY = 'escapeRoom2dLB';
@@ -351,9 +408,12 @@ function handleClick(key) {
 
 function init() {
   applySourceContext();
+  state.premiumReportSubmitted = false;
 
   $('start-btn').addEventListener('click', function () {
     hide($('startup-screen')); state.started = true;
+    state.runStartedAt = Date.now();
+    state.premiumReportSubmitted = false;
     startTimer(); renderInv();
     setObj(state.sourceContext && state.sourceContext.topicLabel
       ? ('Investigate clues from: ' + state.sourceContext.topicLabel + '.')

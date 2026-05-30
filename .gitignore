@@ -26,3 +26,6 @@ Thumbs.db
 # Build outputs
 dist/
 build/
+
+# Large local media assets
+finsished front end/Testing2-SlidePlay/walker.mp4

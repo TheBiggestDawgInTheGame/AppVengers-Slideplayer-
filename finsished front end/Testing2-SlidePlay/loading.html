@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <link
@@ -64,9 +64,10 @@
       }
 
       const targetPage = getTargetPage();
+      const redirectDelayMs = 450;
       setTimeout(() => {
         window.location.href = targetPage;
-      }, 3000);
+      }, redirectDelayMs);
     </script>
 
     <script>
@@ -86,5 +87,6 @@
       });
     </script>
     <script src="page-transition.js"></script>
-  </body>
+    <script src="i18n-sa.js"></script>
+</body>
 </html>

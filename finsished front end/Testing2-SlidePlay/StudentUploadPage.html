@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="responsive-shared.css" />
     <script src="theme-sync.js"></script>
     <style>
-      /* ── Student Upload Page — Step Flow ── */
+      /* â”€â”€ Student Upload Page â€” Step Flow â”€â”€ */
       body { font-family: "Poppins", sans-serif; background: #100717; color: #e0e0e0; min-height: 100vh; }
       h1,h2,h3,button { font-family: "Orbitron", sans-serif; }
       p,a,input,small,label,span { font-family: "Poppins", sans-serif; }
@@ -138,7 +138,7 @@
         transition:all 0.25s; font-family:"Orbitron",sans-serif; letter-spacing:0.03em; }
       .su-primary-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 28px rgba(92,232,255,0.3); }
       .su-primary-btn:disabled { opacity:0.3; cursor:not-allowed; }
-    /* ── Study Tutor Chat ─────────────────────────────── */
+    /* â”€â”€ Study Tutor Chat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     #study-chat-btn {
       display:none;position:fixed;bottom:28px;right:28px;z-index:1000;
       background:linear-gradient(135deg,#5ce8ff,#8b5cf6);
@@ -225,7 +225,7 @@
         </div>
       </div>
 
-      <!-- ══ STEP 1: Choose Mode ══ -->
+      <!-- â•â• STEP 1: Choose Mode â•â• -->
       <div class="su-panel active" id="sp-mode">
         <div class="su-panel-header">
           <h1>How do you want to learn today?</h1>
@@ -241,7 +241,7 @@
           <div class="su-mode-card chill" data-mode="chill" role="button" tabindex="0">
             <div class="su-mode-card-icon"><i class="fa-solid fa-mug-hot"></i></div>
             <h3>Chill</h3>
-            <p>Upload your own slides and we'll generate a quiz — play at your pace</p>
+            <p>Upload your own slides and we'll generate a quiz â€” play at your pace</p>
             <span class="su-mode-tag">Self-Paced</span>
           </div>
           <div class="su-mode-card story" data-mode="story" role="button" tabindex="0">
@@ -254,7 +254,7 @@
         </div>
       </div>
 
-      <!-- ══ STEP 2a: Study — Teacher Code ══ -->
+      <!-- â•â• STEP 2a: Study â€” Teacher Code â•â• -->
       <div class="su-panel" id="sp-study">
         <button class="su-back-btn" id="back-from-study">
           <i class="fa-solid fa-arrow-left"></i> Back
@@ -262,7 +262,7 @@
         <div class="su-panel-header">
           <div class="su-panel-icon study"><i class="fa-solid fa-graduation-cap"></i></div>
           <h1>Enter Class Code</h1>
-          <p>Your teacher will give you a code — type it below to join their session</p>
+          <p>Your teacher will give you a code â€” type it below to join their session</p>
         </div>
         <div class="su-code-box">
           <input type="text" class="su-code-input" id="study-code-input"
@@ -275,7 +275,7 @@
         </div>
       </div>
 
-      <!-- ══ STEP 2b: Chill — Upload ══ -->
+      <!-- â•â• STEP 2b: Chill â€” Upload â•â• -->
       <div class="su-panel" id="sp-chill">
         <button class="su-back-btn" id="back-from-chill">
           <i class="fa-solid fa-arrow-left"></i> Back
@@ -283,7 +283,7 @@
         <div class="su-panel-header">
           <div class="su-panel-icon chill"><i class="fa-solid fa-mug-hot"></i></div>
           <h1>Upload Your Slides</h1>
-          <p>PDF, PPTX, DOCX or TXT — we'll AI-generate a quiz from it</p>
+          <p>PDF, PPTX, DOCX or TXT â€” we'll AI-generate a quiz from it</p>
         </div>
 
         <!-- Tries counter -->
@@ -300,7 +300,7 @@
         <div class="su-upload-zone" id="chill-upload-zone">
           <i class="fa-solid fa-cloud-arrow-up"></i>
           <p>Drag &amp; drop your file here, or <button class="su-browse-link" id="chill-browse">browse</button></p>
-          <small>PDF, PPTX, DOCX, TXT, PNG, JPG, WEBP — max 50 MB</small>
+          <small>PDF, PPTX, DOCX, TXT, PNG, JPG, WEBP â€” max 50 MB</small>
           <input type="file" id="chill-file-input" accept=".pdf,.pptx,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,.bmp" hidden />
         </div>
 
@@ -318,7 +318,7 @@
         </button>
       </div>
 
-      <!-- ══ STEP 3: Play Mode ══ -->
+      <!-- â•â• STEP 3: Play Mode â•â• -->
       <div class="su-panel" id="sp-playmode">
         <button class="su-back-btn" id="back-from-play">
           <i class="fa-solid fa-arrow-left"></i> Back
@@ -342,7 +342,7 @@
           <div class="su-play-card" data-play="tournament" role="button" tabindex="0">
             <i class="fa-solid fa-trophy"></i>
             <h3>Tournament</h3>
-            <p>Bracket battle — last player standing wins</p>
+            <p>Bracket battle â€” last player standing wins</p>
           </div>
         </div>
         <button class="su-primary-btn" id="play-start-btn" disabled>
@@ -352,12 +352,12 @@
 
     </div><!-- end .su-wrap -->
 
-    <!-- ── Study Tutor Floating Button ── -->
+    <!-- â”€â”€ Study Tutor Floating Button â”€â”€ -->
     <button id="study-chat-btn">
       <i class="fa-solid fa-robot"></i> Ask your slides
     </button>
 
-    <!-- ── Study Tutor Chat Overlay ── -->
+    <!-- â”€â”€ Study Tutor Chat Overlay â”€â”€ -->
     <div id="study-chat-overlay">
       <div id="study-chat-box">
         <div id="study-chat-header">
@@ -368,14 +368,14 @@
           <div class="chat-msg ai">Hi! I've read your uploaded slides. Ask me anything about the content and I'll answer using your notes.</div>
         </div>
         <div id="study-chat-input-row">
-          <textarea id="study-chat-input" rows="1" placeholder="Ask about your slides…"></textarea>
+          <textarea id="study-chat-input" rows="1" placeholder="Ask about your slidesâ€¦"></textarea>
           <button id="study-chat-send"><i class="fa-solid fa-paper-plane"></i></button>
         </div>
       </div>
     </div>
 
     <script>
-    // ── Study Tutor Chat Logic ────────────────────────────────────────────────
+    // â”€â”€ Study Tutor Chat Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     (function() {
       const API_BASE = (
         window.SLIDEPLAY_API_BASE ||
@@ -426,7 +426,7 @@
         input.value = '';
         sendBtn.disabled = true;
 
-        const typing = addMsg('Thinking…', 'ai typing');
+        const typing = addMsg('Thinkingâ€¦', 'ai typing');
 
         try {
           const resp = await fetch(API_BASE + '/api/study/ask', {
@@ -475,5 +475,6 @@
     <script src="ai-processor.js"></script>
     <script src="StudentUploadPage.js"></script>
     <script src="page-transition.js"></script>
-  </body>
+    <script src="i18n-sa.js"></script>
+</body>
 </html>

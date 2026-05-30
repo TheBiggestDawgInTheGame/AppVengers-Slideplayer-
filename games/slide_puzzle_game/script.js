@@ -458,6 +458,47 @@
         }
         window.StudyAdventure.endSession(this.roundScore);
       }
+
+      void this.submitPremiumRoundReport(elapsed, correct);
+    }
+
+    async submitPremiumRoundReport(elapsedSeconds, correctCount) {
+      if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== "function") {
+        return;
+      }
+
+      const attempts = this.slots.map((piece, idx) => {
+        const expected = this.correctOrder[idx];
+        const isCorrect = !!piece && !!expected && piece.id === expected.id;
+        return {
+          questionNumber: idx + 1,
+          questionText: expected ? expected.text : "",
+          userAnswer: piece ? piece.text : "",
+          correctAnswer: expected ? expected.text : "",
+          correct: isCorrect,
+          responseSeconds: 0,
+          outcome: isCorrect ? "correct-position" : "misplaced"
+        };
+      });
+
+      const payload = {
+        gameType: "slide-puzzle",
+        score: this.roundScore,
+        totalQuestions: this.slots.length,
+        correctCount: Number(correctCount || 0),
+        durationSec: Number(elapsedSeconds || 0),
+        questionAttempts: attempts,
+        meta: {
+          source: "slide_puzzle_game",
+          difficulty: this.level,
+          round: this.round,
+          accuracy: this.accuracy,
+          streak: this.streak,
+          totalScore: this.totalScore
+        }
+      };
+
+      await window.PremiumGameReporter.submitReport(payload);
     }
 
     autoIncreaseDifficulty() {

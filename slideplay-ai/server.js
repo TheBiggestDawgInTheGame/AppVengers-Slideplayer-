@@ -152,6 +152,51 @@ function getEmailSenderAddress() {
   return isValidEmailAddress(candidate) ? candidate : "";
 }
 
+function renderSlidePlayEmailTemplate({
+  heading = "SlidePlay Update",
+  intro = "You have a new message from SlidePlay.",
+  bodyText = "",
+  ctaLabel = "Open SlidePlay",
+  ctaUrl = "",
+  footerNote = "You're receiving this message because your account is linked to SlidePlay.",
+}) {
+  const safeHeading = String(heading || "SlidePlay Update").trim();
+  const safeIntro = String(intro || "").trim();
+  const safeBody = String(bodyText || "").trim();
+  const safeCtaLabel = String(ctaLabel || "Open SlidePlay").trim();
+  const safeCtaUrl = String(ctaUrl || "").trim();
+  const safeFooter = String(footerNote || "").trim();
+  const year = new Date().getFullYear();
+
+  const html = `
+    <div style="margin:0;padding:24px;background:#070b14;font-family:Segoe UI,Arial,sans-serif;color:#e6edf6;">
+      <div style="max-width:620px;margin:0 auto;background:linear-gradient(180deg,#0f172a 0%,#0a1324 100%);border:1px solid rgba(148,163,184,0.25);border-radius:16px;overflow:hidden;">
+        <div style="padding:22px 24px;background:linear-gradient(90deg,#06b6d4,#8b5cf6);color:#fff;font-weight:800;font-size:20px;letter-spacing:.04em;text-transform:uppercase;">SlidePlay</div>
+        <div style="padding:24px;line-height:1.6;">
+          <h2 style="margin:0 0 10px;font-size:24px;color:#f8fbff;">${safeHeading}</h2>
+          ${safeIntro ? `<p style="margin:0 0 14px;color:#cbd5e1;">${safeIntro}</p>` : ""}
+          ${safeBody ? `<p style="margin:0 0 18px;color:#e2e8f0;white-space:pre-wrap;">${safeBody}</p>` : ""}
+          ${safeCtaUrl ? `<a href="${safeCtaUrl}" style="display:inline-block;padding:11px 16px;border-radius:10px;background:linear-gradient(90deg,#22d3ee,#8b5cf6);color:#fff;text-decoration:none;font-weight:700;">${safeCtaLabel}</a>` : ""}
+        </div>
+        <div style="padding:14px 24px;border-top:1px solid rgba(148,163,184,0.22);font-size:12px;color:#94a3b8;">${safeFooter} · © ${year} SlidePlay</div>
+      </div>
+    </div>
+  `.trim();
+
+  const text = [
+    "SlidePlay",
+    "",
+    safeHeading,
+    safeIntro,
+    safeBody,
+    safeCtaUrl ? `${safeCtaLabel}: ${safeCtaUrl}` : "",
+    "",
+    `${safeFooter} (© ${year} SlidePlay)`
+  ].filter(Boolean).join("\n");
+
+  return { html, text };
+}
+
 function getAppBaseUrl(req) {
   const configured = String(process.env.APP_URL || process.env.PUBLIC_BASE_URL || "").trim();
   if (configured) {
@@ -1170,12 +1215,22 @@ app.post("/api/admin/email/send", async (req, res) => {
       return res.status(400).json({ error: "Provide at least one of text or html." });
     }
 
+    const appUrl = getAppBaseUrl(req);
+    const rendered = renderSlidePlayEmailTemplate({
+      heading: subject,
+      intro: "Message from the SlidePlay admin dashboard.",
+      bodyText: text || "An update has been shared with you.",
+      ctaLabel: "Open SlidePlay",
+      ctaUrl: appUrl,
+      footerNote: "This message was sent by a SlidePlay administrator.",
+    });
+
     const info = await transporter.sendMail({
       from,
       to: recipients.join(", "),
       subject,
-      text: text || undefined,
-      html: html || undefined,
+      text: rendered.text,
+      html: html || rendered.html,
     });
 
     return res.status(201).json({

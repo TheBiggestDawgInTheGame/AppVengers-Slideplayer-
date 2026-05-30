@@ -400,6 +400,40 @@ body {
   width: 100%;
   margin-bottom: 16px;
 }
+.lg-short-wrap {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+.lg-short-input {
+  width: 100%;
+  border: 1px solid #e3e8ef;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: vertical;
+  min-height: 84px;
+}
+.lg-short-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, .15);
+}
+.lg-short-submit {
+  justify-self: end;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #4f46e5, #4338ca);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lg-short-submit:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
 @media (max-width: 400px) { .lg-options-grid { grid-template-columns: 1fr; } }
 
 .lg-opt-btn {

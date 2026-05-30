@@ -121,8 +121,8 @@ document.addEventListener("DOMContentLoaded", () => {
    ================================================================ */
 
 const SESS_GAMES = [
-  { id: "quiz",     name: "Quiz Battle",    icon: "fa-circle-question", color: "#8b5cf6" },
-  { id: "jeopardy", name: "Jeopardy",       icon: "fa-trophy",          color: "#f59e0b" },
+  { id: "quiz",     name: "Jeopardy Modes",      icon: "fa-cubes",            color: "#8b5cf6", kicker: "2D + 3D", note: "Choose classic board or immersive stage" },
+  { id: "jeopardy", name: "Classic Slide Quiz",  icon: "fa-table-columns",    color: "#f59e0b", kicker: "2D Only", note: "Direct quiz with timer and instant feedback" },
   { id: "scramble", name: "Word Scramble",  icon: "fa-font",            color: "#06b6d4" },
   { id: "memory",   name: "Memory Chain",   icon: "fa-brain",           color: "#ec4899" },
   { id: "snake",    name: "Snake Rush",     icon: "fa-worm",            color: "#10b981" },
@@ -140,7 +140,7 @@ const SESS_FAKE_NAMES = [
 ];
 
 const SESS_GAME_URLS = {
-  quiz:     "../../games/jeopardy-3d/",
+  quiz:     "../../games/jeopardy/",
   jeopardy: "../../games/jeopardy-quiz/",
   scramble: "../../games/scramble_game/",
   memory:   "../../games/memory_chain_game/",
@@ -151,6 +151,14 @@ const SESS_GAME_URLS = {
   pacman:   "../../games/pacman_game/",
   mbasa:    "../../games/mbasa_game/",
 };
+
+const SESS_COMING_SOON_GAMES = new Set(["snake", "pacman"]);
+
+const API_BASE = (
+  window.SLIDEPLAY_API_BASE ||
+  localStorage.getItem("sp_api_base") ||
+  window.location.origin
+).replace(/\/$/, "");
 
 const sess = {
   code: "",
@@ -265,19 +273,36 @@ function buildSessGameGrid() {
   const grid = document.getElementById("sessGameGrid");
   if (!grid) return;
   grid.innerHTML = SESS_GAMES.map(g => `
-    <div class="sgc" data-id="${g.id}" onclick="sessPickGame('${g.id}')" style="--gc:${g.color}">
+    <div class="sgc ${SESS_COMING_SOON_GAMES.has(g.id) ? "sgc-soon" : ""}" data-id="${g.id}" onclick="${SESS_COMING_SOON_GAMES.has(g.id) ? `sessShowComingSoon('${g.id}')` : `sessPickGame('${g.id}')`}" style="--gc:${g.color}">
+      ${g.kicker ? `<span class="sgc-kicker">${g.kicker}</span>` : ''}
       <div class="sgc-icon"><i class="fa-solid ${g.icon}"></i></div>
       <span>${g.name}</span>
+      ${g.note ? `<small class="sgc-note">${g.note}</small>` : ''}
+      ${SESS_COMING_SOON_GAMES.has(g.id) ? '<span class="sgc-soon-label">Coming Soon</span>' : ''}
     </div>
   `).join("");
 }
 
 // ── Pick game ─────────────────────────────────────────────────
 function sessPickGame(id) {
+  if (SESS_COMING_SOON_GAMES.has(id)) {
+    sessShowComingSoon(id);
+    return;
+  }
   sess.game = SESS_GAMES.find(g => g.id === id) || null;
   document.querySelectorAll(".sgc").forEach(el => el.classList.toggle("sel", el.dataset.id === id));
   const nb = document.getElementById("sessNextToMode");
   if (nb) nb.disabled = false;
+}
+
+function sessShowComingSoon(id) {
+  const card = document.querySelector(`.sgc[data-id="${id}"]`);
+  if (card) {
+    card.classList.add("sgc-soon-pulse");
+    setTimeout(() => card.classList.remove("sgc-soon-pulse"), 380);
+  }
+  const nb = document.getElementById("sessNextToMode");
+  if (nb) nb.disabled = true;
 }
 
 // ── Upload step ───────────────────────────────────────────────
@@ -351,6 +376,41 @@ function sessShowPaidGate(el) {
   setTimeout(() => el.classList.remove("smc-shake"), 400);
 }
 
+async function sessPersistClassRecord() {
+  const uid = localStorage.getItem("sp_user_uid");
+  if (!uid) return;
+
+  const payload = {
+    uid,
+    name: sess.name,
+    subject: sess.game ? sess.game.name : "General",
+    description: `Live ${sess.mode || "individual"} session`,
+    classCode: sess.code,
+  };
+
+  try {
+    const resp = await fetch(API_BASE + "/api/teacher/classes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const created = data && data.class ? data.class : null;
+    const createdCode = created && (created.ClassCode || created.classCode);
+
+    if (createdCode && createdCode !== sess.code) {
+      sess.code = createdCode;
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set("sessCodeVal", sess.code);
+      set("ssBigCode", sess.code);
+    }
+  } catch (_) {
+    // Keep UI usable offline; class persistence is best-effort.
+  }
+}
+
 // ── Activate waiting room (Step 4) ────────────────────────────
 function sessActivateWaitroom() {
   const name = document.getElementById("sessName")?.value.trim() || "Untitled Session";
@@ -380,6 +440,8 @@ function sessActivateWaitroom() {
     createdAt: Date.now(),
     status: "waiting",
   }));
+
+  sessPersistClassRecord().catch(() => {});
 
   // Simulate students gradually joining (demo purposes)
   const pool = [...SESS_FAKE_NAMES].sort(() => Math.random() - 0.5);

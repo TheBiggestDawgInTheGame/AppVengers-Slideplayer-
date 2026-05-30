@@ -17,6 +17,34 @@ const LG = (() => {
 
 const LABELS = ["A", "B", "C", "D"];
 
+function normalizeAnswerText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function shortAnswerMatches(studentAnswer, acceptedAnswers) {
+  const student = normalizeAnswerText(studentAnswer);
+  if (!student) return false;
+  const accepted = (Array.isArray(acceptedAnswers) ? acceptedAnswers : [])
+    .map((a) => normalizeAnswerText(a))
+    .filter(Boolean);
+  if (!accepted.length) return false;
+
+  if (accepted.includes(student)) return true;
+  if (accepted.some((a) => student.includes(a) || a.includes(student))) return true;
+
+  const studentTokens = new Set(student.split(" ").filter(Boolean));
+  return accepted.some((a) => {
+    const tokens = a.split(" ").filter(Boolean);
+    if (!tokens.length) return false;
+    const overlap = tokens.filter((t) => studentTokens.has(t)).length;
+    return overlap / tokens.length >= 0.75;
+  });
+}
+
 // Local state
 let session = null;
 let sessionListener = null;
@@ -24,6 +52,15 @@ let timerInterval = null;
 let answered = false;
 let myScore = 0;
 let lastQuestion = -1;
+let gameStartedAt = Date.now();
+let reportSubmitted = false;
+const questionAttempts = [];
+
+const API_BASE = (
+  window.SLIDEPLAY_API_BASE ||
+  localStorage.getItem("sp_api_base") ||
+  window.location.origin
+).replace(/\/$/, "");
 
 // ── Simulated players ─────────────────────────────────────────
 // Loaded from localStorage (set by UploadPage when Simulate button is used)
@@ -73,14 +110,24 @@ function scheduleSimAnswers(qIndex, questions, timePerQ, playersMap) {
     const delay = 25 + Math.random() * 175;
 
     setTimeout(async () => {
-      // True random pick across available options.
-      const optionCount = Array.isArray(q.options) && q.options.length > 0 ? q.options.length : 4;
-      const chosen = Math.floor(Math.random() * optionCount);
-      const correct = chosen === q.correct;
+      let submittedAnswer;
+      let correct = false;
+      if (q.type === "short_answer") {
+        const accepted = Array.isArray(q.acceptedAnswers) ? q.acceptedAnswers : [];
+        const shouldBeCorrect = Math.random() < 0.65;
+        submittedAnswer = shouldBeCorrect
+          ? (accepted[Math.floor(Math.random() * Math.max(accepted.length, 1))] || "")
+          : "I am not sure";
+        correct = shouldBeCorrect && shortAnswerMatches(submittedAnswer, accepted);
+      } else {
+        const optionCount = Array.isArray(q.options) && q.options.length > 0 ? q.options.length : 4;
+        submittedAnswer = Math.floor(Math.random() * optionCount);
+        correct = submittedAnswer === q.correct;
+      }
       const elapsed = Math.min(timePerQ, delay / 1000);
       const pts = correct ? Math.max(100, Math.round(1000 * (1 - elapsed / timePerQ))) : 0;
       try {
-        await SessionDB.submitAnswer(LG.code, playerKey, qIndex, chosen, correct, pts);
+        await SessionDB.submitAnswer(LG.code, playerKey, qIndex, submittedAnswer, correct, pts);
       } catch (_) { /* ignore */ }
     }, delay);
   });
@@ -103,9 +150,105 @@ window.addEventListener("load", async () => {
   show(LG.role === "student" ? "lgWaiting" : "lgTeacher");
   document.getElementById("lgWaitCode").textContent = LG.code;
 
+  const shortSubmitBtn = document.getElementById("lgSShortSubmit");
+  if (shortSubmitBtn && !shortSubmitBtn._wired) {
+    shortSubmitBtn._wired = true;
+    shortSubmitBtn.addEventListener("click", studentShortAnswerSubmit);
+  }
+  const shortInput = document.getElementById("lgSShortInput");
+  if (shortInput && !shortInput._wired) {
+    shortInput._wired = true;
+    shortInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        studentShortAnswerSubmit();
+      }
+    });
+  }
+
   // Subscribe to session
+  gameStartedAt = Date.now();
   sessionListener = SessionDB.listenSession(LG.code, onSessionUpdate);
 });
+
+function isPremiumStudentLocal() {
+  try {
+    const sub = JSON.parse(localStorage.getItem("sp_student_subscription") || "null");
+    if (!sub) return false;
+    const plan = String(sub.plan || "").toLowerCase();
+    const status = String(sub.status || "").toLowerCase();
+    return (plan === "student_elite" || plan === "student_premium") && status !== "cancelled" && status !== "locked";
+  } catch (_) {
+    return false;
+  }
+}
+
+async function submitPremiumGameReport() {
+  if (reportSubmitted) return;
+  if (LG.role !== "student") return;
+  if (!isPremiumStudentLocal()) return;
+
+  const uid = localStorage.getItem("sp_user_uid");
+  if (!uid) return;
+
+  const totalQuestions = Array.isArray(session?.questions) ? session.questions.length : 0;
+  const correctCount = questionAttempts.filter((a) => a.correct).length;
+  const durationSec = Math.max(0, Math.round((Date.now() - gameStartedAt) / 1000));
+
+  const payload = {
+    gameType: session?.game || "quiz",
+    sessionCode: LG.code,
+    score: myScore,
+    totalQuestions,
+    correctCount,
+    durationSec,
+    questionAttempts,
+    meta: {
+      role: LG.role,
+      mode: session?.mode || "individual",
+      studentName: LG.name,
+      source: "live-game",
+    }
+  };
+
+  try {
+    const resp = await fetch(
+      API_BASE + "/api/students/" + encodeURIComponent(uid) + "/game-reports",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const reportText = data?.report?.reportText || "";
+
+    const current = (() => {
+      try { return JSON.parse(localStorage.getItem("sp_game_reports") || "[]"); }
+      catch (_) { return []; }
+    })();
+    current.unshift({
+      date: new Date().toISOString(),
+      gameType: payload.gameType,
+      score: payload.score,
+      totalQuestions: payload.totalQuestions,
+      correctCount: payload.correctCount,
+      reportText,
+      sessionCode: payload.sessionCode,
+    });
+    localStorage.setItem("sp_game_reports", JSON.stringify(current.slice(0, 50)));
+
+    const statusEl = document.getElementById("lgGoMessage");
+    if (statusEl && reportText) {
+      statusEl.textContent = "Great work! Your premium AI performance report was generated.";
+    }
+
+    reportSubmitted = true;
+  } catch (_) {
+    // Non-fatal: report generation should not block game completion.
+  }
+}
 
 // ── Main session update handler ───────────────────────────────
 function onSessionUpdate(data) {
@@ -167,12 +310,24 @@ function renderTeacherQuestion(q, qIndex, total, timePerQ, data) {
   setText("lgTQuestion", q.text);
 
   const opts = document.getElementById("lgTOptions");
-  opts.innerHTML = q.options.map((opt, i) => `
-    <div class="lg-opt-teacher ${i === q.correct ? "correct" : ""}">
-      <span class="lg-opt-label">${LABELS[i]}</span>
-      ${opt}
-    </div>
-  `).join("");
+  if (q.type === "short_answer") {
+    const acceptedAnswers = (Array.isArray(q.acceptedAnswers) ? q.acceptedAnswers : [])
+      .map((a) => esc(a))
+      .join(" / ");
+    opts.innerHTML = `
+      <div class="lg-opt-teacher correct">
+        <span class="lg-opt-label">Ans</span>
+        ${acceptedAnswers || esc(q.sampleAnswer || "Open-ended response")}
+      </div>
+    `;
+  } else {
+    opts.innerHTML = q.options.map((opt, i) => `
+      <div class="lg-opt-teacher ${i === q.correct ? "correct" : ""}">
+        <span class="lg-opt-label">${LABELS[i]}</span>
+        ${opt}
+      </div>
+    `).join("");
+  }
 
   // Next button state
   const nb = document.getElementById("lgNextBtn");
@@ -200,12 +355,29 @@ function renderStudentQuestion(q, qIndex, total, timePerQ) {
   document.getElementById("lgFeedback")?.classList.remove("correct", "wrong");
 
   const opts = document.getElementById("lgSOptions");
-  opts.innerHTML = q.options.map((opt, i) => `
-    <button class="lg-opt-btn" data-index="${i}" onclick="studentAnswer(${i})">
-      <span class="lg-opt-lbl">${LABELS[i]}</span>
-      ${opt}
-    </button>
-  `).join("");
+  const shortWrap = document.getElementById("lgSShortWrap");
+  const shortInput = document.getElementById("lgSShortInput");
+  const shortSubmit = document.getElementById("lgSShortSubmit");
+
+  if (q.type === "short_answer") {
+    opts.innerHTML = "";
+    shortWrap?.classList.remove("hidden");
+    if (shortInput) {
+      shortInput.value = "";
+      shortInput.disabled = false;
+      shortInput.focus();
+    }
+    if (shortSubmit) shortSubmit.disabled = false;
+  } else {
+    shortWrap?.classList.add("hidden");
+    if (shortInput) shortInput.value = "";
+    opts.innerHTML = q.options.map((opt, i) => `
+      <button class="lg-opt-btn" data-index="${i}" onclick="studentAnswer(${i})">
+        <span class="lg-opt-lbl">${LABELS[i]}</span>
+        ${opt}
+      </button>
+    `).join("");
+  }
 
   setText("lgScore", myScore);
 }
@@ -224,6 +396,17 @@ async function studentAnswer(chosenIndex) {
   const pts = correct ? Math.max(100, Math.round(1000 * (1 - elapsed / timePerQ))) : 0;
 
   if (correct) myScore += pts;
+
+  questionAttempts.push({
+    questionIndex: session.currentQuestion,
+    question: q.text,
+    options: q.options,
+    chosenIndex,
+    correctIndex: q.correct,
+    correct,
+    points: pts,
+    timeSec: Math.max(0, Math.round(elapsed * 100) / 100),
+  });
 
   // Highlight options
   const btns = document.querySelectorAll(".lg-opt-btn");
@@ -254,6 +437,67 @@ async function studentAnswer(chosenIndex) {
   if (LG.playerKey) {
     try {
       await SessionDB.submitAnswer(LG.code, LG.playerKey, session.currentQuestion, chosenIndex, correct, pts);
+    } catch (e) {
+      console.warn("Could not save answer to Firebase:", e.message);
+    }
+  }
+}
+
+async function studentShortAnswerSubmit() {
+  if (answered || !session) return;
+  const q = session.questions[session.currentQuestion];
+  if (!q || q.type !== "short_answer") return;
+
+  const input = document.getElementById("lgSShortInput");
+  const submitBtn = document.getElementById("lgSShortSubmit");
+  const rawAnswer = String(input?.value || "").trim();
+  if (!rawAnswer) return;
+
+  answered = true;
+  if (input) input.disabled = true;
+  if (submitBtn) submitBtn.disabled = true;
+
+  const correct = shortAnswerMatches(rawAnswer, q.acceptedAnswers);
+  const elapsed = (Date.now() - session.questionStartedAt) / 1000;
+  const timePerQ = session.settings?.timePerQ || 20;
+  const pts = correct ? Math.max(100, Math.round(1000 * (1 - elapsed / timePerQ))) : 0;
+  if (correct) myScore += pts;
+
+  questionAttempts.push({
+    questionIndex: session.currentQuestion,
+    question: q.text,
+    type: "short_answer",
+    studentAnswer: rawAnswer,
+    acceptedAnswers: q.acceptedAnswers || [],
+    correct,
+    points: pts,
+    timeSec: Math.max(0, Math.round(elapsed * 100) / 100),
+  });
+
+  const fb = document.getElementById("lgFeedback");
+  const fbIcon = document.getElementById("lgFbIcon");
+  const fbText = document.getElementById("lgFbText");
+  const fbScore = document.getElementById("lgFbScore");
+  if (fb) {
+    fb.classList.remove("hidden");
+    fb.classList.add(correct ? "correct" : "wrong");
+    fbIcon.innerHTML = correct
+      ? '<i class="fa-solid fa-circle-check" style="color:#34d399"></i>'
+      : '<i class="fa-solid fa-circle-xmark" style="color:#f87171"></i>';
+    const modelAnswer = Array.isArray(q.acceptedAnswers) && q.acceptedAnswers.length
+      ? q.acceptedAnswers[0]
+      : (q.sampleAnswer || "No sample answer");
+    fbText.textContent = correct
+      ? "Correct! Well done!"
+      : `Not quite. Example answer: ${modelAnswer}`;
+    fbScore.textContent = correct ? `+${pts} pts` : "";
+  }
+
+  setText("lgScore", myScore);
+
+  if (LG.playerKey) {
+    try {
+      await SessionDB.submitAnswer(LG.code, LG.playerKey, session.currentQuestion, rawAnswer, correct, pts);
     } catch (e) {
       console.warn("Could not save answer to Firebase:", e.message);
     }
@@ -291,14 +535,22 @@ function startTimer(startedAt, timePerQ) {
         btns.forEach(b => b.disabled = true);
         const q = session.questions[session.currentQuestion];
         if (q) {
+          const shortInput = document.getElementById("lgSShortInput");
+          const shortSubmit = document.getElementById("lgSShortSubmit");
+          if (shortInput) shortInput.disabled = true;
+          if (shortSubmit) shortSubmit.disabled = true;
           const btnsArr = Array.from(btns);
-          btnsArr[q.correct]?.classList.add("correct");
+          if (q.type !== "short_answer") {
+            btnsArr[q.correct]?.classList.add("correct");
+          }
           const fb = document.getElementById("lgFeedback");
           if (fb) {
             fb.classList.remove("hidden");
             fb.classList.add("wrong");
             document.getElementById("lgFbIcon").innerHTML = '<i class="fa-solid fa-clock" style="color:#f87171"></i>';
-            document.getElementById("lgFbText").textContent = "Time's up!";
+            document.getElementById("lgFbText").textContent = q.type === "short_answer"
+              ? "Time's up! Short answer not submitted."
+              : "Time's up!";
             document.getElementById("lgFbScore").textContent = "";
           }
         }
@@ -413,6 +665,10 @@ function showGameOver() {
     }
   }
   setText("lgGoMessage", LG.role === "teacher" ? "Session complete. Well done!" : "Great work!");
+
+  if (LG.role === "student") {
+    submitPremiumGameReport().catch(() => {});
+  }
 }
 
 // ── Utilities ─────────────────────────────────────────────────

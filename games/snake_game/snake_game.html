@@ -24,14 +24,15 @@
                 <div class="study-label">Multiplayer</div>
                 <div class="multiplayer-form">
                     <input id="mpDisplayName" class="mp-input" type="text" maxlength="24" placeholder="Display name">
-                    <input id="mpRoomId" class="mp-input" type="text" maxlength="32" placeholder="Room ID">
+                    <input id="mpRoomCode" class="mp-input" type="text" maxlength="12" placeholder="Session code">
+                    <input id="mpRoomId" class="mp-input" type="text" maxlength="32" placeholder="Room ID (advanced)">
                 </div>
                 <div class="multiplayer-actions">
-                    <button id="mpCreateBtn" class="btn btn-secondary" type="button">Create Room</button>
-                    <button id="mpJoinBtn" class="btn btn-primary" type="button">Join Room</button>
+                    <button id="mpCreateBtn" class="btn btn-secondary" type="button">Create Code</button>
+                    <button id="mpJoinBtn" class="btn btn-primary" type="button">Join by Code</button>
                     <button id="mpLeaveBtn" class="btn btn-secondary" type="button">Leave</button>
                 </div>
-                <p id="mpHint" class="hint">Create a room, share the ID, then play together in real time.</p>
+                <p id="mpHint" class="hint">Host creates a code and shares it. Guest enters code and joins instantly.</p>
                 <div id="mpPlayers" class="multiplayer-players"></div>
             </section>
 
@@ -59,6 +60,7 @@
     <script src="../../shared/progress-tracker.js"></script>
     <script src="../../shared/adventure-layer.js"></script>
     <script src="../../shared/mode-environment.js"></script>
+    <script src="../../shared/premium-game-reporter.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
     <script type="module" src="../../shared/firebase-leaderboard.js"></script>

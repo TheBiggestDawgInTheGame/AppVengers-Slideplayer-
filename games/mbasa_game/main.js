@@ -11,6 +11,7 @@ const ctx       = canvas.getContext('2d');
 const character = document.getElementById('character');
 const gameEl    = document.getElementById('game');
 const speedLinesEl = document.getElementById('speedLines');
+const GENERATED_QUIZ_KEY = 'slidePlayGeneratedQuizData';
 
 // ── Road geometry ─────────────────────────────────────────────
 const GW = 600;          // game width
@@ -66,7 +67,7 @@ const STARS = Array.from({ length: 65 }, () => ({
   phase: Math.random() * Math.PI * 2,
 }));
 // ── Quiz system ───────────────────────────────────────────────────
-const quizQuestions = [
+const defaultQuizQuestions = [
   {
     prompt: 'Which definition matches “Velocity”?',
     options: [
@@ -93,11 +94,124 @@ const quizQuestions = [
   },
 ];
 
+function readJsonStorage(key, fallback) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+    return parsed ?? fallback;
+  } catch (_error) {
+    return fallback;
+  }
+}
+
+function normalizeRunnerQuizItems(items) {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+
+      const prompt = String(item.prompt || item.question || item.questionText || '').trim();
+      const rawOptions = Array.isArray(item.options) ? item.options : [];
+      if (!prompt || rawOptions.length === 0) return null;
+
+      let correctIndex = Number.isInteger(item.correct) ? item.correct : null;
+      const normalizedOptions = rawOptions
+        .map((opt, idx) => {
+          if (opt && typeof opt === 'object') {
+            const text = String(opt.text || opt.label || '').trim();
+            const correct = opt.correct === true;
+            if (correct) correctIndex = idx;
+            return text ? { text, correct } : null;
+          }
+          const text = String(opt || '').trim();
+          return text ? { text, correct: false } : null;
+        })
+        .filter(Boolean);
+
+      if (!normalizedOptions.length) return null;
+
+      if (!Number.isInteger(correctIndex) && typeof item.correctAnswer === 'string') {
+        const target = item.correctAnswer.trim().toLowerCase();
+        correctIndex = normalizedOptions.findIndex((opt) => opt.text.toLowerCase() === target);
+      }
+
+      if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= normalizedOptions.length) {
+        const flaggedIndex = normalizedOptions.findIndex((opt) => opt.correct);
+        correctIndex = flaggedIndex >= 0 ? flaggedIndex : 0;
+      }
+
+      normalizedOptions.forEach((opt, idx) => {
+        opt.correct = idx === correctIndex;
+      });
+
+      return {
+        prompt,
+        options: normalizedOptions,
+      };
+    })
+    .filter(Boolean);
+}
+
+function loadRunnerQuizQuestions() {
+  const generated = normalizeRunnerQuizItems(readJsonStorage(GENERATED_QUIZ_KEY, []));
+  return generated.length > 0 ? generated : defaultQuizQuestions;
+}
+
+let quizQuestions = loadRunnerQuizQuestions();
+
+function buildThreeOptionQuestion(question, pool) {
+  const options = Array.isArray(question?.options) ? question.options : [];
+  const correct = options.find((opt) => opt.correct) || options[0] || { text: 'Unknown', correct: true };
+
+  const distractors = [];
+  const seen = new Set([String(correct.text).trim().toLowerCase()]);
+
+  const addDistractor = (value) => {
+    const text = String(value || '').trim();
+    const key = text.toLowerCase();
+    if (!text || seen.has(key)) return;
+    seen.add(key);
+    distractors.push(text);
+  };
+
+  options.forEach((opt) => {
+    if (!opt || opt.correct) return;
+    addDistractor(opt.text);
+  });
+
+  for (const item of pool) {
+    if (distractors.length >= 2) break;
+    if (!item || !Array.isArray(item.options)) continue;
+    for (const opt of item.options) {
+      if (distractors.length >= 2) break;
+      if (!opt || opt.correct) continue;
+      addDistractor(opt.text);
+    }
+  }
+
+  ['Not listed', 'A different concept', 'None of the above'].forEach((fallback) => {
+    if (distractors.length < 2) addDistractor(fallback);
+  });
+
+  const finalOptions = shuffleArray([
+    { text: String(correct.text), correct: true },
+    ...distractors.slice(0, 2).map((text) => ({ text, correct: false })),
+  ]);
+
+  return {
+    prompt: String(question?.prompt || 'Choose the correct option'),
+    options: finalOptions,
+  };
+}
+
 let quizActive      = false;
 let currentQuestion = null;
 let quizItems       = [];
 let correctQuizAnswers = 0;
 let wrongQuizAnswers   = 0;
+let quizAttemptLog = [];
+let runStartedAt = 0;
+let premiumReportSubmitted = false;
 let nextQuizFrame   = 450;   // first quiz appears after about 15 seconds
 const QUIZ_INTERVAL = 600;   // frames between quizzes (~20 sec)
 const QUIZ_SLOW_SPEED = 0.4; // maximum game speed while answer blocks are about to collide
@@ -181,8 +295,9 @@ class QuizItem {
 
 function triggerQuiz() {
   if (!gameActive || quizActive) return;
-  const question = quizQuestions[Math.floor(Math.random() * quizQuestions.length)];
-  const options  = shuffleArray(question.options.slice());
+  const sourceQuestion = quizQuestions[Math.floor(Math.random() * quizQuestions.length)];
+  const question = buildThreeOptionQuestion(sourceQuestion, quizQuestions);
+  const options  = question.options;
   quizActive     = true;
   currentQuestion = question;
   quizItems.forEach(item => item.destroy());
@@ -190,7 +305,22 @@ function triggerQuiz() {
   showQuizPrompt(question);
 }
 
-function finishQuiz(correct) {
+function finishQuiz(correct, selectedAnswerText = '') {
+  const question = currentQuestion;
+  const correctOption = Array.isArray(question?.options)
+    ? question.options.find((opt) => opt && opt.correct)
+    : null;
+
+  quizAttemptLog.push({
+    questionNumber: quizAttemptLog.length + 1,
+    questionText: question ? String(question.prompt || '') : '',
+    userAnswer: String(selectedAnswerText || ''),
+    correctAnswer: correctOption ? String(correctOption.text || '') : '',
+    correct: !!correct,
+    responseSeconds: 0,
+    outcome: correct ? 'correct' : (selectedAnswerText ? 'wrong' : 'timeout')
+  });
+
   quizActive = false;
   currentQuestion = null;
   quizItems.forEach(item => item.destroy());
@@ -223,7 +353,7 @@ function updateQuizItems(speed = speedMult) {
     item.update(speed);
     if (item.collides()) {
       item.el.classList.add('hit');
-      finishQuiz(item.correct);
+      finishQuiz(item.correct, item.el.textContent || '');
       break;
     }
     if (!item.alive) {
@@ -233,7 +363,7 @@ function updateQuizItems(speed = speedMult) {
   }
 
   if (quizActive && quizItems.length === 0) {
-    finishQuiz(false);
+    finishQuiz(false, '');
   }
 }
 // ── Canvas road drawing ───────────────────────────────────────
@@ -568,6 +698,9 @@ function startGame() {
   quizItems = [];
   correctQuizAnswers = 0;
   wrongQuizAnswers   = 0;
+  quizAttemptLog = [];
+  runStartedAt = Date.now();
+  premiumReportSubmitted = false;
   nextQuizFrame = 450;
 
   obstacles.forEach(o => o.destroy());
@@ -607,6 +740,42 @@ function endGame() {
   document.getElementById('quizSummary').textContent     = `Correct: ${correctQuizAnswers} | Wrong: ${wrongQuizAnswers}`;
   document.getElementById('highScoreDisplay').textContent = 'Best: ' + highScore;
   document.getElementById('gameOverScreen').classList.remove('hidden');
+
+  void submitPremiumRunnerClassicReport();
+}
+
+async function submitPremiumRunnerClassicReport() {
+  if (premiumReportSubmitted) {
+    return;
+  }
+
+  if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== 'function') {
+    return;
+  }
+
+  const attempts = Array.isArray(quizAttemptLog) ? quizAttemptLog.slice() : [];
+  const durationSec = Math.max(0, Math.round((Date.now() - Number(runStartedAt || Date.now())) / 1000));
+
+  const payload = {
+    gameType: 'road-runner-2d',
+    score: Number(score || 0),
+    totalQuestions: Number(attempts.length || (correctQuizAnswers + wrongQuizAnswers)),
+    correctCount: Number(correctQuizAnswers || 0),
+    durationSec,
+    questionAttempts: attempts,
+    meta: {
+      source: 'mbasa_game_classic',
+      livesRemaining: Number(lives || 0),
+      speedMultiplierEnd: Number(speedMult || 1),
+      wrongAnswers: Number(wrongQuizAnswers || 0),
+      bestScore: Number(highScore || 0)
+    }
+  };
+
+  const response = await window.PremiumGameReporter.submitReport(payload);
+  if (response && response.ok) {
+    premiumReportSubmitted = true;
+  }
 }
 
 // ── Controls ──────────────────────────────────────────────────

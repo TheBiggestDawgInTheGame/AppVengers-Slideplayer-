@@ -28,6 +28,9 @@ let slideChallengeIndex = 0;
 let gameLoopTimeoutId = null;
 let countdownTimeoutId = null;
 let countdownSession = 0;
+let educationalModeLocked = false;
+let runStartedAt = 0;
+let premiumReportSubmitted = false;
 
 // DOM Cache
 let cellElements = [];
@@ -113,9 +116,17 @@ function initializePellets() {
 }
 
 function initGame() {
+    if (educationalModeLocked) {
+        if (!_elStatus) cacheHUD();
+        _elStatus.textContent = 'Locked: launch Pac-Man from uploaded slides to activate learning prompts.';
+        return;
+    }
+
     clearScheduledTimers();
     countdownSession++;
     gameActive = true;
+    runStartedAt = Date.now();
+    premiumReportSubmitted = false;
     score = 0;
     lives = 3;
     level = 1;
@@ -171,8 +182,9 @@ function clearScheduledTimers() {
 
 function setStartButtonsDisabled(disabled) {
     const startButtons = document.querySelectorAll('[data-start-game]');
+    const shouldDisable = disabled || educationalModeLocked;
     startButtons.forEach((btn) => {
-        btn.disabled = disabled;
+        btn.disabled = shouldDisable;
     });
 }
 
@@ -219,7 +231,9 @@ function resetGame() {
     pendingCountdown = false;
     document.getElementById('countdownOverlay').classList.add('hidden');
     document.getElementById('gameOverModal').classList.add('hidden');
-    document.getElementById('gameStatus').textContent = 'Ready to Start';
+    document.getElementById('gameStatus').textContent = educationalModeLocked
+        ? 'Locked: upload slides first'
+        : 'Ready to Start';
     document.getElementById('gameStatus').classList.remove('danger');
     setStartButtonsDisabled(false);
     gridBuilt = false;
@@ -628,6 +642,8 @@ function endGame(won) {
     modal.classList.remove('hidden');
     updateUI();
 
+    void submitPremiumPacmanReport(won);
+
     if (window.StudyAdventure) {
         if (won) {
             window.StudyAdventure.recordSuccess({
@@ -640,6 +656,46 @@ function endGame(won) {
             });
         }
         window.StudyAdventure.endSession(score);
+    }
+}
+
+async function submitPremiumPacmanReport(won) {
+    if (premiumReportSubmitted) {
+        return;
+    }
+
+    if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== 'function') {
+        return;
+    }
+
+    const durationSec = Math.max(0, Math.round((Date.now() - Number(runStartedAt || Date.now())) / 1000));
+    const total = Math.max(1, Number(totalPellets || 0));
+    const collected = Math.max(0, Number(pelletsEaten || 0));
+    const progressPct = Math.max(0, Math.min(100, Math.round((collected / total) * 100)));
+
+    const payload = {
+        gameType: 'pacman',
+        score: Number(score || 0),
+        totalQuestions: total,
+        correctCount: collected,
+        durationSec,
+        questionAttempts: [],
+        meta: {
+            source: 'pacman_game',
+            won: !!won,
+            livesRemaining: Number(lives || 0),
+            levelReached: Number(level || 1),
+            pelletsCollected: collected,
+            pelletsTotal: total,
+            progressPercent: progressPct,
+            bestScore: Number(highScore || 0),
+            usedUploadedSource: !!useUploadedSource
+        }
+    };
+
+    const result = await window.PremiumGameReporter.submitReport(payload);
+    if (result && result.ok) {
+        premiumReportSubmitted = true;
     }
 }
 
@@ -670,6 +726,39 @@ function buildSlideChallenges() {
     });
 
     return items.filter(Boolean);
+}
+
+function hasUploadedLearningData() {
+    const generatedQuiz = readJsonStorage(GENERATED_QUIZ_KEY, []);
+    const uploadedFiles = readJsonStorage(UPLOADED_FILES_KEY, []);
+    const hasQuiz = Array.isArray(generatedQuiz) && generatedQuiz.some((item) => (
+        item
+        && typeof item.question === 'string'
+        && Array.isArray(item.options)
+        && item.options.length >= 2
+        && Number.isInteger(item.correct)
+        && item.correct >= 0
+        && item.correct < item.options.length
+    ));
+    const hasFileText = Array.isArray(uploadedFiles) && uploadedFiles.some((file) => {
+        if (!file || typeof file !== 'object') return false;
+        const extracted = String(file.extractedText || file.text || '').trim();
+        return extracted.length >= 20;
+    });
+    return hasQuiz || hasFileText;
+}
+
+function applyEducationalModeLock() {
+    educationalModeLocked = !(useUploadedSource && hasUploadedLearningData() && slideChallenges.length > 0);
+    if (educationalModeLocked) {
+        document.getElementById('gameTitle').textContent = 'Slide Pac-Man (Locked)';
+        const status = document.getElementById('gameStatus');
+        if (status) {
+            status.textContent = 'Locked: upload slides first to enable learning mode.';
+        }
+        updateStudyBrief(false);
+    }
+    setStartButtonsDisabled(false);
 }
 
 function updateStudyBrief(advance) {
@@ -723,6 +812,8 @@ document.addEventListener('keydown', (e) => {
 if (useUploadedSource) {
     slideChallenges = buildSlideChallenges();
 }
+
+applyEducationalModeLock();
 
 // Initialize on page load
 window.addEventListener('load', () => {

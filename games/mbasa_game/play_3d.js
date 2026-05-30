@@ -2,6 +2,7 @@ import * as THREE from "https://esm.sh/three@0.160.0";
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
 const stage = document.getElementById("stage");
+const appEl = document.getElementById("app");
 const startOverlay = document.getElementById("startOverlay");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
 const startBtn = document.getElementById("startBtn");
@@ -15,7 +16,9 @@ const tuningEl = document.getElementById("tuning");
 const finalScoreEl = document.getElementById("finalScore");
 const bestScoreEl = document.getElementById("bestScore");
 const hitFlash = document.getElementById("hitFlash");
+const controlsHint = document.getElementById("controlsHint");
 const sourceInfo = document.getElementById("sourceInfo");
+const tournamentBanner = document.getElementById("tournamentBanner");
 const quizPanel = document.getElementById("quizPanel");
 const quizQuestionText = document.getElementById("quizQuestionText");
 const quizFeedback = document.getElementById("quizFeedback");
@@ -27,6 +30,8 @@ const resumeBtn = document.getElementById("resumeBtn");
 const comboEl = document.getElementById("combo");
 const mobileLeft = document.getElementById("mobileLeft");
 const mobileRight = document.getElementById("mobileRight");
+const mobileLeftP2 = document.getElementById("mobileLeftP2");
+const mobileRightP2 = document.getElementById("mobileRightP2");
 
 const GENERATED_QUIZ_KEY = "slidePlayGeneratedQuizData";
 const UPLOADED_FILES_KEY = "slidePlayUploadedFiles";
@@ -53,15 +58,47 @@ function readJsonStorage(key, fallback) {
 function sanitizeQuizData(items) {
   if (!Array.isArray(items)) return [];
   return items
-      .filter(item => item && typeof item.question === 'string' && Array.isArray(item.options))
+      .filter(item => item && (typeof item.question === 'string' || typeof item.questionText === 'string' || typeof item.prompt === 'string') && Array.isArray(item.options))
       .map(item => ({
-        prompt: String(item.question),
-        options: item.options.map((text, idx) => ({
-          text: String(text),
-          correct: idx === Number(item.correct)
-        }))
+        prompt: String(item.prompt || item.question || item.questionText || '').trim(),
+        options: item.options.map((opt, idx) => {
+          if (opt && typeof opt === 'object') {
+            return {
+              text: String(opt.text || opt.label || ''),
+              correct: opt.correct === true || idx === Number(item.correct)
+            };
+          }
+          return {
+            text: String(opt),
+            correct: idx === Number(item.correct)
+          };
+        })
       }))
-      .filter(item => item.options.length >= 2);
+      .map(item => {
+        const normalized = {
+          prompt: item.prompt,
+          options: item.options
+            .map(opt => ({ text: String(opt.text || '').trim(), correct: !!opt.correct }))
+            .filter(opt => opt.text.length > 0)
+        };
+
+        if (!normalized.prompt || normalized.options.length < 2) return null;
+
+        if (!normalized.options.some(opt => opt.correct)) {
+          const expected = String(items.find(src => String(src.prompt || src.question || src.questionText || '').trim() === normalized.prompt)?.correctAnswer || '').trim().toLowerCase();
+          if (expected) {
+            const idx = normalized.options.findIndex(opt => opt.text.toLowerCase() === expected);
+            if (idx >= 0) normalized.options[idx].correct = true;
+          }
+        }
+
+        if (!normalized.options.some(opt => opt.correct)) {
+          normalized.options[0].correct = true;
+        }
+
+        return normalized;
+      })
+      .filter(Boolean);
 }
 
 function loadQuizQuestions() {
@@ -248,11 +285,13 @@ let currentQuestion = null;
 let quizItems = [];
 let nextQuizFrame = 300; // Appear much sooner (was 450)
 const QUIZ_INTERVAL = 400; // Appear more frequently (was 600)
-const QUIZ_SLOW_DROP = 14;
-const QUIZ_SLOW_MIN_SPEED = 10;
-const QUIZ_SLOW_ACTIVATE = 0.56;
-const QUIZ_SLOW_DURATION = 8;
+const QUIZ_SLOW_DROP = 22;
+const QUIZ_SLOW_MIN_SPEED = 6;
+const QUIZ_SLOW_ACTIVATE = 0.24;
+const QUIZ_SLOW_DURATION = 10;
+const QUIZ_READ_HOLD = 1.6;
 let quizSlowTimeRemaining = 0;
+let quizReadHoldRemaining = 0;
 
 const PLAY_MODES = {
   solo: {
@@ -265,7 +304,7 @@ const PLAY_MODES = {
     hitPenaltyMult: 1
   },
   multiplayer: {
-    label: "2 Players",
+    label: "Multiplayer / 2 Players",
     lives: 4,
     speedMult: 0.94,
     accelMult: 0.9,
@@ -285,6 +324,46 @@ const PLAY_MODES = {
 };
 
 let playMode = "solo";
+let shieldCharges = 0;
+let supportStreak = 0;
+let tournamentHype = 1;
+let tournamentRound = 1;
+let tournamentWavesThisRound = 0;
+let tournamentAnnouncementTimer = 0;
+let tournamentAnnouncementText = "";
+const TOURNAMENT_WAVES_PER_ROUND = 3;
+const TOURNAMENT_MAX_HYPE = 3.2;
+const TOURNAMENT_MAX_ROUNDS = 5;
+
+const MODE_LOOK = {
+  solo: {
+    fog: 0x04070f,
+    border: 0x39ff14,
+    stars: 0x99bbff,
+    markEmissive: 0x223055,
+    pylonLeft: 1.4,
+    pylonRight: 1.4,
+    cameraFov: 58
+  },
+  multiplayer: {
+    fog: 0x081225,
+    border: 0x3af2ff,
+    stars: 0x89f7ff,
+    markEmissive: 0x1f5870,
+    pylonLeft: 1.8,
+    pylonRight: 1.8,
+    cameraFov: 60
+  },
+  tournament: {
+    fog: 0x12070c,
+    border: 0xff9f1a,
+    stars: 0xffe08f,
+    markEmissive: 0x69442a,
+    pylonLeft: 2.1,
+    pylonRight: 2.1,
+    cameraFov: 63
+  }
+};
 
 function getModeTuning() {
   return PLAY_MODES[playMode] || PLAY_MODES.solo;
@@ -360,6 +439,10 @@ function escapeHtml(text) {
   function resetCombo() {
     comboStreak = 0;
     comboMultiplier = 1;
+    if (playMode === "tournament") {
+      tournamentHype = 1;
+      updateModeHud();
+    }
     updateComboHud();
   }
 
@@ -424,11 +507,8 @@ function buildFourOptionQuestion(question, questionPool) {
 }
 
 function showQuizPrompt(question) {
-  const lines = question.options
-    .map((opt) => `<div class="mcq-option"><strong>${opt.letter})</strong> ${escapeHtml(opt.text)}</div>`)
-    .join("");
-  quizQuestionText.innerHTML = `<div class="mcq-question">${escapeHtml(question.prompt)}</div>${lines}`;
-  quizFeedback.textContent = "Navigate to the block matching the correct letter.";
+  quizQuestionText.innerHTML = `<div class="mcq-question">${escapeHtml(question.prompt)}</div>`;
+  quizFeedback.textContent = "Game speed is reduced. Move into the block with the correct option text.";
   quizPanel.classList.remove('hidden');
 }
 
@@ -446,6 +526,7 @@ function clearObstacles() {
 
 function getEffectiveSpeed() {
   if (!quizActive || quizSlowTimeRemaining <= 0) return speed;
+  if (quizReadHoldRemaining > 0) return QUIZ_SLOW_MIN_SPEED;
   const closestProgress = Math.max(0, ...quizItems.map((item) => item.progress));
   if (closestProgress < QUIZ_SLOW_ACTIVATE) return speed;
 
@@ -453,28 +534,64 @@ function getEffectiveSpeed() {
   return Math.max(QUIZ_SLOW_MIN_SPEED, speed - QUIZ_SLOW_DROP * ramp);
 }
 
-function createTextTexture(text) {
+function createTextTexture(text, isCorrect) {
   const canvas = document.createElement('canvas');
   canvas.width = 2048;
   canvas.height = 2048;
   const ctx = canvas.getContext('2d');
-  
-  // Background with better contrast
-  ctx.fillStyle = '#000000';
+
+  const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  if (isCorrect) {
+    grad.addColorStop(0, 'rgba(74, 222, 128, 0.34)');
+    grad.addColorStop(1, 'rgba(59, 130, 246, 0.26)');
+  } else {
+    grad.addColorStop(0, 'rgba(244, 114, 182, 0.3)');
+    grad.addColorStop(1, 'rgba(239, 68, 68, 0.26)');
+  }
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Use compact letter labels for lane-mapped MCQ blocks.
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 980px Arial';
+
+  ctx.strokeStyle = 'rgba(230, 245, 255, 0.82)';
+  ctx.lineWidth = 18;
+  ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+
+  const clean = String(text || '').trim() || 'No option';
+  const words = clean.split(/\s+/);
+  const lines = [];
+  let current = '';
+  words.forEach((word) => {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length > 16 && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  });
+  if (current) lines.push(current);
+
+  const visibleLines = lines.slice(0, 4);
+  const lineHeight = 240;
+  const totalHeight = visibleLines.length * lineHeight;
+  const startY = (canvas.height - totalHeight) / 2 + lineHeight / 2;
+
+  ctx.fillStyle = '#f7fbff';
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.72)';
+  ctx.lineWidth = 16;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  
-  // Add a thin outline for contrast
-  ctx.strokeStyle = '#ffff00';
-  ctx.lineWidth = 6;
-  ctx.strokeText(text, canvas.width / 2, canvas.height / 2);
-  
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+  ctx.font = '700 205px "Segoe UI", Tahoma, sans-serif';
+
+  visibleLines.forEach((line, idx) => {
+    const y = startY + idx * lineHeight;
+    ctx.strokeText(line, canvas.width / 2, y);
+    ctx.fillText(line, canvas.width / 2, y);
+  });
+
+  if (lines.length > visibleLines.length) {
+    ctx.font = '700 140px "Segoe UI", Tahoma, sans-serif';
+    ctx.fillText('...', canvas.width / 2, canvas.height - 120);
+  }
   
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -484,19 +601,25 @@ function createTextTexture(text) {
 class QuizItem {
   constructor(lane, label, correct) {
     this.lane = lane;
+    this.label = label;
     this.progress = 0;
     this.correct = correct;
     this.alive = true;
     this.hit = false;
     
-    const textTexture = createTextTexture(label);
-    const material = new THREE.MeshStandardMaterial({
+    const textTexture = createTextTexture(label, correct);
+    const material = new THREE.MeshPhysicalMaterial({
       map: textTexture,
-      color: correct ? 0xffffff : 0xff4444, // White for correct, red for wrong
-      roughness: 0.2,
-      metalness: 0.8,
-      emissive: correct ? 0x444444 : 0x441111, // Strong emissive glow
-      emissiveIntensity: 1.0 // Increased from 0.4
+      color: correct ? 0xb9fbc0 : 0xfca5a5,
+      roughness: 0.08,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.9,
+      transmission: 0.36,
+      thickness: 0.95,
+      ior: 1.18,
+      emissive: correct ? 0x2f855a : 0x9b2c2c,
+      emissiveIntensity: 0.42
     });
     
     // Slightly smaller blocks with oversized text
@@ -547,40 +670,59 @@ function triggerQuiz() {
   quizActive = true;
   currentQuestion = { prompt: question.prompt, options };
   quizSlowTimeRemaining = QUIZ_SLOW_DURATION;
+  quizReadHoldRemaining = QUIZ_READ_HOLD;
   // Keep quiz rounds focused on answer navigation only.
   clearObstacles();
   quizItems.forEach(item => item.destroy());
-  quizItems = options.map((option, lane) => new QuizItem(lane, option.letter, option.correct));
+  quizItems = options.map((option, lane) => new QuizItem(lane, `${option.letter}) ${option.text}`, option.correct));
   showQuizPrompt(currentQuestion);
 }
 
-function finishQuiz(correct) {
+function finishQuiz(correct, answeredBy = -1) {
+  const question = currentQuestion;
+  const correctOption = Array.isArray(question?.options)
+    ? question.options.find((option) => option && option.correct)
+    : null;
+
+  questionAttempts.push({
+    questionNumber: questionAttempts.length + 1,
+    questionText: question?.prompt || "",
+    userAnswer: "",
+    correctAnswer: correctOption ? String(correctOption.text || "") : "",
+    correct: !!correct,
+    responseSeconds: 0,
+    outcome: correct ? "answered" : "incorrect-or-missed",
+    meta: {
+      answeredBy: answeredBy >= 0 ? `P${answeredBy + 1}` : "none",
+      mode: playMode,
+    },
+  });
+
   quizSlowTimeRemaining = 0;
+  quizReadHoldRemaining = 0;
   quizActive = false;
   currentQuestion = null;
   quizItems.forEach(item => item.destroy());
   quizItems = [];
-  quizFeedback.textContent = correct ? 'Correct! Nice choice.' : 'Wrong answer. Try again next time.';
+  const playerTag = answeredBy >= 0 ? `P${answeredBy + 1}: ` : "";
+  quizFeedback.textContent = correct
+    ? `${playerTag}Correct! Nice choice.`
+    : `${playerTag}Wrong answer. Try again next time.`;
   if (correct) {
-    score += 25;
+    sfxCorrect();
+    const tournamentBoost = playMode === "tournament" ? tournamentHype : 1;
+    score += 25 * comboMultiplier * tournamentBoost;
     updateHud();
+  } else {
+    sfxWrong();
   }
-    quizFeedback.textContent = correct ? 'Correct! Nice choice.' : 'Wrong answer. Try again next time.';
-    if (correct) {
-      sfxCorrect();
-      score += 25 * comboMultiplier;
-      updateHud();
-    } else {
-      sfxWrong();
-    }
   setTimeout(() => {
     hideQuizPrompt();
   }, 1500);
   nextQuizFrame = frameCount + QUIZ_INTERVAL;
 }
 
-function updateQuizItems(playerLaneX, playerZ) {
-  void playerLaneX;
+function updateQuizItems() {
   const closestProgress = Math.max(0, ...quizItems.map((item) => item.progress));
   if (quizPanel) {
     if (quizActive && closestProgress >= QUIZ_SLOW_ACTIVATE) {
@@ -593,9 +735,18 @@ function updateQuizItems(playerLaneX, playerZ) {
   for (let i = quizItems.length - 1; i >= 0; i--) {
     const item = quizItems[i];
     item.update(lastFrameDt, lastMotionSpeed);
-    if (item.collides(currentLane, playerZ)) {
+    let answeredBy = -1;
+    for (let playerIndex = 0; playerIndex < PLAYER_COUNT; playerIndex++) {
+      if (!isPlayerAlive(playerIndex)) continue;
+      if (item.collides(playerLane[playerIndex], playerRoots[playerIndex].position.z)) {
+        answeredBy = playerIndex;
+        break;
+      }
+    }
+
+    if (answeredBy >= 0) {
       item.mesh.scale.set(1.2, 1.2, 1.2);
-      finishQuiz(item.correct);
+      finishQuiz(item.correct, answeredBy);
       break;
     }
     if (!item.alive) {
@@ -622,10 +773,8 @@ for (let si = 0; si < 500; si++) {
 }
 const starGeom = new THREE.BufferGeometry();
 starGeom.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-const starField = new THREE.Points(
-  starGeom,
-  new THREE.PointsMaterial({ color: 0x99bbff, size: 0.35, sizeAttenuation: true })
-);
+const starMaterial = new THREE.PointsMaterial({ color: 0x99bbff, size: 0.35, sizeAttenuation: true });
+const starField = new THREE.Points(starGeom, starMaterial);
 scene.add(starField);
 
 const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 300);
@@ -645,14 +794,16 @@ dir.position.set(5, 10, 7);
 scene.add(dir);
 
 const laneX = [-5.4, -1.8, 1.8, 5.4];
-let currentLane = 1;
-let laneSwitchImpulse = 0;
 let lastFrameDt = 0;
 let lastMotionSpeed = 0;
 
 const playerRoot = new THREE.Group();
-playerRoot.position.set(laneX[currentLane], 0, 7);
+playerRoot.position.set(laneX[1], 0, 7.2);
 scene.add(playerRoot);
+
+const playerTwoRoot = new THREE.Group();
+playerTwoRoot.position.set(laneX[2], 0, 6.1);
+scene.add(playerTwoRoot);
 
 const fallbackBody = new THREE.Mesh(
   new THREE.BoxGeometry(1.1, 2, 1.1),
@@ -661,6 +812,90 @@ const fallbackBody = new THREE.Mesh(
 fallbackBody.position.y = 1.1;
 fallbackBody.visible = false;
 playerRoot.add(fallbackBody);
+
+const fallbackBodyP2 = new THREE.Mesh(
+  new THREE.CapsuleGeometry(0.48, 1.15, 6, 12),
+  new THREE.MeshStandardMaterial({ color: 0x6ad6ff, emissive: 0x0a3a56, emissiveIntensity: 0.45 })
+);
+fallbackBodyP2.position.y = 1.1;
+fallbackBodyP2.visible = true;
+playerTwoRoot.add(fallbackBodyP2);
+
+function createPlayerBadge(label, tint) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, tint);
+  gradient.addColorStop(1, "rgba(255,255,255,0.12)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "rgba(255,255,255,0.8)";
+  ctx.lineWidth = 12;
+  ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 118px Segoe UI, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, canvas.width / 2, canvas.height / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(2.2, 1.1, 1);
+  sprite.position.set(0, 3.15, 0);
+  return sprite;
+}
+
+const playerOneBadge = createPlayerBadge("P1", "rgba(57, 255, 20, 0.95)");
+const playerTwoBadge = createPlayerBadge("P2", "rgba(106, 214, 255, 0.95)");
+playerRoot.add(playerOneBadge);
+playerTwoRoot.add(playerTwoBadge);
+
+const playerTwoAura = new THREE.Mesh(
+  new THREE.TorusGeometry(0.95, 0.16, 10, 28),
+  new THREE.MeshStandardMaterial({
+    color: 0x69d8ff,
+    emissive: 0x1a5874,
+    emissiveIntensity: 1.0,
+    roughness: 0.18,
+    metalness: 0.55,
+    transparent: true,
+    opacity: 0.82
+  })
+);
+playerTwoAura.rotation.x = Math.PI / 2;
+playerTwoAura.position.y = 1.02;
+playerTwoRoot.add(playerTwoAura);
+
+const PLAYER_COUNT = 2;
+const playerRoots = [playerRoot, playerTwoRoot];
+const playerLane = [1, 2];
+const playerLaneImpulse = [0, 0];
+const playerLives = [0, 0];
+const playerHitCooldown = [0, 0];
+
+function isMultiplayerMode() {
+  return playMode === "multiplayer";
+}
+
+function isPlayerEnabled(index) {
+  return index === 0 || isMultiplayerMode();
+}
+
+function isPlayerAlive(index) {
+  return isPlayerEnabled(index) && playerLives[index] > 0;
+}
+
+function getActivePlayerIndices() {
+  const ids = [];
+  for (let i = 0; i < PLAYER_COUNT; i++) {
+    if (isPlayerAlive(i)) ids.push(i);
+  }
+  return ids;
+}
 
 let mixer = null;
 const clock = new THREE.Clock();
@@ -706,7 +941,7 @@ scene.add(road);
 
 const leftBorder = new THREE.Mesh(
   new THREE.BoxGeometry(0.2, 0.15, 260),
-  new THREE.MeshStandardMaterial({ color: 0x39ff14 })
+  new THREE.MeshStandardMaterial({ color: 0x39ff14, emissive: 0x113315, emissiveIntensity: 0.5 })
 );
 leftBorder.position.set(-11.2, 0.08, -65);
 scene.add(leftBorder);
@@ -732,12 +967,14 @@ for (let i = 0; i < 28; i++) {
   // Roadside neon pylons — left (blue) and right (pink)
   const PYLON_SPACING = 18;
   const pylonMeshes = [];
+  const pylonMaterials = [];
   const pylonCylGeom = new THREE.CylinderGeometry(0.13, 0.13, 2.6, 6);
   [
     { xPos: -12.0, emissive: 0x0088ff },
     { xPos:  12.0, emissive: 0xff2266 }
   ].forEach(({ xPos, emissive }) => {
     const mat = new THREE.MeshStandardMaterial({ color: 0x060616, emissive, emissiveIntensity: 1.4 });
+    pylonMaterials.push(mat);
     for (let pi = 0; pi < 8; pi++) {
       const mesh = new THREE.Mesh(pylonCylGeom, mat);
       mesh.position.set(xPos, 1.3, -6 - pi * PYLON_SPACING);
@@ -780,6 +1017,26 @@ function updateModeButtons() {
     btn.classList.toggle("active", isActive);
     btn.setAttribute("aria-pressed", isActive ? "true" : "false");
   });
+}
+
+function applyModeLook() {
+  const look = MODE_LOOK[playMode] || MODE_LOOK.solo;
+  if (appEl) appEl.dataset.playMode = playMode;
+  document.body.dataset.playMode = playMode;
+
+  scene.fog.color.setHex(look.fog);
+  leftBorder.material.color.setHex(look.border);
+  leftBorder.material.emissive.setHex(look.border);
+  rightBorder.material.color.setHex(look.border);
+  rightBorder.material.emissive.setHex(look.border);
+  markMat.emissive.setHex(look.markEmissive);
+  starMaterial.color.setHex(look.stars);
+
+  if (pylonMaterials[0]) pylonMaterials[0].emissiveIntensity = look.pylonLeft;
+  if (pylonMaterials[1]) pylonMaterials[1].emissiveIntensity = look.pylonRight;
+
+  camera.fov += (look.cameraFov - camera.fov) * 0.35;
+  camera.updateProjectionMatrix();
 }
   // ── Pause ─────────────────────────────────────────────────
   let paused = false;
@@ -824,26 +1081,107 @@ function updateModeButtons() {
   }
 
 
-function updateModeHud() {
-  if (modeEl) {
-    modeEl.textContent = "Mode: " + getModeTuning().label;
+function restoreTournamentSourceInfo() {
+  if (!sourceInfo) return;
+  sourceInfo.textContent = runnerProfile.isSlideDriven
+    ? "Track generated from your slide quiz data (" + runnerProfile.questionCount + " questions). Difficulty: " + difficulty.label + "."
+    : "Running demo challenge data. Upload slides to auto-generate a personalized track.";
+}
+
+function setTournamentBanner(text) {
+  if (!tournamentBanner) return;
+  tournamentBanner.textContent = text;
+  tournamentBanner.classList.toggle("hidden", !text);
+}
+
+function announceTournament(text, duration = 1.8) {
+  tournamentAnnouncementText = text;
+  tournamentAnnouncementTimer = duration;
+  if (playMode === "tournament") {
+    setTournamentBanner(text);
+    if (sourceInfo) sourceInfo.textContent = text;
   }
+}
+
+function updateModeHud() {
+  const modeTuning = getModeTuning();
+  let status = "";
+  if (playMode === "multiplayer") {
+    status = " | Shield: " + shieldCharges;
+  }
+  if (playMode === "tournament") {
+    status = " | Round: " + tournamentRound + " | Hype: x" + tournamentHype.toFixed(1);
+  }
+  if (modeEl) {
+    modeEl.textContent = "Mode: " + modeTuning.label + status;
+  }
+
+  if (controlsHint) {
+    if (playMode === "multiplayer") {
+      controlsHint.textContent = "P1: Left/Right Arrows | P2: A/D (or on-screen A/D buttons)";
+    } else if (playMode === "tournament") {
+      controlsHint.textContent = "Tournament: Solo run with escalating heats. Left/Right Arrows (or swipe).";
+    } else {
+      controlsHint.textContent = "Solo: Left/Right Arrows (or swipe) to change lanes.";
+    }
+  }
+
+  playerTwoRoot.visible = isMultiplayerMode();
+}
+
+function updateTournamentRoundBanner() {
+  if (playMode !== "tournament") return;
+  announceTournament("Tournament Heat " + tournamentRound + " - hold your lane and build hype.", 2.4);
+}
+
+function advanceTournamentRound() {
+  if (playMode !== "tournament") return;
+  if (tournamentRound >= TOURNAMENT_MAX_ROUNDS) {
+    announceTournament("Final Heat - keep pushing!", 2.2);
+    return;
+  }
+
+  tournamentRound += 1;
+  tournamentWavesThisRound = 0;
+  tournamentHype = Math.min(TOURNAMENT_MAX_HYPE, 1 + (tournamentRound - 1) * 0.22);
+  speed = Math.min(difficulty.maxSpeed * getModeTuning().speedMult + tournamentRound * 0.9, speed + 0.45);
+  spawnEvery = Math.max(difficulty.spawnMin * getModeTuning().spawnMult, spawnEvery - 0.04);
+  updateModeHud();
+  updateHud();
+  announceTournament("Heat " + tournamentRound + " - the crowd is louder.", 2.0);
 }
 
 modeButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     if (running) return;
     playMode = btn.dataset.mode || "solo";
+    shieldCharges = 0;
+    supportStreak = 0;
+    tournamentRound = 1;
+    tournamentWavesThisRound = 0;
+    tournamentAnnouncementTimer = 0;
+    tournamentAnnouncementText = "";
+    tournamentHype = 1;
+    playerLives[0] = getModeTuning().lives;
+    playerLives[1] = isMultiplayerMode() ? getModeTuning().lives : 0;
     updateModeButtons();
+    applyModeLook();
+    if (playMode === "tournament") {
+      updateTournamentRoundBanner();
+    } else {
+      setTournamentBanner("");
+      restoreTournamentSourceInfo();
+    }
     updateModeHud();
+    updateHud();
   });
 });
 
 updateModeButtons();
+applyModeLook();
 updateModeHud();
 
 let score = 0;
-let lives = getModeTuning().lives;
 let best = readBestScore();
 let speed = difficulty.startSpeed * getModeTuning().speedMult;
 let distanceMeter = 0;
@@ -851,11 +1189,15 @@ let spawnTimer = 0;
 let spawnEvery = difficulty.spawnStart * getModeTuning().spawnMult;
 let running = false;
 let isStarting = false;
-let hitCooldown = 0;
 let speedStepTimer = 0;
 let wavesCleared = 0;
 let frameCount = 0;
+let runStartedAt = 0;
+let premiumReportSubmitted = false;
+let questionAttempts = [];
 lastMotionSpeed = speed;
+playerLives[0] = getModeTuning().lives;
+playerLives[1] = isMultiplayerMode() ? getModeTuning().lives : 0;
 
 function nextSafeLane() {
   if (runnerProfile.laneHints.length > 0) {
@@ -894,33 +1236,66 @@ function makeObstacle(lane, zPos) {
 
 function spawnObstacleWave() {
   const safeLane = nextSafeLane();
+  const secondarySafeLane = (playMode === "multiplayer" && Math.random() < 0.42)
+    ? (safeLane + (Math.random() > 0.5 ? 1 : 3)) % laneX.length
+    : -1;
   const zPos = -130;
   for (let lane = 0; lane < laneX.length; lane++) {
-    if (lane === safeLane) continue;
+    if (lane === safeLane || lane === secondarySafeLane) continue;
     makeObstacle(lane, zPos);
+  }
+
+  if (playMode === "tournament" && Math.random() < 0.36) {
+    // Add a stinger obstacle in the safe lane further back to force quick follow-up lane changes.
+    makeObstacle(safeLane, zPos - 18);
   }
 }
 
 function resetGame() {
   const modeTuning = getModeTuning();
   score = 0;
-  lives = modeTuning.lives;
   speed = difficulty.startSpeed * modeTuning.speedMult;
   distanceMeter = 0;
   spawnEvery = difficulty.spawnStart * modeTuning.spawnMult;
   spawnTimer = 0;
   speedStepTimer = 0;
-  hitCooldown = 0;
   wavesCleared = 0;
   laneHintIndex = 0;
+  supportStreak = 0;
+  tournamentHype = 1;
+  tournamentRound = 1;
+  tournamentWavesThisRound = 0;
+  tournamentAnnouncementTimer = 0;
+  tournamentAnnouncementText = "";
+  if (playMode === "tournament") {
+    announceTournament("Tournament Heat 1 - hold your lane and build hype.", 2.4);
+  }
+  shieldCharges = playMode === "multiplayer" ? 1 : 0;
   frameCount = 0;
+  runStartedAt = 0;
+  premiumReportSubmitted = false;
+  questionAttempts = [];
   quizActive = false;
   currentQuestion = null;
   nextQuizFrame = 300;
   quizItems.forEach(item => item.destroy());
   quizItems = [];
-  currentLane = 1;
-  playerRoot.position.x = laneX[currentLane];
+
+  for (let i = 0; i < PLAYER_COUNT; i++) {
+    playerLane[i] = i === 0 ? 1 : 2;
+    playerLaneImpulse[i] = 0;
+    playerHitCooldown[i] = 0;
+    playerLives[i] = isPlayerEnabled(i) ? modeTuning.lives : 0;
+    playerRoots[i].position.x = laneX[playerLane[i]];
+    playerRoots[i].rotation.z = 0;
+    playerRoots[i].visible = isPlayerEnabled(i);
+    playerRoots[i].traverse((node) => {
+      if (node.isMesh && node.material) {
+        node.material.transparent = true;
+        node.material.opacity = 1;
+      }
+    });
+  }
 
   paused = false;
   if (pauseOverlay) pauseOverlay.classList.add("hidden");
@@ -931,32 +1306,57 @@ function resetGame() {
   clearObstacles();
 
   hideQuizPrompt();
+  applyModeLook();
+  updateModeHud();
   updateHud();
 }
 
 function updateHud(displaySpeed = speed) {
   scoreEl.textContent = "Score: " + Math.floor(score);
-  livesEl.textContent = "Lives: " + lives;
+  if (isMultiplayerMode()) {
+    livesEl.textContent = "Lives: P1 " + playerLives[0] + " | P2 " + playerLives[1];
+  } else {
+    livesEl.textContent = "Lives: " + playerLives[0];
+  }
   speedEl.textContent = "Speed: " + (displaySpeed / 20).toFixed(1) + "x";
 }
 
-function takeHit() {
+function takeHit(playerIndex) {
   const modeTuning = getModeTuning();
-  if (hitCooldown > 0) return;
-  hitCooldown = 0.6;
-  lives -= 1;
+  if (!isPlayerAlive(playerIndex) || playerHitCooldown[playerIndex] > 0) return;
+
+  if (playMode === "multiplayer" && shieldCharges > 0) {
+    shieldCharges -= 1;
+    playerHitCooldown[playerIndex] = 0.45;
+    shakeTime = 0.22;
+    shakeMag = 0.7;
+    sfxLane();
+    updateModeHud();
+    return;
+  }
+
+  playerHitCooldown[playerIndex] = 0.6;
+  playerLives[playerIndex] = Math.max(0, playerLives[playerIndex] - 1);
   score = Math.max(0, score - difficulty.hitPenalty * modeTuning.hitPenaltyMult);
   resetCombo();
   sfxHit();
   shakeTime = 0.38;
   shakeMag = 1.4;
+  if (playerLives[playerIndex] <= 0) {
+    playerRoots[playerIndex].traverse((node) => {
+      if (node.isMesh && node.material) {
+        node.material.transparent = true;
+        node.material.opacity = 0.28;
+      }
+    });
+  }
   updateHud();
 
   hitFlash.classList.remove("active");
   void hitFlash.offsetWidth;
   hitFlash.classList.add("active");
 
-  if (lives <= 0) {
+  if (!getActivePlayerIndices().length) {
     running = false;
     if (score > best) {
       best = score;
@@ -965,6 +1365,40 @@ function takeHit() {
     finalScoreEl.textContent = "Score: " + Math.floor(score);
     bestScoreEl.textContent = "Best: " + best;
     gameOverOverlay.classList.remove("hidden");
+    void submitPremiumRunnerReport();
+  }
+}
+
+async function submitPremiumRunnerReport() {
+  if (premiumReportSubmitted) {
+    return;
+  }
+
+  if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== "function") {
+    return;
+  }
+
+  const correctCount = questionAttempts.filter((attempt) => attempt.correct).length;
+  const durationSec = Math.max(0, Math.round((Date.now() - Number(runStartedAt || Date.now())) / 1000));
+
+  const payload = {
+    gameType: "mbasa-game-3d",
+    score: Math.floor(score),
+    totalQuestions: questionAttempts.length,
+    correctCount,
+    durationSec,
+    questionAttempts,
+    meta: {
+      source: "mbasa-play-3d",
+      mode: playMode,
+      bestScore: Math.floor(best),
+      wavesCleared,
+    },
+  };
+
+  const result = await window.PremiumGameReporter.submitReport(payload);
+  if (result && result.ok) {
+    premiumReportSubmitted = true;
   }
 }
 
@@ -973,6 +1407,8 @@ function startRun() {
   isStarting = true;
   try { getAudioCtx()?.resume(); } catch (_) {}
   resetGame();
+  runStartedAt = Date.now();
+  premiumReportSubmitted = false;
   startOverlay.classList.add("hidden");
   gameOverOverlay.classList.add("hidden");
   runCountdown(() => {
@@ -981,17 +1417,17 @@ function startRun() {
   });
 }
 
-function moveLeft() {
-  if (!running || paused || currentLane === 0) return;
-  currentLane -= 1;
-  laneSwitchImpulse = -1;
+function movePlayerLeft(playerIndex) {
+  if (!running || paused || !isPlayerAlive(playerIndex) || playerLane[playerIndex] === 0) return;
+  playerLane[playerIndex] -= 1;
+  playerLaneImpulse[playerIndex] = -1;
   sfxLane();
 }
 
-function moveRight() {
-  if (!running || paused || currentLane === laneX.length - 1) return;
-  currentLane += 1;
-  laneSwitchImpulse = 1;
+function movePlayerRight(playerIndex) {
+  if (!running || paused || !isPlayerAlive(playerIndex) || playerLane[playerIndex] === laneX.length - 1) return;
+  playerLane[playerIndex] += 1;
+  playerLaneImpulse[playerIndex] = 1;
   sfxLane();
 }
 
@@ -1002,8 +1438,10 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   if (event.key === "Escape" || event.key === "p" || event.key === "P") { togglePause(); return; }
-  if (event.key === "ArrowLeft" || event.key === "a" || event.key === "A") moveLeft();
-  if (event.key === "ArrowRight" || event.key === "d" || event.key === "D") moveRight();
+  if (event.key === "ArrowLeft") movePlayerLeft(0);
+  if (event.key === "ArrowRight") movePlayerRight(0);
+  if (isMultiplayerMode() && (event.key === "a" || event.key === "A")) movePlayerLeft(1);
+  if (isMultiplayerMode() && (event.key === "d" || event.key === "D")) movePlayerRight(1);
 });
 
 let touchStartX = 0;
@@ -1015,8 +1453,8 @@ document.addEventListener("touchstart", (event) => {
 document.addEventListener("touchend", (event) => {
   if (!event.changedTouches || !event.changedTouches[0]) return;
   const dx = event.changedTouches[0].clientX - touchStartX;
-  if (dx > 26) moveRight();
-  if (dx < -26) moveLeft();
+  if (dx > 26) movePlayerRight(0);
+  if (dx < -26) movePlayerLeft(0);
 }, { passive: true });
 
 if (startBtn) {
@@ -1038,13 +1476,23 @@ if (restartBtn) {
 }
 
   if (mobileLeft) {
-    mobileLeft.addEventListener("touchstart", (e) => { e.preventDefault(); moveLeft(); }, { passive: false });
-    mobileLeft.addEventListener("click", moveLeft);
+    mobileLeft.addEventListener("touchstart", (e) => { e.preventDefault(); movePlayerLeft(0); }, { passive: false });
+    mobileLeft.addEventListener("click", () => movePlayerLeft(0));
   }
 
   if (mobileRight) {
-    mobileRight.addEventListener("touchstart", (e) => { e.preventDefault(); moveRight(); }, { passive: false });
-    mobileRight.addEventListener("click", moveRight);
+    mobileRight.addEventListener("touchstart", (e) => { e.preventDefault(); movePlayerRight(0); }, { passive: false });
+    mobileRight.addEventListener("click", () => movePlayerRight(0));
+  }
+
+  if (mobileLeftP2) {
+    mobileLeftP2.addEventListener("touchstart", (e) => { e.preventDefault(); if (isMultiplayerMode()) movePlayerLeft(1); }, { passive: false });
+    mobileLeftP2.addEventListener("click", () => { if (isMultiplayerMode()) movePlayerLeft(1); });
+  }
+
+  if (mobileRightP2) {
+    mobileRightP2.addEventListener("touchstart", (e) => { e.preventDefault(); if (isMultiplayerMode()) movePlayerRight(1); }, { passive: false });
+    mobileRightP2.addEventListener("click", () => { if (isMultiplayerMode()) movePlayerRight(1); });
   }
 
 function onResize() {
@@ -1065,20 +1513,38 @@ function animate() {
   if (paused) { renderer.render(scene, camera); return; }
 
   if (mixer) mixer.update(dt);
-  const targetX = laneX[currentLane];
-  const laneDelta = targetX - playerRoot.position.x;
-  playerRoot.position.x += laneDelta * Math.min(1, dt * 22);
-  if (Math.abs(laneDelta) < 0.02) {
-    playerRoot.position.x = targetX;
+
+  let targetCenterX = 0;
+  let livePlayerCount = 0;
+  for (let i = 0; i < PLAYER_COUNT; i++) {
+    if (!isPlayerEnabled(i)) continue;
+
+    const targetX = laneX[playerLane[i]];
+    const laneDelta = targetX - playerRoots[i].position.x;
+    playerRoots[i].position.x += laneDelta * Math.min(1, dt * 22);
+    if (Math.abs(laneDelta) < 0.02) {
+      playerRoots[i].position.x = targetX;
+    }
+
+    playerLaneImpulse[i] *= Math.max(0, 1 - dt * 8);
+    const laneTiltTarget = THREE.MathUtils.clamp((-laneDelta * 0.1) + playerLaneImpulse[i] * 0.16, -0.28, 0.28);
+    playerRoots[i].rotation.z += (laneTiltTarget - playerRoots[i].rotation.z) * Math.min(1, dt * 14);
+
+    if (isPlayerAlive(i)) {
+      targetCenterX += playerRoots[i].position.x;
+      livePlayerCount += 1;
+    }
   }
 
-  laneSwitchImpulse *= Math.max(0, 1 - dt * 8);
-  const laneTiltTarget = THREE.MathUtils.clamp((-laneDelta * 0.1) + laneSwitchImpulse * 0.16, -0.28, 0.28);
-  playerRoot.rotation.z += (laneTiltTarget - playerRoot.rotation.z) * Math.min(1, dt * 14);
+  if (!livePlayerCount) {
+    targetCenterX = playerRoots[0].position.x;
+    livePlayerCount = 1;
+  }
 
-  const cameraTargetX = playerRoot.position.x * 0.16;
+  targetCenterX /= livePlayerCount;
+  const cameraTargetX = targetCenterX * 0.16;
   camera.position.x += (cameraTargetX - camera.position.x) * Math.min(1, dt * 5);
-  camera.lookAt(playerRoot.position.x * 0.12, 1, -30);
+  camera.lookAt(targetCenterX * 0.12, 1, -30);
 
   if (shakeTime > 0) {
     shakeTime = Math.max(0, shakeTime - dt);
@@ -1092,6 +1558,13 @@ function animate() {
   if (running) {
     const modeTuning = getModeTuning();
     frameCount += 1;
+    if (playMode === "tournament" && tournamentAnnouncementTimer > 0) {
+      tournamentAnnouncementTimer = Math.max(0, tournamentAnnouncementTimer - dt);
+      if (tournamentAnnouncementTimer <= 0) {
+        setTournamentBanner("");
+        restoreTournamentSourceInfo();
+      }
+    }
 
     speedStepTimer += dt;
     spawnTimer += dt;
@@ -1115,10 +1588,13 @@ function animate() {
     if (quizSlowTimeRemaining > 0) {
       quizSlowTimeRemaining = Math.max(0, quizSlowTimeRemaining - dt);
     }
+    if (quizReadHoldRemaining > 0) {
+      quizReadHoldRemaining = Math.max(0, quizReadHoldRemaining - dt);
+    }
 
     motionSpeed = getEffectiveSpeed();
     lastMotionSpeed = motionSpeed;
-    updateQuizItems(playerRoot.position.x, playerRoot.position.z);
+    updateQuizItems();
 
     roadMarks.forEach((m) => {
       m.position.z += motionSpeed * dt;
@@ -1142,7 +1618,13 @@ function animate() {
       score += 1;
     }
 
-    if (hitCooldown > 0) hitCooldown -= dt;
+    for (let i = 0; i < PLAYER_COUNT; i++) {
+      if (playerHitCooldown[i] > 0) {
+        playerHitCooldown[i] = Math.max(0, playerHitCooldown[i] - dt);
+      }
+    }
+
+    const leadPlayerZ = Math.max(...getActivePlayerIndices().map((idx) => playerRoots[idx].position.z), playerRoots[0].position.z);
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const item = obstacles[i];
@@ -1150,20 +1632,45 @@ function animate() {
       item.mesh.rotation.x += dt * 1.7;
       item.mesh.rotation.y += dt * 2.2;
 
-      if (!item.passed && item.mesh.position.z > playerRoot.position.z + 1.3) {
+      if (!item.passed && item.mesh.position.z > leadPlayerZ + 1.3) {
         item.passed = true;
         incrementCombo();
         sfxPass();
-        score += difficulty.passPoints * modeTuning.scoreMult * comboMultiplier;
+
+        if (playMode === "multiplayer") {
+          supportStreak += 1;
+          if (supportStreak % 8 === 0) {
+            shieldCharges = Math.min(2, shieldCharges + 1);
+            updateModeHud();
+            sfxComboUp();
+          }
+        }
+
+        if (playMode === "tournament") {
+          tournamentHype = Math.min(2.4, 1 + comboStreak * 0.08 + (speed / Math.max(1, difficulty.maxSpeed)) * 0.3);
+          updateModeHud();
+        }
+
+        const modeScoreBoost = playMode === "tournament" ? tournamentHype : 1;
+        score += difficulty.passPoints * modeTuning.scoreMult * comboMultiplier * modeScoreBoost;
       }
 
       if (!quizActive) {
-        const sameLane = item.lane === currentLane;
-        const zClose = Math.abs(item.mesh.position.z - playerRoot.position.z) < 1.35;
-        if (sameLane && zClose) {
+        let collidedPlayer = -1;
+        for (let playerIndex = 0; playerIndex < PLAYER_COUNT; playerIndex++) {
+          if (!isPlayerAlive(playerIndex)) continue;
+          const sameLane = item.lane === playerLane[playerIndex];
+          const zClose = Math.abs(item.mesh.position.z - playerRoots[playerIndex].position.z) < 1.35;
+          if (sameLane && zClose) {
+            collidedPlayer = playerIndex;
+            break;
+          }
+        }
+
+        if (collidedPlayer >= 0) {
           scene.remove(item.mesh);
           obstacles.splice(i, 1);
-          takeHit();
+          takeHit(collidedPlayer);
           continue;
         }
       }
@@ -1174,6 +1681,16 @@ function animate() {
           if (wavesCleared % difficulty.waveBonusEvery === 0) {
             score += difficulty.waveBonus * modeTuning.scoreMult;
           }
+          if (playMode === "tournament") {
+            tournamentWavesThisRound += 1;
+            if (tournamentWavesThisRound >= TOURNAMENT_WAVES_PER_ROUND) {
+              tournamentWavesThisRound = 0;
+              advanceTournamentRound();
+            } else {
+              tournamentHype = Math.min(TOURNAMENT_MAX_HYPE, 1 + (tournamentRound - 1) * 0.22 + tournamentWavesThisRound * 0.05);
+              updateModeHud();
+            }
+          }
         }
         scene.remove(item.mesh);
         obstacles.splice(i, 1);
@@ -1181,6 +1698,13 @@ function animate() {
     }
 
     updateHud(motionSpeed);
+
+    if (playMode === "tournament") {
+      const look = MODE_LOOK.tournament;
+      const targetFov = look.cameraFov + Math.min(3.5, (tournamentHype - 1) * 2.4);
+      camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 3);
+      camera.updateProjectionMatrix();
+    }
   }
 
   renderer.render(scene, camera);

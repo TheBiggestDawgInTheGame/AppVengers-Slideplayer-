@@ -109,11 +109,22 @@ body {
     color: #98aacb;
 }
 
+#mpRoomCode {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
 .multiplayer-actions {
     margin-top: 8px;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 8px;
+}
+
+#mpHint {
+    margin-top: 6px;
+    color: #c7deff;
+    font-size: 12px;
 }
 
 .multiplayer-players {

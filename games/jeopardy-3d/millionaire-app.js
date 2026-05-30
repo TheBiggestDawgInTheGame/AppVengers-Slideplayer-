@@ -7,7 +7,11 @@
   const COACH_PROMPT_STATE_KEY = "slidePlayJeopardy3dCoachPromptState";
   const ADAPTIVE_PROFILE_KEY = "slidePlayJeopardy3dAdaptiveProfile";
   const ADAPTIVE_SETTINGS_KEY = "slidePlayJeopardy3dAdaptiveSettings";
+  const QUESTION_COUNT_STORAGE_KEY = "slidePlayJeopardy3dQuestionCount";
   const COACH_PROMPT_EVERY_ROUNDS = 3;
+  const DEFAULT_QUESTION_COUNT = 20;
+  const MIN_QUESTION_COUNT = 5;
+  const MAX_QUESTION_COUNT = 40;
   const TIME_PER_QUESTION = 30;
   const MIN_TIME_PER_QUESTION = 20;
   const MAX_TIME_PER_QUESTION = 42;
@@ -80,10 +84,13 @@
     adaptiveProfile: null,
     adaptiveEnabled: true,
     currentPlayerIndex: 0,
+    gameStartedAt: 0,
+    premiumReportSubmitted: false,
     gameParams: {
       mode: null,
       game: null,
       playStyle: null,
+      questionCount: DEFAULT_QUESTION_COUNT,
       content: null,
       fileName: null,
       players: [{ name: "Player 1", score: 0 }],
@@ -94,6 +101,26 @@
     return typeof GameScene !== "undefined" ? GameScene : null;
   }
 
+  function normalizeQuestionCount(count) {
+    const parsed = Number.parseInt(count, 10);
+    if (!Number.isFinite(parsed)) return DEFAULT_QUESTION_COUNT;
+    return Math.max(MIN_QUESTION_COUNT, Math.min(MAX_QUESTION_COUNT, parsed));
+  }
+
+  function getRequestedQuestionCount() {
+    const params = new URLSearchParams(window.location.search);
+    let storedCount = null;
+    try {
+      storedCount = localStorage.getItem(QUESTION_COUNT_STORAGE_KEY);
+    } catch (_error) {
+      storedCount = null;
+    }
+
+    return normalizeQuestionCount(
+      state.gameParams.questionCount || params.get("count") || storedCount || DEFAULT_QUESTION_COUNT,
+    );
+  }
+
   async function startWithParams(params) {
     // Store game parameters
     if (params) {
@@ -101,6 +128,7 @@
         mode: params.mode || null,
         game: params.game || null,
         playStyle: params.playStyle || "solo",
+        questionCount: normalizeQuestionCount(params.questionCount || DEFAULT_QUESTION_COUNT),
         content: params.content || null,
         fileName: params.fileName || null,
         players: params.players || [{ name: "Player 1", score: 0 }],
@@ -133,9 +161,12 @@
       // Do NOT use style.display since flow manager controls visibility via classList
     }
 
-    const localQuestions = readStoredQuizData();
-    const remoteQuestions = localQuestions.length ? [] : await maybeLoadQuestionsFromBackend();
-    const questions = localQuestions.length ? localQuestions : remoteQuestions;
+    const requestedCount = getRequestedQuestionCount();
+    const localQuestions = readStoredQuizData(requestedCount);
+    const remoteQuestions = localQuestions.length >= Math.min(3, requestedCount)
+      ? []
+      : await maybeLoadQuestionsFromBackend(requestedCount);
+    const questions = remoteQuestions.length > 0 ? remoteQuestions : localQuestions;
 
     if (questions.length === 0) {
       showMissingDataState();
@@ -146,7 +177,7 @@
     startGame();
   }
 
-  async function maybeLoadQuestionsFromBackend() {
+  async function maybeLoadQuestionsFromBackend(requestedCount) {
     const sourceText = readUploadedSourceText();
     if (!sourceText) {
       return [];
@@ -155,10 +186,14 @@
     // Try backend API first
     if (window.QuizAppApi) {
       try {
-        const generated = await window.QuizAppApi.generateQuestionsFromText(sourceText, 10);
+        const generated = await window.QuizAppApi.generateQuestionsFromText(sourceText, requestedCount);
         if (Array.isArray(generated) && generated.length > 0) {
-          localStorage.setItem(GENERATED_QUIZ_KEY, JSON.stringify(generated));
-          return generated.map(normalizeQuestion).filter((item) => !!item);
+          const normalizedGenerated = generated
+            .map(normalizeQuestion)
+            .filter((item) => !!item)
+            .slice(0, requestedCount);
+          localStorage.setItem(GENERATED_QUIZ_KEY, JSON.stringify(normalizedGenerated));
+          return normalizedGenerated;
         }
       } catch (_error) {
         // Fall through to local generation
@@ -169,14 +204,14 @@
     if (typeof QuizEngine !== "undefined") {
       try {
         if (QuizEngine.reset) QuizEngine.reset();
-        await QuizEngine.generateQuestions(sourceText, 10);
+        await QuizEngine.generateQuestions(sourceText, requestedCount);
         const localQuestions = [];
         let q;
         while ((q = QuizEngine.getNextQuestion())) {
           localQuestions.push(q);
         }
         if (localQuestions.length > 0) {
-          const normalized = localQuestions.map(normalizeQuestion).filter((item) => !!item);
+          const normalized = localQuestions.map(normalizeQuestion).filter((item) => !!item).slice(0, requestedCount);
           localStorage.setItem(GENERATED_QUIZ_KEY, JSON.stringify(normalized));
           return normalized;
         }
@@ -255,7 +290,7 @@
     });
   }
 
-  function readStoredQuizData() {
+  function readStoredQuizData(requestedCount = getRequestedQuestionCount()) {
     try {
       const parsed = JSON.parse(localStorage.getItem(GENERATED_QUIZ_KEY) || "[]");
       if (!Array.isArray(parsed)) {
@@ -263,7 +298,8 @@
       }
       return parsed
         .map(normalizeQuestion)
-        .filter((item) => !!item);
+        .filter((item) => !!item)
+        .slice(0, requestedCount);
     } catch (_error) {
       return [];
     }
@@ -333,6 +369,8 @@
     state.usedCallFriend = false;
     state.usedAskAudience = false;
     state.performanceLog = [];
+    state.premiumReportSubmitted = false;
+    state.gameStartedAt = Date.now();
     state.currentTimeLimit = TIME_PER_QUESTION;
     state.currentTopic = "General";
     state.currentQuestionData = null;
@@ -666,6 +704,7 @@
     setResultsInsightsText("Loading backend insights...");
     maybePromptImprovementPlan(coaching, aggregate, history);
     void submitRoundReportToBackend({ isWin, reason, winnings, latestRecord });
+    void submitPremiumStudentReport({ isWin, reason, winnings });
     void loadBackendInsightsForResults({ coaching, aggregate, trend });
     dom.resultsPanel.classList.add("show");
 
@@ -1052,6 +1091,51 @@
       setHint("Round complete. AI tracking runs in the background.");
     } catch (_error) {
       // Report sync is best-effort; local gameplay should not fail if backend is unavailable.
+    }
+  }
+
+  async function submitPremiumStudentReport(payload) {
+    if (state.premiumReportSubmitted) {
+      return;
+    }
+
+    if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== "function") {
+      return;
+    }
+
+    const questionAttempts = state.performanceLog.map((item, index) => ({
+      questionNumber: index + 1,
+      questionText: item.questionText,
+      userAnswer: item.userAnswer,
+      correctAnswer: item.correctAnswer,
+      correct: !!item.isCorrect,
+      responseSeconds: Number(item.responseSeconds || 0),
+      topic: item.topic,
+      outcome: item.outcome,
+    }));
+
+    const correctCount = questionAttempts.filter((item) => item.correct).length;
+    const durationSec = Math.max(0, Math.round((Date.now() - Number(state.gameStartedAt || Date.now())) / 1000));
+
+    const reportPayload = {
+      gameType: "jeopardy-3d",
+      score: Number(state.clearedQuestions || 0),
+      totalQuestions: Number(state.totalQuestions || 0),
+      correctCount,
+      durationSec,
+      questionAttempts,
+      meta: {
+        source: "jeopardy-3d",
+        winnings: Number(payload && payload.winnings ? payload.winnings : 0),
+        result: payload && payload.isWin ? "win" : "loss",
+        reason: payload && payload.reason ? payload.reason : "",
+        playStyle: state.gameParams && state.gameParams.playStyle ? state.gameParams.playStyle : "solo",
+      },
+    };
+
+    const result = await window.PremiumGameReporter.submitReport(reportPayload);
+    if (result && result.ok) {
+      state.premiumReportSubmitted = true;
     }
   }
 
@@ -1445,7 +1529,7 @@
     state.performanceLog = [];
 
     dom.hudQnum.textContent = "1";
-    dom.hudQtotal.textContent = String(state.totalQuestions || 10);
+    dom.hudQtotal.textContent = String(state.totalQuestions || getRequestedQuestionCount());
     dom.hudTimer.textContent = String(TIME_PER_QUESTION);
     dom.hudWinnings.textContent = "0";
     dom.btnLock.disabled = true;

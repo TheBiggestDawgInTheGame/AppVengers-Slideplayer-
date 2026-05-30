@@ -1344,6 +1344,198 @@ app.post('/send-welcome-email', async (req, res) => {
   }
 });
 
+function makeJsonString(value, fallback = []) {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return JSON.stringify(fallback);
+    try {
+      return JSON.stringify(JSON.parse(trimmed));
+    } catch (_) {
+      return JSON.stringify(trimmed.split(',').map((item) => item.trim()).filter(Boolean));
+    }
+  }
+  if (value === undefined || value === null) return JSON.stringify(fallback);
+  return JSON.stringify(value);
+}
+
+function readJsonField(value, fallback) {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function normalizeNullableString(value, maxLen = 255) {
+  if (value === undefined || value === null) return null;
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, maxLen);
+}
+
+function generateClassCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+async function getDbRole(uid) {
+  if (!dbModule || !uid) return null;
+  const result = await dbModule.query(
+    'SELECT TOP 1 Role FROM Users WHERE FirebaseUID = @uid',
+    { uid }
+  );
+  if (!result.recordset.length) return null;
+  return String(result.recordset[0].Role || '').toLowerCase() || null;
+}
+
+async function ensureTeacherRole(uid) {
+  const role = await getDbRole(uid);
+  return role === 'teacher' || role === 'admin';
+}
+
+function formatProfileRow(row) {
+  if (!row) return null;
+  return {
+    uid: row.FirebaseUID,
+    email: row.Email,
+    displayName: row.DisplayName,
+    role: row.Role,
+    bio: row.Bio || '',
+    avatarUrl: row.AvatarUrl || '',
+    gradeLevel: row.GradeLevel || '',
+    schoolName: row.SchoolName || '',
+    preferences: readJsonField(row.PreferencesJson, {}),
+    isDeleted: Boolean(row.IsDeleted),
+    createdAt: row.CreatedAt,
+    lastLoginAt: row.LastLoginAt,
+    deactivatedAt: row.DeactivatedAt,
+  };
+}
+
+async function isPremiumStudent(uid) {
+  if (!dbModule || !uid) return false;
+  try {
+    const result = await dbModule.query(
+      `SELECT TOP 1 [Plan], [Status]
+       FROM Subscriptions
+       WHERE FirebaseUID = @uid
+       ORDER BY CreatedAt DESC`,
+      { uid }
+    );
+    if (!result.recordset.length) return false;
+    const row = result.recordset[0];
+    const plan = String(row.Plan || '').toLowerCase();
+    const status = String(row.Status || '').toLowerCase();
+    if (status !== 'active') return false;
+    return plan === 'student_elite' || plan === 'student_premium';
+  } catch (_) {
+    return false;
+  }
+}
+
+function buildFallbackPerformanceSummary(payload) {
+  const total = Number(payload.totalQuestions || 0);
+  const correct = Number(payload.correctCount || 0);
+  const score = Number(payload.score || 0);
+  const acc = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const weak = (payload.questionAttempts || [])
+    .filter((q) => !q.correct)
+    .slice(0, 3)
+    .map((q) => q.question || 'a missed question');
+  const weakLine = weak.length
+    ? `Focus next on: ${weak.join('; ')}.`
+    : 'No major weak spots detected in this game.';
+  return [
+    `Performance Summary: You scored ${score} points with ${correct}/${total} correct (${acc}%).`,
+    weakLine,
+    'Next Step: Review explanations for missed questions and replay one session to improve speed and accuracy.'
+  ].join(' ');
+}
+
+async function generatePerformanceReportWithAI(payload) {
+  const compactAttempts = (payload.questionAttempts || []).slice(0, 20).map((q, index) => ({
+    idx: index + 1,
+    question: q.question,
+    correct: !!q.correct,
+    points: Number(q.points || 0),
+    timeSec: Number(q.timeSec || 0),
+    chosen: typeof q.chosenIndex === 'number' ? q.chosenIndex : null,
+    answer: typeof q.correctIndex === 'number' ? q.correctIndex : null,
+  }));
+
+  const prompt = [
+    'You are an elite learning performance coach.',
+    'Create a concise personalized student game report with this structure:',
+    '1) Overall performance summary',
+    '2) Strengths shown',
+    '3) Mistake patterns and likely causes',
+    '4) Question-level remediation tips (concrete and specific)',
+    '5) 3 action steps for the next game session',
+    'Keep it practical, encouraging, and specific to the provided attempts.',
+    'Return plain text only.',
+    '',
+    'DATA:',
+    JSON.stringify({
+      gameType: payload.gameType || 'quiz',
+      score: Number(payload.score || 0),
+      totalQuestions: Number(payload.totalQuestions || 0),
+      correctCount: Number(payload.correctCount || 0),
+      durationSec: Number(payload.durationSec || 0),
+      attempts: compactAttempts,
+    })
+  ].join('\n');
+
+  if (GROQ_API_KEY) {
+    try {
+      const upstream = await fetch(GROQ_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: GROQ_MODEL,
+          messages: [
+            { role: 'system', content: 'You produce high-quality educational performance reports.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.4,
+          max_tokens: 1100
+        })
+      });
+      if (upstream.ok) {
+        const data = await upstream.json();
+        const text = data?.choices?.[0]?.message?.content || '';
+        if (text.trim()) return text.trim();
+      }
+    } catch (_) {}
+  }
+
+  if (GEMINI_API_KEY) {
+    try {
+      const geminiResp = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 1100
+          }
+        })
+      });
+      if (geminiResp.ok) {
+        const gData = await geminiResp.json();
+        const text = gData?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('\n').trim();
+        if (text) return text;
+      }
+    } catch (_) {}
+  }
+
+  return buildFallbackPerformanceSummary(payload);
+}
+
 // ── DB: sync Firebase user ────────────────────────────────────────────────────
 app.post('/api/users/sync', async (req, res) => {
   if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
@@ -1442,21 +1634,1100 @@ app.get('/api/users/:uid/role', async (req, res) => {
   }
 });
 
+// ── DB: user profile CRUD ─────────────────────────────────────────────────────
+app.get('/api/users/:uid/profile', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  try {
+    const result = await dbModule.query(
+      `SELECT FirebaseUID, Email, DisplayName, Role, Bio, AvatarUrl, GradeLevel, SchoolName,
+              PreferencesJson, IsDeleted, CreatedAt, LastLoginAt, DeactivatedAt
+       FROM Users
+       WHERE FirebaseUID = @uid`,
+      { uid }
+    );
+    if (!result.recordset.length) return res.status(404).json({ error: 'User not found' });
+    res.json({ profile: formatProfileRow(result.recordset[0]) });
+  } catch (err) {
+    console.error('users/:uid/profile error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.put('/api/users/:uid/profile', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  const {
+    displayName,
+    bio,
+    avatarUrl,
+    gradeLevel,
+    schoolName,
+    preferences,
+  } = req.body || {};
+
+  try {
+    await dbModule.query(
+      `UPDATE Users
+       SET DisplayName = COALESCE(@displayName, DisplayName),
+           Bio = @bio,
+           AvatarUrl = @avatarUrl,
+           GradeLevel = @gradeLevel,
+           SchoolName = @schoolName,
+           PreferencesJson = @preferencesJson
+       WHERE FirebaseUID = @uid`,
+      {
+        uid,
+        displayName: normalizeNullableString(displayName),
+        bio: normalizeNullableString(bio, 1000),
+        avatarUrl: normalizeNullableString(avatarUrl, 1000),
+        gradeLevel: normalizeNullableString(gradeLevel, 80),
+        schoolName: normalizeNullableString(schoolName, 200),
+        preferencesJson: makeJsonString(preferences, {}),
+      }
+    );
+
+    const updated = await dbModule.query(
+      `SELECT FirebaseUID, Email, DisplayName, Role, Bio, AvatarUrl, GradeLevel, SchoolName,
+              PreferencesJson, IsDeleted, CreatedAt, LastLoginAt, DeactivatedAt
+       FROM Users
+       WHERE FirebaseUID = @uid`,
+      { uid }
+    );
+    if (!updated.recordset.length) return res.status(404).json({ error: 'User not found' });
+    res.json({ ok: true, profile: formatProfileRow(updated.recordset[0]) });
+  } catch (err) {
+    console.error('users/:uid/profile update error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.delete('/api/users/:uid/profile', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  try {
+    const result = await dbModule.query(
+      `UPDATE Users
+       SET IsDeleted = 1,
+           DeactivatedAt = SYSUTCDATETIME(),
+           PreferencesJson = COALESCE(PreferencesJson, '{}')
+       WHERE FirebaseUID = @uid`,
+      { uid }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'User not found' });
+    res.json({ ok: true, uid, status: 'deactivated' });
+  } catch (err) {
+    console.error('users/:uid/profile delete error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── DB: personal notes CRUD ──────────────────────────────────────────────────
+app.get('/api/users/:uid/notes', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  try {
+    const result = await dbModule.query(
+      `SELECT NoteID, FirebaseUID, Title, Content, Subject, TagsJson, CreatedAt, UpdatedAt, IsPinned
+       FROM StudentNotes
+       WHERE FirebaseUID = @uid
+       ORDER BY IsPinned DESC, UpdatedAt DESC, CreatedAt DESC`,
+      { uid }
+    );
+    const notes = (result.recordset || []).map((row) => ({
+      noteId: row.NoteID,
+      uid: row.FirebaseUID,
+      title: row.Title,
+      content: row.Content,
+      subject: row.Subject || '',
+      tags: readJsonField(row.TagsJson, []),
+      isPinned: Boolean(row.IsPinned),
+      createdAt: row.CreatedAt,
+      updatedAt: row.UpdatedAt,
+    }));
+    res.json({ notes });
+  } catch (err) {
+    console.error('users/:uid/notes list error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.post('/api/users/:uid/notes', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  const { title, content, subject, tags, isPinned } = req.body || {};
+  if (!title && !content) return res.status(400).json({ error: 'title or content required' });
+  try {
+    const result = await dbModule.query(
+      `INSERT INTO StudentNotes (FirebaseUID, Title, Content, Subject, TagsJson, IsPinned)
+       OUTPUT INSERTED.NoteID, INSERTED.FirebaseUID, INSERTED.Title, INSERTED.Content,
+              INSERTED.Subject, INSERTED.TagsJson, INSERTED.CreatedAt, INSERTED.UpdatedAt, INSERTED.IsPinned
+       VALUES (@uid, @title, @content, @subject, @tagsJson, @isPinned)`,
+      {
+        uid,
+        title: normalizeNullableString(title, 200) || 'Untitled note',
+        content: normalizeNullableString(content, 4000) || '',
+        subject: normalizeNullableString(subject, 120),
+        tagsJson: makeJsonString(tags, []),
+        isPinned: isPinned ? 1 : 0,
+      }
+    );
+    const note = result.recordset[0];
+    res.status(201).json({
+      ok: true,
+      note: {
+        noteId: note.NoteID,
+        uid: note.FirebaseUID,
+        title: note.Title,
+        content: note.Content,
+        subject: note.Subject || '',
+        tags: readJsonField(note.TagsJson, []),
+        isPinned: Boolean(note.IsPinned),
+        createdAt: note.CreatedAt,
+        updatedAt: note.UpdatedAt,
+      }
+    });
+  } catch (err) {
+    console.error('users/:uid/notes create error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.put('/api/users/:uid/notes/:noteId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid, noteId } = req.params;
+  const { title, content, subject, tags, isPinned } = req.body || {};
+  try {
+    const result = await dbModule.query(
+      `UPDATE StudentNotes
+       SET Title = COALESCE(@title, Title),
+           Content = COALESCE(@content, Content),
+           Subject = @subject,
+           TagsJson = @tagsJson,
+           IsPinned = @isPinned,
+           UpdatedAt = SYSUTCDATETIME()
+       WHERE NoteID = @noteId AND FirebaseUID = @uid`,
+      {
+        uid,
+        noteId: parseInt(noteId, 10),
+        title: normalizeNullableString(title, 200),
+        content: normalizeNullableString(content, 4000),
+        subject: normalizeNullableString(subject, 120),
+        tagsJson: makeJsonString(tags, []),
+        isPinned: isPinned ? 1 : 0,
+      }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Note not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('users/:uid/notes update error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.delete('/api/users/:uid/notes/:noteId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid, noteId } = req.params;
+  try {
+    const result = await dbModule.query(
+      'DELETE FROM StudentNotes WHERE NoteID = @noteId AND FirebaseUID = @uid',
+      { uid, noteId: parseInt(noteId, 10) }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Note not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('users/:uid/notes delete error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── DB: bookmarks CRUD ───────────────────────────────────────────────────────
+app.get('/api/users/:uid/bookmarks', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  try {
+    const result = await dbModule.query(
+      `SELECT BookmarkID, FirebaseUID, ResourceType, ResourceId, Title, Url, MetadataJson, CreatedAt
+       FROM UserBookmarks
+       WHERE FirebaseUID = @uid
+       ORDER BY CreatedAt DESC`,
+      { uid }
+    );
+    res.json({
+      bookmarks: (result.recordset || []).map((row) => ({
+        bookmarkId: row.BookmarkID,
+        uid: row.FirebaseUID,
+        resourceType: row.ResourceType,
+        resourceId: row.ResourceId || '',
+        title: row.Title,
+        url: row.Url || '',
+        metadata: readJsonField(row.MetadataJson, {}),
+        createdAt: row.CreatedAt,
+      }))
+    });
+  } catch (err) {
+    console.error('users/:uid/bookmarks list error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.post('/api/users/:uid/bookmarks', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  const { resourceType, resourceId, title, url, metadata } = req.body || {};
+  if (!resourceType || !title) return res.status(400).json({ error: 'resourceType and title required' });
+  try {
+    const result = await dbModule.query(
+      `INSERT INTO UserBookmarks (FirebaseUID, ResourceType, ResourceId, Title, Url, MetadataJson)
+       OUTPUT INSERTED.BookmarkID, INSERTED.FirebaseUID, INSERTED.ResourceType, INSERTED.ResourceId,
+              INSERTED.Title, INSERTED.Url, INSERTED.MetadataJson, INSERTED.CreatedAt
+       VALUES (@uid, @resourceType, @resourceId, @title, @url, @metadataJson)`,
+      {
+        uid,
+        resourceType: normalizeNullableString(resourceType, 80),
+        resourceId: normalizeNullableString(resourceId, 120),
+        title: normalizeNullableString(title, 200),
+        url: normalizeNullableString(url, 1000),
+        metadataJson: makeJsonString(metadata, {}),
+      }
+    );
+    const row = result.recordset[0];
+    res.status(201).json({
+      ok: true,
+      bookmark: {
+        bookmarkId: row.BookmarkID,
+        uid: row.FirebaseUID,
+        resourceType: row.ResourceType,
+        resourceId: row.ResourceId || '',
+        title: row.Title,
+        url: row.Url || '',
+        metadata: readJsonField(row.MetadataJson, {}),
+        createdAt: row.CreatedAt,
+      }
+    });
+  } catch (err) {
+    console.error('users/:uid/bookmarks create error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.put('/api/users/:uid/bookmarks/:bookmarkId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid, bookmarkId } = req.params;
+  const { resourceType, resourceId, title, url, metadata } = req.body || {};
+  try {
+    const result = await dbModule.query(
+      `UPDATE UserBookmarks
+       SET ResourceType = COALESCE(@resourceType, ResourceType),
+           ResourceId = @resourceId,
+           Title = COALESCE(@title, Title),
+           Url = @url,
+           MetadataJson = @metadataJson
+       WHERE BookmarkID = @bookmarkId AND FirebaseUID = @uid`,
+      {
+        uid,
+        bookmarkId: parseInt(bookmarkId, 10),
+        resourceType: normalizeNullableString(resourceType, 80),
+        resourceId: normalizeNullableString(resourceId, 120),
+        title: normalizeNullableString(title, 200),
+        url: normalizeNullableString(url, 1000),
+        metadataJson: makeJsonString(metadata, {}),
+      }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Bookmark not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('users/:uid/bookmarks update error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.delete('/api/users/:uid/bookmarks/:bookmarkId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid, bookmarkId } = req.params;
+  try {
+    const result = await dbModule.query(
+      'DELETE FROM UserBookmarks WHERE BookmarkID = @bookmarkId AND FirebaseUID = @uid',
+      { uid, bookmarkId: parseInt(bookmarkId, 10) }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Bookmark not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('users/:uid/bookmarks delete error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── DB: notifications CRUD ───────────────────────────────────────────────────
+app.get('/api/users/:uid/notifications', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  try {
+    const result = await dbModule.query(
+      `SELECT NotificationID, FirebaseUID, Type, Title, Message, LinkUrl, IsRead, CreatedAt, ReadAt
+       FROM UserNotifications
+       WHERE FirebaseUID = @uid
+       ORDER BY CreatedAt DESC`,
+      { uid }
+    );
+    res.json({
+      notifications: (result.recordset || []).map((row) => ({
+        notificationId: row.NotificationID,
+        uid: row.FirebaseUID,
+        type: row.Type,
+        title: row.Title,
+        message: row.Message,
+        linkUrl: row.LinkUrl || '',
+        isRead: Boolean(row.IsRead),
+        createdAt: row.CreatedAt,
+        readAt: row.ReadAt,
+      }))
+    });
+  } catch (err) {
+    console.error('users/:uid/notifications list error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.post('/api/users/:uid/notifications', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  const { type, title, message, linkUrl, isRead } = req.body || {};
+  if (!title || !message) return res.status(400).json({ error: 'title and message required' });
+  try {
+    const result = await dbModule.query(
+      `INSERT INTO UserNotifications (FirebaseUID, Type, Title, Message, LinkUrl, IsRead, ReadAt)
+       OUTPUT INSERTED.NotificationID, INSERTED.FirebaseUID, INSERTED.Type, INSERTED.Title,
+              INSERTED.Message, INSERTED.LinkUrl, INSERTED.IsRead, INSERTED.CreatedAt, INSERTED.ReadAt
+       VALUES (@uid, @type, @title, @message, @linkUrl, @isRead,
+               CASE WHEN @isRead = 1 THEN SYSUTCDATETIME() ELSE NULL END)`,
+      {
+        uid,
+        type: normalizeNullableString(type, 80) || 'general',
+        title: normalizeNullableString(title, 200),
+        message: normalizeNullableString(message, 2000),
+        linkUrl: normalizeNullableString(linkUrl, 1000),
+        isRead: isRead ? 1 : 0,
+      }
+    );
+    const row = result.recordset[0];
+    res.status(201).json({
+      ok: true,
+      notification: {
+        notificationId: row.NotificationID,
+        uid: row.FirebaseUID,
+        type: row.Type,
+        title: row.Title,
+        message: row.Message,
+        linkUrl: row.LinkUrl || '',
+        isRead: Boolean(row.IsRead),
+        createdAt: row.CreatedAt,
+        readAt: row.ReadAt,
+      }
+    });
+  } catch (err) {
+    console.error('users/:uid/notifications create error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.patch('/api/users/:uid/notifications/:notificationId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid, notificationId } = req.params;
+  const { type, title, message, linkUrl, isRead } = req.body || {};
+  try {
+    const result = await dbModule.query(
+      `UPDATE UserNotifications
+       SET Type = COALESCE(@type, Type),
+           Title = COALESCE(@title, Title),
+           Message = COALESCE(@message, Message),
+           LinkUrl = @linkUrl,
+           IsRead = COALESCE(@isRead, IsRead),
+           ReadAt = CASE
+             WHEN COALESCE(@isRead, IsRead) = 1 THEN COALESCE(ReadAt, SYSUTCDATETIME())
+             ELSE NULL
+           END
+       WHERE NotificationID = @notificationId AND FirebaseUID = @uid`,
+      {
+        uid,
+        notificationId: parseInt(notificationId, 10),
+        type: normalizeNullableString(type, 80),
+        title: normalizeNullableString(title, 200),
+        message: normalizeNullableString(message, 2000),
+        linkUrl: normalizeNullableString(linkUrl, 1000),
+        isRead: typeof isRead === 'boolean' ? (isRead ? 1 : 0) : null,
+      }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Notification not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('users/:uid/notifications update error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.delete('/api/users/:uid/notifications/:notificationId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid, notificationId } = req.params;
+  try {
+    const result = await dbModule.query(
+      'DELETE FROM UserNotifications WHERE NotificationID = @notificationId AND FirebaseUID = @uid',
+      { uid, notificationId: parseInt(notificationId, 10) }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Notification not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('users/:uid/notifications delete error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── DB: premium student AI game reports ─────────────────────────────────────
+app.post('/api/students/:uid/game-reports', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  const {
+    gameType,
+    sessionCode,
+    score,
+    totalQuestions,
+    correctCount,
+    durationSec,
+    questionAttempts,
+    meta
+  } = req.body || {};
+
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  if (!Array.isArray(questionAttempts) || !questionAttempts.length) {
+    return res.status(400).json({ error: 'questionAttempts required' });
+  }
+
+  try {
+    const isPremium = await isPremiumStudent(uid);
+    if (!isPremium) {
+      return res.status(403).json({ error: 'Premium student plan required' });
+    }
+
+    const reportText = await generatePerformanceReportWithAI({
+      gameType,
+      score,
+      totalQuestions,
+      correctCount,
+      durationSec,
+      questionAttempts,
+      meta,
+    });
+
+    const insert = await dbModule.query(
+      `INSERT INTO PremiumGameReports
+       (FirebaseUID, GameType, SessionCode, Score, TotalQuestions, CorrectCount, DurationSec, AttemptsJson, ReportText, MetaJson)
+       OUTPUT INSERTED.ReportID, INSERTED.CreatedAt
+       VALUES
+       (@uid, @gameType, @sessionCode, @score, @totalQuestions, @correctCount, @durationSec, @attemptsJson, @reportText, @metaJson)`,
+      {
+        uid,
+        gameType: normalizeNullableString(gameType, 80) || 'quiz',
+        sessionCode: normalizeNullableString(sessionCode, 32),
+        score: Number(score || 0),
+        totalQuestions: Number(totalQuestions || 0),
+        correctCount: Number(correctCount || 0),
+        durationSec: Number(durationSec || 0),
+        attemptsJson: makeJsonString(questionAttempts, []),
+        reportText,
+        metaJson: makeJsonString(meta, {}),
+      }
+    );
+
+    const row = insert.recordset?.[0] || {};
+    res.status(201).json({
+      ok: true,
+      report: {
+        reportId: row.ReportID,
+        createdAt: row.CreatedAt,
+        reportText,
+      }
+    });
+  } catch (err) {
+    console.error('students/:uid/game-reports create error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.get('/api/students/:uid/game-reports', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 20));
+  try {
+    const result = await dbModule.query(
+      `SELECT TOP (@limit)
+         ReportID, FirebaseUID, GameType, SessionCode, Score, TotalQuestions, CorrectCount,
+         DurationSec, AttemptsJson, ReportText, MetaJson, CreatedAt
+       FROM PremiumGameReports
+       WHERE FirebaseUID = @uid
+       ORDER BY CreatedAt DESC`,
+      { uid, limit }
+    );
+
+    const reports = (result.recordset || []).map((row) => ({
+      reportId: row.ReportID,
+      uid: row.FirebaseUID,
+      gameType: row.GameType,
+      sessionCode: row.SessionCode || '',
+      score: Number(row.Score || 0),
+      totalQuestions: Number(row.TotalQuestions || 0),
+      correctCount: Number(row.CorrectCount || 0),
+      durationSec: Number(row.DurationSec || 0),
+      attempts: readJsonField(row.AttemptsJson, []),
+      reportText: row.ReportText || '',
+      meta: readJsonField(row.MetaJson, {}),
+      createdAt: row.CreatedAt,
+    }));
+
+    res.json({ reports });
+  } catch (err) {
+    console.error('students/:uid/game-reports list error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── DB: teacher class CRUD ───────────────────────────────────────────────────
+app.get('/api/teacher/classes', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const uid = req.query.uid;
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    const result = await dbModule.query(
+      `SELECT tc.ClassID, tc.TeacherUID, tc.ClassCode, tc.Name, tc.Subject, tc.Description,
+              tc.GradeLevel, tc.IsArchived, tc.CreatedAt, tc.UpdatedAt,
+              (SELECT COUNT(*) FROM ClassStudents cs WHERE cs.ClassID = tc.ClassID AND cs.Status = 'active') AS StudentCount
+       FROM TeacherClasses tc
+       WHERE tc.TeacherUID = @uid
+       ORDER BY tc.CreatedAt DESC`,
+      { uid }
+    );
+    res.json({ classes: result.recordset || [] });
+  } catch (err) {
+    console.error('teacher/classes list error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.post('/api/teacher/classes', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid, name, subject, description, gradeLevel, classCode } = req.body || {};
+  if (!uid || !name) return res.status(400).json({ error: 'uid and name required' });
+  try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    const result = await dbModule.query(
+      `INSERT INTO TeacherClasses (TeacherUID, ClassCode, Name, Subject, Description, GradeLevel)
+       OUTPUT INSERTED.ClassID, INSERTED.TeacherUID, INSERTED.ClassCode, INSERTED.Name,
+              INSERTED.Subject, INSERTED.Description, INSERTED.GradeLevel, INSERTED.CreatedAt, INSERTED.UpdatedAt, INSERTED.IsArchived
+       VALUES (@uid, @classCode, @name, @subject, @description, @gradeLevel)`,
+      {
+        uid,
+        classCode: normalizeNullableString(classCode, 12) || generateClassCode(),
+        name: normalizeNullableString(name, 200),
+        subject: normalizeNullableString(subject, 120),
+        description: normalizeNullableString(description, 2000),
+        gradeLevel: normalizeNullableString(gradeLevel, 80),
+      }
+    );
+    res.status(201).json({ ok: true, class: result.recordset[0] });
+  } catch (err) {
+    console.error('teacher/classes create error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.get('/api/teacher/classes/:classId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const classId = parseInt(req.params.classId, 10);
+  try {
+    const [classRes, studentsRes, assignmentsRes] = await Promise.all([
+      dbModule.query(
+        `SELECT ClassID, TeacherUID, ClassCode, Name, Subject, Description, GradeLevel, IsArchived, CreatedAt, UpdatedAt
+         FROM TeacherClasses WHERE ClassID = @classId`,
+        { classId }
+      ),
+      dbModule.query(
+        `SELECT ClassStudentID, ClassID, StudentUID, DisplayName, Status, JoinedAt
+         FROM ClassStudents WHERE ClassID = @classId ORDER BY JoinedAt DESC`,
+        { classId }
+      ),
+      dbModule.query(
+        `SELECT AssignmentID, ClassID, TeacherUID, DeckID, Title, Instructions, DueAt, MaxPoints, Status, CreatedAt, UpdatedAt
+         FROM TeacherAssignments WHERE ClassID = @classId AND IsArchived = 0 ORDER BY CreatedAt DESC`,
+        { classId }
+      )
+    ]);
+    if (!classRes.recordset.length) return res.status(404).json({ error: 'Class not found' });
+    res.json({
+      class: classRes.recordset[0],
+      students: studentsRes.recordset || [],
+      assignments: assignmentsRes.recordset || [],
+    });
+  } catch (err) {
+    console.error('teacher/classes detail error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.put('/api/teacher/classes/:classId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const classId = parseInt(req.params.classId, 10);
+  const { uid, name, subject, description, gradeLevel, isArchived } = req.body || {};
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    const result = await dbModule.query(
+      `UPDATE TeacherClasses
+       SET Name = COALESCE(@name, Name),
+           Subject = @subject,
+           Description = @description,
+           GradeLevel = @gradeLevel,
+           IsArchived = COALESCE(@isArchived, IsArchived),
+           UpdatedAt = SYSUTCDATETIME()
+       WHERE ClassID = @classId AND TeacherUID = @uid`,
+      {
+        uid,
+        classId,
+        name: normalizeNullableString(name, 200),
+        subject: normalizeNullableString(subject, 120),
+        description: normalizeNullableString(description, 2000),
+        gradeLevel: normalizeNullableString(gradeLevel, 80),
+        isArchived: typeof isArchived === 'boolean' ? (isArchived ? 1 : 0) : null,
+      }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Class not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('teacher/classes update error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.delete('/api/teacher/classes/:classId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const classId = parseInt(req.params.classId, 10);
+  const uid = req.query.uid;
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    const result = await dbModule.query(
+      `UPDATE TeacherClasses
+       SET IsArchived = 1, UpdatedAt = SYSUTCDATETIME()
+       WHERE ClassID = @classId AND TeacherUID = @uid`,
+      { classId, uid }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Class not found' });
+    res.json({ ok: true, archived: true });
+  } catch (err) {
+    console.error('teacher/classes delete error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.get('/api/teacher/classes/:classId/students', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const classId = parseInt(req.params.classId, 10);
+  try {
+    const result = await dbModule.query(
+      `SELECT cs.ClassStudentID, cs.ClassID, cs.StudentUID, cs.DisplayName, cs.Status, cs.JoinedAt,
+              u.Email, u.Role
+       FROM ClassStudents cs
+       LEFT JOIN Users u ON u.FirebaseUID = cs.StudentUID
+       WHERE cs.ClassID = @classId
+       ORDER BY cs.JoinedAt DESC`,
+      { classId }
+    );
+    res.json({ students: result.recordset || [] });
+  } catch (err) {
+    console.error('teacher/classes students error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.post('/api/teacher/classes/:classId/students', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const classId = parseInt(req.params.classId, 10);
+  const { studentUid, displayName } = req.body || {};
+  if (!studentUid) return res.status(400).json({ error: 'studentUid required' });
+  try {
+    await dbModule.query(
+      `IF NOT EXISTS (SELECT 1 FROM ClassStudents WHERE ClassID = @classId AND StudentUID = @studentUid)
+         INSERT INTO ClassStudents (ClassID, StudentUID, DisplayName)
+         VALUES (@classId, @studentUid, @displayName)
+       ELSE
+         UPDATE ClassStudents
+         SET Status = 'active', DisplayName = COALESCE(@displayName, DisplayName)
+         WHERE ClassID = @classId AND StudentUID = @studentUid`,
+      {
+        classId,
+        studentUid,
+        displayName: normalizeNullableString(displayName, 200),
+      }
+    );
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    console.error('teacher/classes add student error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.delete('/api/teacher/classes/:classId/students/:studentUid', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const classId = parseInt(req.params.classId, 10);
+  const { studentUid } = req.params;
+  try {
+    const result = await dbModule.query(
+      `UPDATE ClassStudents
+       SET Status = 'removed'
+       WHERE ClassID = @classId AND StudentUID = @studentUid`,
+      { classId, studentUid }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Student membership not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('teacher/classes remove student error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── DB: student class access ─────────────────────────────────────────────────
+app.get('/api/classes/:code', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const code = String(req.params.code || '').trim().toUpperCase();
+  try {
+    const result = await dbModule.query(
+      `SELECT TOP 1 ClassID, TeacherUID, ClassCode, Name, Subject, Description, GradeLevel, IsArchived, CreatedAt, UpdatedAt
+       FROM TeacherClasses
+       WHERE ClassCode = @code AND IsArchived = 0`,
+      { code }
+    );
+    if (!result.recordset.length) return res.status(404).json({ error: 'Class not found' });
+    res.json({ class: result.recordset[0] });
+  } catch (err) {
+    console.error('classes/:code lookup error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.post('/api/classes/:code/join', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const code = String(req.params.code || '').trim().toUpperCase();
+  const { uid, displayName } = req.body || {};
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    const classRes = await dbModule.query(
+      'SELECT TOP 1 ClassID FROM TeacherClasses WHERE ClassCode = @code AND IsArchived = 0',
+      { code }
+    );
+    if (!classRes.recordset.length) return res.status(404).json({ error: 'Class not found' });
+    const classId = classRes.recordset[0].ClassID;
+    await dbModule.query(
+      `IF NOT EXISTS (SELECT 1 FROM ClassStudents WHERE ClassID = @classId AND StudentUID = @uid)
+         INSERT INTO ClassStudents (ClassID, StudentUID, DisplayName)
+         VALUES (@classId, @uid, @displayName)
+       ELSE
+         UPDATE ClassStudents
+         SET Status = 'active', DisplayName = COALESCE(@displayName, DisplayName)
+         WHERE ClassID = @classId AND StudentUID = @uid`,
+      { classId, uid, displayName: normalizeNullableString(displayName, 200) }
+    );
+    res.json({ ok: true, classId });
+  } catch (err) {
+    console.error('classes/:code/join error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.get('/api/students/:uid/classes', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid } = req.params;
+  try {
+    const result = await dbModule.query(
+      `SELECT tc.ClassID, tc.TeacherUID, tc.ClassCode, tc.Name, tc.Subject, tc.Description,
+              tc.GradeLevel, cs.Status, cs.JoinedAt
+       FROM ClassStudents cs
+       JOIN TeacherClasses tc ON tc.ClassID = cs.ClassID
+       WHERE cs.StudentUID = @uid AND tc.IsArchived = 0
+       ORDER BY cs.JoinedAt DESC`,
+      { uid }
+    );
+    res.json({ classes: result.recordset || [] });
+  } catch (err) {
+    console.error('students/:uid/classes error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── DB: teacher assignments CRUD ─────────────────────────────────────────────
+app.get('/api/teacher/assignments', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const uid = req.query.uid;
+  const classId = req.query.classId ? parseInt(req.query.classId, 10) : null;
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    const result = await dbModule.query(
+      `SELECT AssignmentID, TeacherUID, ClassID, DeckID, Title, Instructions, DueAt, MaxPoints, Status, CreatedAt, UpdatedAt
+       FROM TeacherAssignments
+       WHERE TeacherUID = @uid
+         AND IsArchived = 0
+         AND (@classId IS NULL OR ClassID = @classId)
+       ORDER BY CreatedAt DESC`,
+      { uid, classId }
+    );
+    res.json({ assignments: result.recordset || [] });
+  } catch (err) {
+    console.error('teacher/assignments list error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.post('/api/teacher/assignments', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const { uid, classId, deckId, title, instructions, dueAt, maxPoints, status } = req.body || {};
+  if (!uid || !title) return res.status(400).json({ error: 'uid and title required' });
+  try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    const result = await dbModule.query(
+      `INSERT INTO TeacherAssignments (TeacherUID, ClassID, DeckID, Title, Instructions, DueAt, MaxPoints, Status)
+       OUTPUT INSERTED.AssignmentID, INSERTED.TeacherUID, INSERTED.ClassID, INSERTED.DeckID,
+              INSERTED.Title, INSERTED.Instructions, INSERTED.DueAt, INSERTED.MaxPoints,
+              INSERTED.Status, INSERTED.CreatedAt, INSERTED.UpdatedAt
+       VALUES (@uid, @classId, @deckId, @title, @instructions, @dueAt, @maxPoints, @status)`,
+      {
+        uid,
+        classId: classId ? parseInt(classId, 10) : null,
+        deckId: deckId ? parseInt(deckId, 10) : null,
+        title: normalizeNullableString(title, 200),
+        instructions: normalizeNullableString(instructions, 4000),
+        dueAt: dueAt || null,
+        maxPoints: maxPoints ? parseInt(maxPoints, 10) : 100,
+        status: normalizeNullableString(status, 40) || 'draft',
+      }
+    );
+    res.status(201).json({ ok: true, assignment: result.recordset[0] });
+  } catch (err) {
+    console.error('teacher/assignments create error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.get('/api/teacher/assignments/:assignmentId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const assignmentId = parseInt(req.params.assignmentId, 10);
+  try {
+    const result = await dbModule.query(
+      `SELECT AssignmentID, TeacherUID, ClassID, DeckID, Title, Instructions, DueAt, MaxPoints, Status, CreatedAt, UpdatedAt
+       FROM TeacherAssignments
+       WHERE AssignmentID = @assignmentId AND IsArchived = 0`,
+      { assignmentId }
+    );
+    if (!result.recordset.length) return res.status(404).json({ error: 'Assignment not found' });
+    res.json({ assignment: result.recordset[0] });
+  } catch (err) {
+    console.error('teacher/assignments detail error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.put('/api/teacher/assignments/:assignmentId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const assignmentId = parseInt(req.params.assignmentId, 10);
+  const { uid, classId, deckId, title, instructions, dueAt, maxPoints, status } = req.body || {};
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    const result = await dbModule.query(
+      `UPDATE TeacherAssignments
+       SET ClassID = @classId,
+           DeckID = @deckId,
+           Title = COALESCE(@title, Title),
+           Instructions = @instructions,
+           DueAt = @dueAt,
+           MaxPoints = COALESCE(@maxPoints, MaxPoints),
+           Status = COALESCE(@status, Status),
+           UpdatedAt = SYSUTCDATETIME()
+       WHERE AssignmentID = @assignmentId AND TeacherUID = @uid AND IsArchived = 0`,
+      {
+        uid,
+        assignmentId,
+        classId: classId ? parseInt(classId, 10) : null,
+        deckId: deckId ? parseInt(deckId, 10) : null,
+        title: normalizeNullableString(title, 200),
+        instructions: normalizeNullableString(instructions, 4000),
+        dueAt: dueAt || null,
+        maxPoints: maxPoints ? parseInt(maxPoints, 10) : null,
+        status: normalizeNullableString(status, 40),
+      }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Assignment not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('teacher/assignments update error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.delete('/api/teacher/assignments/:assignmentId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const assignmentId = parseInt(req.params.assignmentId, 10);
+  const uid = req.query.uid;
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    const result = await dbModule.query(
+      `UPDATE TeacherAssignments
+       SET IsArchived = 1, UpdatedAt = SYSUTCDATETIME()
+       WHERE AssignmentID = @assignmentId AND TeacherUID = @uid`,
+      { assignmentId, uid }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Assignment not found' });
+    res.json({ ok: true, archived: true });
+  } catch (err) {
+    console.error('teacher/assignments delete error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── RAG: list / manage decks ─────────────────────────────────────────────────
+app.get('/api/decks', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const uid = req.query.uid;
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    const result = await dbModule.query(
+      `SELECT DeckID, TeacherUID, Title, Description, RawText, QuestionCount, IsArchived, CreatedAt, UpdatedAt
+       FROM SlideDecks
+       WHERE TeacherUID = @uid
+       ORDER BY CreatedAt DESC`,
+      { uid }
+    );
+    res.json({ decks: result.recordset || [] });
+  } catch (err) {
+    console.error('decks list error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.get('/api/decks/:deckId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const deckId = parseInt(req.params.deckId, 10);
+  try {
+    const result = await dbModule.query(
+      `SELECT DeckID, TeacherUID, Title, Description, RawText, QuestionCount, IsArchived, CreatedAt, UpdatedAt
+       FROM SlideDecks
+       WHERE DeckID = @deckId`,
+      { deckId }
+    );
+    if (!result.recordset.length) return res.status(404).json({ error: 'Deck not found' });
+    res.json({ deck: result.recordset[0] });
+  } catch (err) {
+    console.error('decks detail error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
 // ── RAG: create deck ──────────────────────────────────────────────────────────
 app.post('/api/decks/create', async (req, res) => {
   if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
-  const { uid, title, rawText } = req.body;
+  const { uid, title, description, rawText } = req.body;
   if (!uid || !title) return res.status(400).json({ error: 'uid and title required' });
   try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
     const result = await dbModule.query(
-      `INSERT INTO SlideDecks (TeacherUID, Title, RawText)
-       OUTPUT INSERTED.DeckID
-       VALUES (@uid, @title, @rawText)`,
-      { uid, title, rawText: rawText || '' }
+      `INSERT INTO SlideDecks (TeacherUID, Title, Description, RawText)
+       OUTPUT INSERTED.DeckID, INSERTED.TeacherUID, INSERTED.Title, INSERTED.Description,
+              INSERTED.RawText, INSERTED.QuestionCount, INSERTED.IsArchived, INSERTED.CreatedAt, INSERTED.UpdatedAt
+       VALUES (@uid, @title, @description, @rawText)`,
+      {
+        uid,
+        title,
+        description: normalizeNullableString(description, 1000),
+        rawText: rawText || ''
+      }
     );
-    res.json({ deckId: result.recordset[0].DeckID });
+    res.status(201).json({ ok: true, deck: result.recordset[0] });
   } catch (err) {
     console.error('decks/create error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.put('/api/decks/:deckId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const deckId = parseInt(req.params.deckId, 10);
+  const { uid, title, description, rawText, isArchived } = req.body || {};
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    const result = await dbModule.query(
+      `UPDATE SlideDecks
+       SET Title = COALESCE(@title, Title),
+           Description = @description,
+           RawText = COALESCE(@rawText, RawText),
+           IsArchived = COALESCE(@isArchived, IsArchived),
+           UpdatedAt = SYSUTCDATETIME()
+       WHERE DeckID = @deckId AND TeacherUID = @uid`,
+      {
+        uid,
+        deckId,
+        title: normalizeNullableString(title, 200),
+        description: normalizeNullableString(description, 1000),
+        rawText: normalizeNullableString(rawText, 4000),
+        isArchived: typeof isArchived === 'boolean' ? (isArchived ? 1 : 0) : null,
+      }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Deck not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('decks update error:', err.message);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+app.delete('/api/decks/:deckId', async (req, res) => {
+  if (!dbModule) return res.status(503).json({ error: 'DB not configured.' });
+  const deckId = parseInt(req.params.deckId, 10);
+  const uid = req.query.uid;
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  try {
+    if (!(await ensureTeacherRole(uid))) {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    const result = await dbModule.query(
+      `UPDATE SlideDecks
+       SET IsArchived = 1, UpdatedAt = SYSUTCDATETIME()
+       WHERE DeckID = @deckId AND TeacherUID = @uid`,
+      { deckId, uid }
+    );
+    if (!result.rowsAffected?.[0]) return res.status(404).json({ error: 'Deck not found' });
+    res.json({ ok: true, archived: true });
+  } catch (err) {
+    console.error('decks delete error:', err.message);
     res.status(500).json({ error: 'DB error' });
   }
 });
@@ -2070,10 +3341,139 @@ async function startServer() {
         await dbModule.getPool();
         // Migrate: add columns to GameSessions if missing
         const migrations = [
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Users')
+            CREATE TABLE dbo.Users (
+              FirebaseUID NVARCHAR(255) PRIMARY KEY,
+              Email NVARCHAR(255) NOT NULL,
+              DisplayName NVARCHAR(255) NULL,
+              Role NVARCHAR(50) NOT NULL DEFAULT 'student',
+              AuthProvider NVARCHAR(50) NULL,
+              Bio NVARCHAR(1000) NULL,
+              AvatarUrl NVARCHAR(1000) NULL,
+              GradeLevel NVARCHAR(80) NULL,
+              SchoolName NVARCHAR(200) NULL,
+              PreferencesJson NVARCHAR(MAX) NULL,
+              IsDeleted BIT NOT NULL DEFAULT 0,
+              CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+              LastLoginAt DATETIME NULL,
+              DeactivatedAt DATETIME NULL
+            )`,
           `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='GameSessions')
             CREATE TABLE dbo.GameSessions (SessionID INT IDENTITY(1,1) PRIMARY KEY, SessionCode NVARCHAR(10) NOT NULL, [Status] NVARCHAR(20) NOT NULL DEFAULT 'waiting', GameType NVARCHAR(64) DEFAULT 'unknown', GameMode NVARCHAR(20) DEFAULT 'multiplayer', TeacherUID NVARCHAR(255), CreatedAt DATETIME DEFAULT GETUTCDATE(), EndedAt DATETIME)`,
           `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='SessionPlayers')
             CREATE TABLE dbo.SessionPlayers (PlayerID INT IDENTITY(1,1) PRIMARY KEY, SessionID INT NOT NULL, StudentUID NVARCHAR(255), DisplayName NVARCHAR(255), TotalScore INT DEFAULT 0, JoinedAt DATETIME DEFAULT GETUTCDATE())`,
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='SlideDecks')
+            CREATE TABLE dbo.SlideDecks (
+              DeckID INT IDENTITY(1,1) PRIMARY KEY,
+              TeacherUID NVARCHAR(255) NOT NULL,
+              Title NVARCHAR(200) NOT NULL,
+              Description NVARCHAR(1000) NULL,
+              RawText NVARCHAR(MAX) NULL,
+              QuestionCount INT NOT NULL DEFAULT 0,
+              IsArchived BIT NOT NULL DEFAULT 0,
+              CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+              UpdatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+            )`,
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='StudentNotes')
+            CREATE TABLE dbo.StudentNotes (
+              NoteID INT IDENTITY(1,1) PRIMARY KEY,
+              FirebaseUID NVARCHAR(255) NOT NULL,
+              Title NVARCHAR(200) NOT NULL,
+              Content NVARCHAR(4000) NOT NULL DEFAULT '',
+              Subject NVARCHAR(120) NULL,
+              TagsJson NVARCHAR(MAX) NULL,
+              IsPinned BIT NOT NULL DEFAULT 0,
+              CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+              UpdatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+            )`,
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='UserBookmarks')
+            CREATE TABLE dbo.UserBookmarks (
+              BookmarkID INT IDENTITY(1,1) PRIMARY KEY,
+              FirebaseUID NVARCHAR(255) NOT NULL,
+              ResourceType NVARCHAR(80) NOT NULL,
+              ResourceId NVARCHAR(120) NULL,
+              Title NVARCHAR(200) NOT NULL,
+              Url NVARCHAR(1000) NULL,
+              MetadataJson NVARCHAR(MAX) NULL,
+              CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+            )`,
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='UserNotifications')
+            CREATE TABLE dbo.UserNotifications (
+              NotificationID INT IDENTITY(1,1) PRIMARY KEY,
+              FirebaseUID NVARCHAR(255) NOT NULL,
+              Type NVARCHAR(80) NOT NULL DEFAULT 'general',
+              Title NVARCHAR(200) NOT NULL,
+              Message NVARCHAR(2000) NOT NULL,
+              LinkUrl NVARCHAR(1000) NULL,
+              IsRead BIT NOT NULL DEFAULT 0,
+              CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+              ReadAt DATETIME NULL
+            )`,
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='TeacherClasses')
+            CREATE TABLE dbo.TeacherClasses (
+              ClassID INT IDENTITY(1,1) PRIMARY KEY,
+              TeacherUID NVARCHAR(255) NOT NULL,
+              ClassCode NVARCHAR(12) NOT NULL,
+              Name NVARCHAR(200) NOT NULL,
+              Subject NVARCHAR(120) NULL,
+              Description NVARCHAR(2000) NULL,
+              GradeLevel NVARCHAR(80) NULL,
+              IsArchived BIT NOT NULL DEFAULT 0,
+              CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+              UpdatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+            )`,
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='ClassStudents')
+            CREATE TABLE dbo.ClassStudents (
+              ClassStudentID INT IDENTITY(1,1) PRIMARY KEY,
+              ClassID INT NOT NULL,
+              StudentUID NVARCHAR(255) NOT NULL,
+              DisplayName NVARCHAR(200) NULL,
+              Status NVARCHAR(30) NOT NULL DEFAULT 'active',
+              JoinedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+            )`,
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='TeacherAssignments')
+            CREATE TABLE dbo.TeacherAssignments (
+              AssignmentID INT IDENTITY(1,1) PRIMARY KEY,
+              TeacherUID NVARCHAR(255) NOT NULL,
+              ClassID INT NULL,
+              DeckID INT NULL,
+              Title NVARCHAR(200) NOT NULL,
+              Instructions NVARCHAR(4000) NULL,
+              DueAt DATETIME NULL,
+              MaxPoints INT NOT NULL DEFAULT 100,
+              Status NVARCHAR(40) NOT NULL DEFAULT 'draft',
+              IsArchived BIT NOT NULL DEFAULT 0,
+              CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+              UpdatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+            )`,
+          `IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='PremiumGameReports')
+            CREATE TABLE dbo.PremiumGameReports (
+              ReportID INT IDENTITY(1,1) PRIMARY KEY,
+              FirebaseUID NVARCHAR(255) NOT NULL,
+              GameType NVARCHAR(80) NOT NULL,
+              SessionCode NVARCHAR(32) NULL,
+              Score INT NOT NULL DEFAULT 0,
+              TotalQuestions INT NOT NULL DEFAULT 0,
+              CorrectCount INT NOT NULL DEFAULT 0,
+              DurationSec INT NOT NULL DEFAULT 0,
+              AttemptsJson NVARCHAR(MAX) NULL,
+              ReportText NVARCHAR(MAX) NOT NULL,
+              MetaJson NVARCHAR(MAX) NULL,
+              CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+            )`,
+          `IF COL_LENGTH('Users', 'Bio') IS NULL ALTER TABLE dbo.Users ADD Bio NVARCHAR(1000) NULL`,
+          `IF COL_LENGTH('Users', 'AvatarUrl') IS NULL ALTER TABLE dbo.Users ADD AvatarUrl NVARCHAR(1000) NULL`,
+          `IF COL_LENGTH('Users', 'GradeLevel') IS NULL ALTER TABLE dbo.Users ADD GradeLevel NVARCHAR(80) NULL`,
+          `IF COL_LENGTH('Users', 'SchoolName') IS NULL ALTER TABLE dbo.Users ADD SchoolName NVARCHAR(200) NULL`,
+          `IF COL_LENGTH('Users', 'PreferencesJson') IS NULL ALTER TABLE dbo.Users ADD PreferencesJson NVARCHAR(MAX) NULL`,
+          `IF COL_LENGTH('Users', 'IsDeleted') IS NULL ALTER TABLE dbo.Users ADD IsDeleted BIT NOT NULL CONSTRAINT DF_Users_IsDeleted DEFAULT 0`,
+          `IF COL_LENGTH('Users', 'CreatedAt') IS NULL ALTER TABLE dbo.Users ADD CreatedAt DATETIME NOT NULL CONSTRAINT DF_Users_CreatedAt DEFAULT GETUTCDATE()`,
+          `IF COL_LENGTH('Users', 'DeactivatedAt') IS NULL ALTER TABLE dbo.Users ADD DeactivatedAt DATETIME NULL`,
+          `IF COL_LENGTH('SlideDecks', 'Description') IS NULL ALTER TABLE dbo.SlideDecks ADD Description NVARCHAR(1000) NULL`,
+          `IF COL_LENGTH('SlideDecks', 'QuestionCount') IS NULL ALTER TABLE dbo.SlideDecks ADD QuestionCount INT NOT NULL CONSTRAINT DF_SlideDecks_QuestionCount DEFAULT 0`,
+          `IF COL_LENGTH('SlideDecks', 'IsArchived') IS NULL ALTER TABLE dbo.SlideDecks ADD IsArchived BIT NOT NULL CONSTRAINT DF_SlideDecks_IsArchived DEFAULT 0`,
+          `IF COL_LENGTH('SlideDecks', 'CreatedAt') IS NULL ALTER TABLE dbo.SlideDecks ADD CreatedAt DATETIME NOT NULL CONSTRAINT DF_SlideDecks_CreatedAt DEFAULT GETUTCDATE()`,
+          `IF COL_LENGTH('SlideDecks', 'UpdatedAt') IS NULL ALTER TABLE dbo.SlideDecks ADD UpdatedAt DATETIME NOT NULL CONSTRAINT DF_SlideDecks_UpdatedAt DEFAULT GETUTCDATE()`,
         ];
         for (const sql of migrations) {
           try { await dbModule.query(sql, {}); } catch (me) { console.warn('Migration warning:', me.message); }

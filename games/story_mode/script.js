@@ -168,6 +168,7 @@ let progressState = {
     points: Number(localStorage.getItem('storyModePoints') || 0),
     coopEnabled: localStorage.getItem('storyModeCoopEnabled') === 'true'
 };
+let storyMissionReportSubmitted = false;
 
 const SLIDE_QUIZ_KEY = 'slidePlayGeneratedQuizData';
 const SLIDE_FILES_KEY = 'slidePlayUploadedFiles';
@@ -544,8 +545,59 @@ function applyReturnFromLauncher() {
         showToast(`Mission ${status} — Score: ${score} | Time: ${time}s`, 'warn');
     }
 
+    void submitPremiumStoryModeReport({
+        status,
+        score,
+        time,
+        collectibles,
+        missionTitle: params.get('missionTitle') || selectedMission?.title || 'Story Mission'
+    });
+
     if (window.history && window.history.replaceState) {
         window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
+
+async function submitPremiumStoryModeReport(result) {
+    if (storyMissionReportSubmitted) {
+        return;
+    }
+
+    if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== 'function') {
+        return;
+    }
+
+    const payload = {
+        gameType: 'story-mode',
+        score: Number(result.score || 0),
+        totalQuestions: 1,
+        correctCount: String(result.status || '').toLowerCase() === 'win' ? 1 : 0,
+        durationSec: Math.max(0, Number(result.time || 0)),
+        questionAttempts: [
+            {
+                questionNumber: 1,
+                questionText: String(result.missionTitle || 'Story Mission'),
+                userAnswer: String(result.status || 'complete'),
+                correctAnswer: 'win',
+                correct: String(result.status || '').toLowerCase() === 'win',
+                responseSeconds: Math.max(0, Number(result.time || 0)),
+                outcome: String(result.status || 'complete')
+            }
+        ],
+        meta: {
+            source: 'story_mode',
+            collectibles: Number(result.collectibles || 0),
+            pointsSnapshot: Number(progressState.points || 0),
+            missionsCompleted: Number(progressState.missionsCompleted || 0),
+            coopEnabled: !!progressState.coopEnabled,
+            language: selectedLanguage,
+            branch: getCurrentBranchChoice()
+        }
+    };
+
+    const response = await window.PremiumGameReporter.submitReport(payload);
+    if (response && response.ok) {
+        storyMissionReportSubmitted = true;
     }
 }
 

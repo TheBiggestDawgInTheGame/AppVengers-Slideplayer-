@@ -260,6 +260,11 @@
 
       this.checkBtn.addEventListener("click", () => this.checkAnswer());
       this.nextBtn.addEventListener("click", () => {
+        if (this.round >= this.currentScenarioSet.length) {
+          this.feedbackEl.textContent = "Scenario set complete. Change difficulty or reset to play again.";
+          this.nextBtn.disabled = true;
+          return;
+        }
         this.round += 1;
         this.startRound();
       });
@@ -310,7 +315,14 @@
       this.nextBtn.disabled = true;
       this.feedbackEl.textContent = "The scenario is generated from slide content. Choose the option that best follows the slide.";
 
-      this.currentScenario = this.currentScenarioSet[this.round - 1] || this.currentScenarioSet[0];
+      this.currentScenario = this.currentScenarioSet[this.round - 1];
+      if (!this.currentScenario) {
+        this.feedbackEl.textContent = "Scenario set complete. Change difficulty or reset to play again.";
+        this.nextBtn.disabled = true;
+        this.renderScenarioCompleteState();
+        this.updateStats();
+        return;
+      }
       this.shuffleChoices();
       this.startedAt = Date.now();
       this.startClock();
@@ -318,6 +330,13 @@
       this.renderScenario();
       this.renderChoices();
       this.updateStats();
+    }
+
+    renderScenarioCompleteState() {
+      this.tagEl.textContent = "Complete";
+      this.titleEl.textContent = "Scenario Sequence Finished";
+      this.textEl.textContent = "You completed all available scenarios for this difficulty.";
+      this.choicesEl.innerHTML = "";
     }
 
     shuffleChoices() {
@@ -425,6 +444,46 @@
           });
         }
       }
+
+      void this.submitPremiumScenarioReport(elapsed, correct, correctIndex);
+    }
+
+    async submitPremiumScenarioReport(elapsedSeconds, isCorrect, correctIndex) {
+      if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== "function") {
+        return;
+      }
+
+      const selected = this.currentScenario.options[this.currentSelected];
+      const expected = this.currentScenario.options[correctIndex];
+      const attempts = [{
+        questionNumber: this.round,
+        questionText: this.currentScenario.prompt,
+        userAnswer: selected ? selected.text : "",
+        correctAnswer: expected ? expected.text : "",
+        correct: !!isCorrect,
+        responseSeconds: Number(elapsedSeconds || 0),
+        outcome: isCorrect ? "correct-choice" : "wrong-choice"
+      }];
+
+      const payload = {
+        gameType: "slide-scenario",
+        score: this.roundScore,
+        totalQuestions: 1,
+        correctCount: isCorrect ? 1 : 0,
+        durationSec: Number(elapsedSeconds || 0),
+        questionAttempts: attempts,
+        meta: {
+          source: "slide_scenario_game",
+          difficulty: this.level,
+          round: this.round,
+          accuracy: this.accuracy,
+          streak: this.streak,
+          totalScore: this.totalScore,
+          scenarioTitle: this.currentScenario.title
+        }
+      };
+
+      await window.PremiumGameReporter.submitReport(payload);
     }
 
     updateStats() {

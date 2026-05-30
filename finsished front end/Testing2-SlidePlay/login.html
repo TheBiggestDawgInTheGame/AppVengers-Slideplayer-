@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -165,6 +165,43 @@
         color: #06b6d4;
       }
 
+      .secondary-auth-action {
+        text-align: left;
+        margin-top: -8px;
+        margin-bottom: 14px;
+      }
+
+      .secondary-auth-btn {
+        background: transparent;
+        border: none;
+        color: #5ce8ff;
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-family: "Poppins", sans-serif;
+        padding: 0;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .secondary-auth-btn:hover {
+        color: #9fe6ff;
+      }
+
+      .secondary-auth-info {
+        min-height: 16px;
+        margin-top: 5px;
+        font-size: 0.78rem;
+        color: #94a3b8;
+      }
+
+      .secondary-auth-info.success {
+        color: #34d399;
+      }
+
+      .secondary-auth-info.error {
+        color: #ff6b6b;
+      }
+
       /* BUTTON */
       .submit-btn {
         width: 100%;
@@ -268,8 +305,8 @@
     <!-- LOGIN -->
     <div class="login-box">
       <div class="login-header">
-        <h2>Welcome Back</h2>
-        <p>Continue your learning journey</p>
+        <h2 data-i18n="Welcome Back">Welcome Back</h2>
+        <p data-i18n="Continue your learning journey">Continue your learning journey</p>
       </div>
 
       <form id="loginForm">
@@ -282,6 +319,7 @@
               id="email"
               class="input-field"
               placeholder="Enter email"
+              data-i18n-placeholder="Enter email"
             />
           </div>
           <div class="error-text" id="emailError"></div>
@@ -296,31 +334,37 @@
               id="password"
               class="input-field"
               placeholder="Enter password"
+              data-i18n-placeholder="Enter password"
             />
-            <i class="fa-solid fa-eye toggle-pw" id="togglePw" style="cursor:pointer;color:#64748b;transition:color 0.2s;" title="Show password"></i>
+            <i class="fa-solid fa-eye toggle-pw" id="togglePw" style="cursor:pointer;color:#64748b;transition:color 0.2s;" title="Show password" data-i18n-title="Show password"></i>
           </div>
           <div class="error-text" id="passwordError"></div>
         </div>
 
         <!-- FORGOT PASSWORD -->
         <div class="forgot-password">
-          <a href="#" id="forgotPassword">Forgot Password?</a>
+          <a href="#" id="forgotPassword" data-i18n="Forgot Password?">Forgot Password?</a>
         </div>
 
-        <button class="submit-btn" type="submit">LOGIN</button>
+        <div class="secondary-auth-action">
+          <button type="button" id="resendVerificationBtn" class="secondary-auth-btn" data-i18n="Resend verification email">Resend verification email</button>
+          <div id="verificationActionInfo" class="secondary-auth-info"></div>
+        </div>
+
+        <button class="submit-btn" type="submit" data-i18n="LOGIN">LOGIN</button>
 
         <div class="success-box" id="successBox"></div>
 
-        <div class="divider"><span>OR</span></div>
+        <div class="divider"><span data-i18n="OR">OR</span></div>
 
-        <button type="button" id="googleLoginBtn" class="google-btn">
+        <button type="button" id="googleLoginBtn" class="google-btn" data-i18n="Login with Google">
           <img src="google.png" alt="Google" />
           Login with Google
         </button>
       </form>
 
       <div class="sign-up-link">
-        Don't have an account? <a href="signup.html">Sign Up</a>
+        <span data-i18n="Don't have an account?">Don't have an account?</span> <a href="signup.html" data-i18n="Sign Up">Sign Up</a>
       </div>
     </div>
 
@@ -366,5 +410,6 @@
     </script>
 
     <script type="module" src="authentication.js"></script>
-  </body>
+    <script src="i18n-sa.js"></script>
+</body>
 </html>

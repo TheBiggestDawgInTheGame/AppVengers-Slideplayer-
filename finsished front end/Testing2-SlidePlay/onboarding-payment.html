@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -352,6 +352,19 @@
     let selectedPlan = null;
     let selectedPaymentMethod = 'card';
 
+    function isStrictPaymentMode() {
+      const forcedStrict = localStorage.getItem('sp_force_strict_payments') === '1';
+      const allowInsecureReturn = localStorage.getItem('sp_allow_insecure_payment_return') === '1';
+      const isLocalHost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      return forcedStrict || (!isLocalHost && !allowInsecureReturn);
+    }
+
+    function mapOnboardingPlanToPaymentPlan(planKey) {
+      if (planKey === 'teacher_pro') return 'pro';
+      if (planKey === 'teacher_enterprise') return 'school';
+      return planKey;
+    }
+
     const plans = {
       student: [
         {
@@ -485,6 +498,17 @@
           }));
           window.location.href = returnTo;
         } else {
+          if (isStrictPaymentMode()) {
+            const mappedPlan = mapOnboardingPlanToPaymentPlan(selectedPlan);
+            const params = new URLSearchParams({
+              plan: mappedPlan,
+              return: returnTo,
+              role: userRole
+            });
+            window.location.href = 'payment.html?' + params.toString();
+            return;
+          }
+
           // For paid plans, simulate payment processing
           // In production, this would integrate with payment gateway
           const paymentResult = await processPaymentSimulation(selectedPlan, selectedPaymentMethod);
@@ -527,5 +551,6 @@
     // Initialize on load
     document.addEventListener('DOMContentLoaded', initPlans);
   </script>
+  <script src="i18n-sa.js"></script>
 </body>
 </html>
