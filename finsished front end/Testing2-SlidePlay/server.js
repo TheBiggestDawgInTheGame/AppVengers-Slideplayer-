@@ -649,6 +649,11 @@ app.get('/health', (_req, res) => {
 const PORT = Number(process.env.PORT || 3000);
 
 app.listen(PORT, async () => {
-  await getPool(); // connect to DB on startup
+  try {
+    await getPool(); // connect to DB on startup
+  } catch (err) {
+    // Keep the web service running even when SQL is unreachable in hosted envs.
+    console.warn("DB connection unavailable at startup:", err.message);
+  }
   console.log("Server running on port " + PORT);
 });
