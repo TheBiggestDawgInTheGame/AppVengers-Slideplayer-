@@ -15,6 +15,99 @@ if (GEMINI_API_KEY) {
 const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
+function buildSlidePlayEmail({
+  subject,
+  heading,
+  intro,
+  body,
+  ctaLabel,
+  ctaUrl,
+  footer,
+  badge,
+}) {
+  const year = new Date().getFullYear();
+  const safeSubject = String(subject || "SlidePlay Update").trim();
+  const safeHeading = String(heading || safeSubject).trim();
+  const safeIntro = String(intro || "").trim();
+  const safeBody = String(body || "").trim();
+  const safeCtaLabel = String(ctaLabel || "Open SlidePlay").trim();
+  const safeCtaUrl = String(ctaUrl || "").trim();
+  const safeFooter = String(footer || "You're receiving this because you use SlidePlay.").trim();
+  const safeBadge = String(badge || "WELCOME").trim();
+
+  const html = `
+    <div style="margin:0;padding:24px;background:#070b14;font-family:Segoe UI,Arial,sans-serif;color:#e6edf6;">
+      <div style="max-width:620px;margin:0 auto;background:linear-gradient(180deg,#0f172a 0%,#0a1324 100%);border:1px solid rgba(148,163,184,0.25);border-radius:16px;overflow:hidden;">
+        <div style="padding:22px 24px;background:linear-gradient(90deg,#06b6d4,#8b5cf6);color:#fff;">
+          <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="vertical-align:middle;">
+                <span style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;border-radius:9px;background:rgba(255,255,255,0.2);font-size:12px;font-weight:800;letter-spacing:.06em;margin-right:10px;">SP</span>
+                <span style="font-weight:800;font-size:20px;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;">SlidePlay</span>
+              </td>
+              <td style="text-align:right;vertical-align:middle;">
+                <span style="display:inline-block;padding:5px 10px;border-radius:999px;background:rgba(15,23,42,0.25);font-size:11px;font-weight:700;letter-spacing:.04em;">${safeBadge}</span>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div style="padding:24px;line-height:1.6;">
+          <h2 style="margin:0 0 10px;font-size:24px;color:#f8fbff;">${safeHeading}</h2>
+          ${safeIntro ? `<p style="margin:0 0 14px;color:#cbd5e1;">${safeIntro}</p>` : ""}
+          ${safeBody ? `<p style="margin:0 0 18px;color:#e2e8f0;white-space:pre-wrap;">${safeBody}</p>` : ""}
+          ${safeCtaUrl ? `<a href="${safeCtaUrl}" style="display:inline-block;padding:11px 16px;border-radius:10px;background:linear-gradient(90deg,#22d3ee,#8b5cf6);color:#fff;text-decoration:none;font-weight:700;">${safeCtaLabel}</a>` : ""}
+        </div>
+        <div style="padding:14px 24px;border-top:1px solid rgba(148,163,184,0.22);font-size:12px;color:#94a3b8;">${safeFooter} · © ${year} SlidePlay</div>
+      </div>
+    </div>
+  `.trim();
+
+  const text = [
+    "SlidePlay",
+    "",
+    safeHeading,
+    safeIntro,
+    safeBody,
+    safeCtaUrl ? `${safeCtaLabel}: ${safeCtaUrl}` : "",
+    "",
+    `${safeFooter} (© ${year} SlidePlay)`
+  ].filter(Boolean).join("\n");
+
+  return { subject: safeSubject, html, text };
+}
+
+function formatRoleLabel(role) {
+  const normalized = String(role || "student").toLowerCase();
+  if (normalized === "teacher") return "Teacher";
+  if (normalized === "admin") return "Admin";
+  return "Student";
+}
+
+function normalizePublicAppUrl(value) {
+  try {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    return parsed.origin;
+  } catch (_err) {
+    return "";
+  }
+}
+
+function resolveAppUrl(req, clientAppUrl) {
+  const envUrl = normalizePublicAppUrl(process.env.APP_URL);
+  if (envUrl) return envUrl;
+
+  const clientUrl = normalizePublicAppUrl(clientAppUrl);
+  if (clientUrl) return clientUrl;
+
+  const originHeader = normalizePublicAppUrl(req.get("origin"));
+  if (originHeader) return originHeader;
+
+  return (req.protocol + "://" + req.get("host")).replace(/\/$/, "");
+}
+
 const crypto = require("crypto");
 const querystring = require("querystring");
 const axios = require("axios");
@@ -198,11 +291,23 @@ app.post("/api/payfast/ipn", async (req, res) => {
       }
       // Send email notification
       if (ipnData.email_address) {
+        const planLabel = String(ipnData.custom_str1 || "premium");
+        const appUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
+        const mail = buildSlidePlayEmail({
+          subject: "Payment Received - SlidePlay",
+          heading: "Payment Confirmed",
+          intro: "Thank you for upgrading your learning experience.",
+          body: `Your payment for the ${planLabel} plan was received successfully. Your premium access is now active.`,
+          ctaLabel: "Go to Dashboard",
+          ctaUrl: appUrl + "/studentpayment.html?payment=success&provider=payfast",
+          footer: "Need help? Contact SlidePlay support.",
+        });
         const msg = {
           to: ipnData.email_address,
           from: "slideplayer90@gmail.com",
-          subject: "Payment Received - SlidePlayer",
-          text: `Thank you for your payment for the ${ipnData.custom_str1} plan! Your premium access is now active.`,
+          subject: mail.subject,
+          text: mail.text,
+          html: mail.html,
         };
         try {
           await sgMail.send(msg);
@@ -338,11 +443,22 @@ app.post("/api/crypto/webhook", async (req, res) => {
 
     // Send confirmation email
     try {
+      const appUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
+      const mail = buildSlidePlayEmail({
+        subject: "Crypto Payment Confirmed - SlidePlay",
+        heading: "Crypto Payment Confirmed",
+        intro: "Your blockchain payment has been successfully verified.",
+        body: `Your crypto payment for the ${plan} plan has been confirmed. Premium access is now active on your account.`,
+        ctaLabel: "Open Premium",
+        ctaUrl: appUrl + "/studentpayment.html?payment=success&provider=crypto",
+        footer: "Thank you for powering your progress with SlidePlay.",
+      });
       await sgMail.send({
         to: user_email,
         from: "slideplayer90@gmail.com",
-        subject: "Crypto Payment Confirmed — SlidePlayer",
-        text: `Your crypto payment for the ${plan} plan has been confirmed on the blockchain. Your premium access is now active.`,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
       });
     } catch (e) {
       console.error("SendGrid crypto confirmation email error:", e.message);
@@ -356,12 +472,30 @@ app.post("/api/crypto/webhook", async (req, res) => {
 
 
 app.post("/send-welcome-email", async (req, res) => {
-  const { email } = req.body;
+  const { email, name, role, appUrl } = req.body || {};
+  if (!email) return res.status(400).send("Email is required");
+
+  const resolvedAppUrl = resolveAppUrl(req, appUrl).replace(/\/$/, "");
+  const firstName = String(name || "there").trim().split(/\s+/)[0] || "there";
+  const roleLabel = formatRoleLabel(role);
+  const loginUrl = resolvedAppUrl + "/login.html?email=" + encodeURIComponent(String(email).trim()) + "&welcome=1";
+
+  const mail = buildSlidePlayEmail({
+    subject: "Welcome to SlidePlay, " + firstName + "!",
+    heading: "Welcome to SlidePlay, " + firstName + "!",
+    intro: "Your " + roleLabel + " account is ready.",
+    body: "Thanks for joining SlidePlay.\n\nNext step: choose your plan, then jump into your first game-powered lesson.",
+    ctaLabel: "Open My Account",
+    ctaUrl: loginUrl,
+    footer: "If you did not create this account, contact support immediately.",
+    badge: roleLabel.toUpperCase(),
+  });
   const msg = {
     to: email,
     from: "slideplayer90@gmail.com",
-    subject: "Welcome to SlidePlayer!",
-    text: "Thank you for signing up for SlidePlayer! We're excited to have you on board. If you have any questions or need assistance, feel free to reach out to our support team.",
+    subject: mail.subject,
+    text: mail.text,
+    html: mail.html,
   };
 
   try {
@@ -508,7 +642,13 @@ app.post('/api/study/ask', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.listen(3000, async () => {
+app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true, service: 'slideplay', ts: new Date().toISOString() });
+});
+
+const PORT = Number(process.env.PORT || 3000);
+
+app.listen(PORT, async () => {
   await getPool(); // connect to DB on startup
-  console.log("Server running on port 3000");
+  console.log("Server running on port " + PORT);
 });
