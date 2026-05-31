@@ -285,9 +285,6 @@ async function uploadFiles() {
     }
     if (uid) formData.append('uid', uid);
 
-    try {
-      const result = await uploadViaBackend(formData, uid);
-
   try {
     const result = await uploadViaBackend(formData);
 
@@ -380,38 +377,6 @@ async function uploadViaBackend(formData) {
   }
 
   throw lastError || new Error('Upload failed.');
-    for (const endpoint of UPLOAD_ENDPOINTS) {
-      try {
-        // If uploading with UID, use /api/user-upload endpoint
-        let url = endpoint;
-        if (formData.has && formData.has('uid') && endpoint.endsWith('/api/upload')) {
-          url = endpoint.replace('/api/upload', '/api/user-upload');
-        }
-        const response = await fetch(url, {
-          method: 'POST',
-          body: formData
-        });
-
-        const rawBody = await response.text();
-        let result = {};
-        if (rawBody) {
-          try {
-            result = JSON.parse(rawBody);
-          } catch (_error) {
-            result = { message: rawBody };
-          }
-        }
-
-        if (!response.ok) {
-          throw new Error(result.message || `Upload failed with status ${response.status}.`);
-        }
-
-        return result;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError || new Error('Upload failed');
 }
 
 function fileNameTerms(name) {

@@ -40,6 +40,21 @@
     <div class="psm-game-label" id="psm-game-name"></div>
     <h2 id="psm-title" data-i18n="How do you want to play?">How do you want to play?</h2>
     <p class="psm-sub" data-i18n="Choose a game mode before launching">Choose a game mode before launching</p>
+    <div id="psm-quiz-version" class="psm-device-section hidden">
+      <h3 class="psm-section-title">Quiz version</h3>
+      <div class="psm-device-options">
+        <button class="psm-device-option" data-quiz-version="2d">
+          <span class="psm-icon">ðŸ“</span>
+          <span class="psm-opt-title">2D Classic Quiz</span>
+          <span class="psm-opt-desc">Fast, focused question-answer mode</span>
+        </button>
+        <button class="psm-device-option" data-quiz-version="3d">
+          <span class="psm-icon">ðŸŽ¬</span>
+          <span class="psm-opt-title">3D Quiz Show</span>
+          <span class="psm-opt-desc">Immersive stage with animated presentation</span>
+        </button>
+      </div>
+    </div>
     <div class="psm-options">
       <button class="psm-option" data-style="solo">
         <span class="psm-icon">ðŸŽ®</span>
@@ -139,31 +154,16 @@
         <p>Use slide situations to pick the best learning decision and build decision-making skills.</p>
       </a>
 
-      <a class="game-card" href="../../games/jeopardy-3d/index.html?source=upload&game=jeopardy" data-available>
-        <div class="card-top">
-          <span class="game-emoji">ðŸŽ¯</span>
-          <span class="badge badge-cat">QUIZ</span>
-        </div>
-        <h3>Jeopardy 3D</h3>
-        <p>Jump straight into the immersive 3D quiz show without an extra chooser screen.</p>
-      </a>
-
-      <a class="game-card" href="../../games/jeopardy/index.html?source=upload" data-available>
+      <a class="game-card" href="#" data-available data-quiz-selector="true" data-href-2d="../../games/jeopardy/index.html?source=upload" data-href-3d="../../games/jeopardy-3d/index.html?source=upload&game=jeopardy">
         <div class="card-top">
           <span class="game-emoji">ðŸ“</span>
-          <span class="badge badge-cat">QUIZ</span>
+          <div class="card-badges">
+            <span class="badge badge-cat">QUIZ</span>
+            <span class="badge badge-dual">2D OR 3D</span>
+          </div>
         </div>
-        <h3>Quiz Game</h3>
-        <p>Launch the classic 2D slide-driven quiz directly with instant feedback and timers.</p>
-      </a>
-
-      <a class="game-card" href="../../games/jeopardy-3d/index.html?source=upload&game=millionaire" data-available>
-        <div class="card-top">
-          <span class="game-emoji">ðŸ†</span>
-          <span class="badge badge-cat">QUIZ</span>
-        </div>
-        <h3>Millionaire Quiz</h3>
-        <p>Climb the question ladder with lifelines. One wrong answer and you're out.</p>
+        <h3>Quiz Challenge</h3>
+        <p>Choose your quiz experience before launch: 2D classic mode or 3D quiz show mode.</p>
       </a>
 
       <!-- Row 2 -->

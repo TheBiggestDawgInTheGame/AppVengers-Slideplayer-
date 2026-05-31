@@ -60,31 +60,46 @@ const psmAddPlayer  = document.getElementById('psm-add-player');
 const psmLaunch     = document.getElementById('psm-launch');
 const psmLaunchSolo = document.getElementById('psm-launch-solo');
 const psmDeviceSection = document.getElementById('psm-device-section');
-const psmDeviceOptions = document.querySelectorAll('.psm-device-option');
+const psmDeviceOptions = document.querySelectorAll('#psm-device-section .psm-device-option[data-device]');
 const psmRoomSection   = document.getElementById('psm-room-section');
 const psmRoomCode      = document.getElementById('psm-room-code');
 const psmCopyCode      = document.getElementById('psm-copy-code');
 const psmLaunchRoom    = document.getElementById('psm-launch-room');
+const psmQuizVersionSection = document.getElementById('psm-quiz-version');
+const psmQuizVersionOptions = document.querySelectorAll('[data-quiz-version]');
 
 let pendingHref    = '';
 let selectedStyle  = '';
 let selectedDevice = ''; // 'same' | 'different'
+let pendingCard    = null;
+let selectedQuizVersion = '';
 
 function generateRoomCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-function resetModalSections() {
+function resetModalSections(options = {}) {
+  const { resetQuizVersion = true } = options;
   psmDeviceSection.classList.add('hidden');
   psmPlayers.classList.add('hidden');
   psmRoomSection.classList.add('hidden');
   psmLaunchSolo.classList.add('hidden');
   psmLaunch.classList.add('hidden');
+  if (psmQuizVersionSection) {
+    if (resetQuizVersion) {
+      psmQuizVersionSection.classList.add('hidden');
+      psmQuizVersionOptions.forEach(o => o.classList.remove('active'));
+      selectedQuizVersion = '';
+    } else if (pendingCard?.dataset.quizSelector === 'true') {
+      psmQuizVersionSection.classList.remove('hidden');
+    }
+  }
   psmDeviceOptions.forEach(o => o.classList.remove('active'));
   selectedDevice = '';
 }
 
 function openModal(card) {
+  pendingCard = card;
   pendingHref = card.getAttribute('href');
   psmGameName.textContent = card.querySelector('h3')?.textContent || 'Selected Game';
   selectedStyle = '';
@@ -92,6 +107,10 @@ function openModal(card) {
   psmPlayerList.innerHTML = '';
   addPlayerRow(1); addPlayerRow(2);
   resetModalSections();
+
+  if (card.dataset.quizSelector === 'true' && psmQuizVersionSection) {
+    psmQuizVersionSection.classList.remove('hidden');
+  }
 
   // Show plan badges on locked options for free users
   const paid = isPaidPlan();
@@ -158,7 +177,7 @@ psmOptions.forEach(btn => {
     btn.classList.add('active');
     selectedStyle = btn.dataset.style;
 
-    resetModalSections();
+    resetModalSections({ resetQuizVersion: false });
     if (selectedStyle === 'solo') {
       psmLaunchSolo.classList.remove('hidden');
     } else {
@@ -177,11 +196,34 @@ psmAddPlayer.addEventListener('click', () => {
 });
 
 function launchGame() {
+  const activeQuizCard =
+    (pendingCard?.dataset.quizSelector === 'true' && pendingCard) ||
+    document.querySelector('.game-card.selected[data-quiz-selector="true"]');
+  const quizVersionFromDom = document.querySelector('[data-quiz-version].active')?.dataset.quizVersion || '';
+  const resolvedQuizVersion = selectedQuizVersion || quizVersionFromDom;
+
+  if (activeQuizCard && !resolvedQuizVersion) {
+    window.alert('Please choose Quiz version: 2D or 3D.');
+    return;
+  }
+
+  let hrefToLaunch = pendingHref;
+  if (activeQuizCard) {
+    hrefToLaunch = resolvedQuizVersion === '3d'
+      ? activeQuizCard.getAttribute('data-href-3d')
+      : activeQuizCard.getAttribute('data-href-2d');
+  }
+
+  if (!hrefToLaunch || hrefToLaunch === '#') {
+    window.alert('Unable to launch this game right now.');
+    return;
+  }
+
   const players = selectedStyle === 'solo' ? ['Solo Player'] : getPlayerNames();
   localStorage.setItem(PLAY_STYLE_KEY, selectedStyle);
   localStorage.setItem(PLAY_PLAYERS_KEY, JSON.stringify(players));
   localStorage.setItem('slidePlayDeviceMode', selectedDevice || 'same');
-  window.location.href = pendingHref;
+  window.location.href = hrefToLaunch;
 }
 
 psmLaunch.addEventListener('click', launchGame);
@@ -218,6 +260,15 @@ psmCopyCode.addEventListener('click', () => {
     setTimeout(() => { psmCopyCode.textContent = '📋'; }, 1500);
   });
 });
+
+psmQuizVersionOptions.forEach(btn => {
+  btn.addEventListener('click', () => {
+    psmQuizVersionOptions.forEach(o => o.classList.remove('active'));
+    btn.classList.add('active');
+    selectedQuizVersion = btn.dataset.quizVersion;
+  });
+});
+
 psmClose.addEventListener('click', closeModal);
 modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
