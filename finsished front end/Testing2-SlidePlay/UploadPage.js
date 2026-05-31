@@ -51,6 +51,12 @@ const up = {
   aiQuestions: null
 };
 
+const UP_API_BASE = (
+  window.SLIDEPLAY_API_BASE ||
+  localStorage.getItem("sp_api_base") ||
+  window.location.origin
+).replace(/\/$/, "");
+
 // ── Utilities ─────────────────────────────────────────────────
 function upGenCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -107,9 +113,13 @@ async function upSendNotifications() {
     : location.origin;
 
   try {
+    const authToken = localStorage.getItem("sp_auth_token") || "";
     const res = await fetch(`${SERVER}/api/notify-session`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
       body: JSON.stringify({
         code: up.code,
         sessionName: up.name || "a live session",
@@ -133,6 +143,39 @@ async function upSendNotifications() {
 function upHidden(id, hide) {
   const el = document.getElementById(id);
   if (el) hide ? el.classList.add("hidden") : el.classList.remove("hidden");
+}
+
+async function upArchiveSession(status = "finished") {
+  const code = String(up.code || "").trim().toUpperCase();
+  if (!code) return;
+
+  const headers = { "Content-Type": "application/json" };
+  const token = localStorage.getItem("sp_auth_token") || "";
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const payload = {
+    sessionCode: code,
+    gameType: up.game?.id || up.game?.name || "quiz",
+    gameMode: up.mode || "individual",
+    hostName: up.name || "Teacher",
+    playerCount: Array.isArray(up.students) ? up.students.length : 0,
+    winnerName: "",
+    winnerScore: 0,
+    totalScore: 0,
+    status,
+    createdAt: Date.now(),
+    finishedAt: new Date().toISOString(),
+  };
+
+  try {
+    await fetch(UP_API_BASE + "/api/sessions/archive", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+  } catch (_) {
+    // Best effort only.
+  }
 }
 
 // ── Step navigation ───────────────────────────────────────────
@@ -532,6 +575,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       if (window.SessionDB) await SessionDB.endGame(up.code);
     } catch (e) { /* ignore */ }
+    await upArchiveSession("ended");
     localStorage.removeItem("sp_active_session");
     window.location.href = "teacher.html";
   });

@@ -26,6 +26,11 @@
   "use strict";
 
   const APP_ID = "slideplayer-p2p-v1";
+  const API_BASE = (
+    window.SLIDEPLAY_API_BASE ||
+    localStorage.getItem("sp_api_base") ||
+    window.location.origin
+  ).replace(/\/$/, "");
 
   // ── Internal state ────────────────────────────────────────────
   let _room = null;
@@ -74,6 +79,44 @@
 
   function _notifyListeners(data) {
     _listeners.forEach(fn => { try { fn(data); } catch (_) {} });
+  }
+
+  async function archiveP2PSession(session) {
+    const token = localStorage.getItem("sp_auth_token") || "";
+    if (!token || !session) return;
+
+    const players = session.players && typeof session.players === "object"
+      ? Object.values(session.players)
+      : [];
+    const sorted = players.slice().sort((a, b) => Number(b?.score || 0) - Number(a?.score || 0));
+    const winner = sorted[0] || null;
+
+    const payload = {
+      sessionCode: session.code || "",
+      gameType: session.game || "quiz",
+      gameMode: session.mode || "multiplayer",
+      hostName: session.name || "Teacher",
+      playerCount: players.length,
+      winnerName: winner ? String(winner.name || "") : "",
+      winnerScore: winner ? Number(winner.score || 0) : 0,
+      totalScore: winner ? Number(winner.score || 0) : 0,
+      status: "finished",
+      createdAt: session.createdAt || Date.now(),
+      finishedAt: new Date().toISOString(),
+    };
+
+    try {
+      await fetch(API_BASE + "/api/sessions/archive", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (_) {
+      // Best effort only.
+    }
   }
 
   // ── Public API ────────────────────────────────────────────────
@@ -216,10 +259,11 @@
     },
 
     /** HOST: end the game */
-    endGame(code) {
+    async endGame(code) {
       if (_role !== "host" || !_localSession) return;
       _localSession.status = "finished";
       broadcastState();
+      await archiveP2PSession(_localSession);
     },
 
     /** PEER: submit an answer */

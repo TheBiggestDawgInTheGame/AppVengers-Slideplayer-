@@ -1,9 +1,14 @@
 const express = require("express");
-const app = express();
+const path = require("path");
+const crypto = require("crypto");
+const querystring = require("querystring");
+const axios = require("axios");
+const fs = require("fs");
+
 require("dotenv").config();
 
-const { getPool, query, sql } = require("./db");
-const { embedDeck, studyAsk } = require("./rag");
+const app = express();
+const PORT = Number(process.env.PORT || 3000);
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -13,126 +18,614 @@ if (GEMINI_API_KEY) {
 }
 
 const sgMail = require("@sendgrid/mail");
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-function buildSlidePlayEmail({
-  subject,
-  heading,
-  intro,
-  body,
-  ctaLabel,
-  ctaUrl,
-  footer,
-  badge,
-}) {
-  const year = new Date().getFullYear();
-  const safeSubject = String(subject || "SlidePlay Update").trim();
-  const safeHeading = String(heading || safeSubject).trim();
-  const safeIntro = String(intro || "").trim();
-  const safeBody = String(body || "").trim();
-  const safeCtaLabel = String(ctaLabel || "Open SlidePlay").trim();
-  const safeCtaUrl = String(ctaUrl || "").trim();
-  const safeFooter = String(footer || "You're receiving this because you use SlidePlay.").trim();
-  const safeBadge = String(badge || "WELCOME").trim();
-
-  const html = `
-    <div style="margin:0;padding:24px;background:#070b14;font-family:Segoe UI,Arial,sans-serif;color:#e6edf6;">
-      <div style="max-width:620px;margin:0 auto;background:linear-gradient(180deg,#0f172a 0%,#0a1324 100%);border:1px solid rgba(148,163,184,0.25);border-radius:16px;overflow:hidden;">
-        <div style="padding:22px 24px;background:linear-gradient(90deg,#06b6d4,#8b5cf6);color:#fff;">
-          <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">
-            <tr>
-              <td style="vertical-align:middle;">
-                <span style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;border-radius:9px;background:rgba(255,255,255,0.2);font-size:12px;font-weight:800;letter-spacing:.06em;margin-right:10px;">SP</span>
-                <span style="font-weight:800;font-size:20px;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;">SlidePlay</span>
-              </td>
-              <td style="text-align:right;vertical-align:middle;">
-                <span style="display:inline-block;padding:5px 10px;border-radius:999px;background:rgba(15,23,42,0.25);font-size:11px;font-weight:700;letter-spacing:.04em;">${safeBadge}</span>
-              </td>
-            </tr>
-          </table>
-        </div>
-        <div style="padding:24px;line-height:1.6;">
-          <h2 style="margin:0 0 10px;font-size:24px;color:#f8fbff;">${safeHeading}</h2>
-          ${safeIntro ? `<p style="margin:0 0 14px;color:#cbd5e1;">${safeIntro}</p>` : ""}
-          ${safeBody ? `<p style="margin:0 0 18px;color:#e2e8f0;white-space:pre-wrap;">${safeBody}</p>` : ""}
-          ${safeCtaUrl ? `<a href="${safeCtaUrl}" style="display:inline-block;padding:11px 16px;border-radius:10px;background:linear-gradient(90deg,#22d3ee,#8b5cf6);color:#fff;text-decoration:none;font-weight:700;">${safeCtaLabel}</a>` : ""}
-        </div>
-        <div style="padding:14px 24px;border-top:1px solid rgba(148,163,184,0.22);font-size:12px;color:#94a3b8;">${safeFooter} · © ${year} SlidePlay</div>
-      </div>
-    </div>
-  `.trim();
-
-  const text = [
-    "SlidePlay",
-    "",
-    safeHeading,
-    safeIntro,
-    safeBody,
-    safeCtaUrl ? `${safeCtaLabel}: ${safeCtaUrl}` : "",
-    "",
-    `${safeFooter} (© ${year} SlidePlay)`
-  ].filter(Boolean).join("\n");
-
-  return { subject: safeSubject, html, text };
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
-function formatRoleLabel(role) {
-  const normalized = String(role || "student").toLowerCase();
-  if (normalized === "teacher") return "Teacher";
-  if (normalized === "admin") return "Admin";
-  return "Student";
-}
+const PAYMENTS_FILE = path.join(__dirname, "payfast_payments.json");
+const SUPPORT_FILE = path.join(__dirname, "support-messages.json");
+const SESSION_HISTORY_FILE = path.join(__dirname, "session-history.json");
+const DEFAULT_DB_URL = "https://slideplay-38d3f-default-rtdb.firebaseio.com";
+const SESSION_HISTORY_MAX_ROWS = Math.max(50, Number(process.env.SESSION_HISTORY_MAX_ROWS || 1000));
+const SESSION_HISTORY_RETENTION_DAYS = Math.max(7, Number(process.env.SESSION_HISTORY_RETENTION_DAYS || 120));
+const SESSION_HISTORY_RETENTION_MS = SESSION_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const ADMIN_EMAIL_ALLOWLIST = new Set([
+  "bossmk2209@gmail.com",
+  "mutevherichard@gmail.com",
+  "kingsleydasilva0@gmail.com",
+].map((e) => String(e).trim().toLowerCase()));
 
-function normalizePublicAppUrl(value) {
-  try {
-    const raw = String(value || "").trim();
-    if (!raw) return "";
-    const parsed = new URL(raw);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
-    return parsed.origin;
-  } catch (_err) {
-    return "";
+const SECURITY_WINDOW_MS = Number(process.env.SECURITY_WINDOW_MS || 15 * 60 * 1000);
+const SECURITY_THRESHOLD_TOTAL = Number(process.env.SECURITY_THRESHOLD_TOTAL || 25);
+const SECURITY_THRESHOLD_PER_IP = Number(process.env.SECURITY_THRESHOLD_PER_IP || 8);
+const SECURITY_THRESHOLD_PER_PATH = Number(process.env.SECURITY_THRESHOLD_PER_PATH || 8);
+const securityEvents = [];
+const securityAlerts = [];
+let nextSecurityAlertId = 1;
+
+let firebaseAdmin = null;
+let firebaseAdminInitAttempted = false;
+
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-admin-api-key");
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
   }
-}
-
-function resolveAppUrl(req, clientAppUrl) {
-  const envUrl = normalizePublicAppUrl(process.env.APP_URL);
-  if (envUrl) return envUrl;
-
-  const clientUrl = normalizePublicAppUrl(clientAppUrl);
-  if (clientUrl) return clientUrl;
-
-  const originHeader = normalizePublicAppUrl(req.get("origin"));
-  if (originHeader) return originHeader;
-
-  return (req.protocol + "://" + req.get("host")).replace(/\/$/, "");
-}
-const crypto = require("crypto");
-const querystring = require("querystring");
-const axios = require("axios");
-const fs = require("fs");
-
-app.use(express.json({
-  verify: (req, _res, buf) => {
-    // Preserve raw body for Coinbase Commerce webhook HMAC verification
-    if (req.path === '/api/crypto/webhook') req.rawBody = buf;
-  }
-}));
-app.use(express.urlencoded({ extended: true })); // For PayFast IPN
-
-// Allow Firebase Google Auth popup to communicate back (COOP must not be same-origin)
-app.use((_req, res, next) => {
-  res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
-  res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
   next();
 });
 
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-// Render health checks hit '/'; serve the app entry page instead of 404.
-app.get("/", (_req, res) => {
-  res.sendFile("main.html", { root: __dirname });
+function safeReadJson(filePath, fallbackValue) {
+  try {
+    if (!fs.existsSync(filePath)) return fallbackValue;
+    const raw = fs.readFileSync(filePath, "utf8");
+    return JSON.parse(raw);
+  } catch (_) {
+    return fallbackValue;
+  }
+}
+
+function safeWriteJson(filePath, value) {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+    return true;
+  } catch (error) {
+    console.error("Failed writing JSON file:", filePath, error.message);
+    return false;
+  }
+}
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function normalizeIsoDate(value) {
+  if (!value && value !== 0) return null;
+  const dt = typeof value === "number" ? new Date(value) : new Date(String(value));
+  return Number.isFinite(dt.getTime()) ? dt.toISOString() : null;
+}
+
+function getFirebaseAdmin() {
+  if (firebaseAdminInitAttempted) return firebaseAdmin;
+  firebaseAdminInitAttempted = true;
+
+  try {
+    const admin = require("firebase-admin");
+
+    if (!admin.apps.length) {
+      let serviceAccount = null;
+      const serviceAccountPath = path.join(__dirname, "firebase-service-account.json");
+
+      if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      } else if (fs.existsSync(serviceAccountPath)) {
+        serviceAccount = require(serviceAccountPath);
+      }
+
+      if (!serviceAccount) {
+        console.warn("Firebase Admin not initialized: missing service account credentials.");
+        firebaseAdmin = null;
+        return firebaseAdmin;
+      }
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: process.env.FIREBASE_DB_URL || DEFAULT_DB_URL,
+      });
+    }
+
+    firebaseAdmin = admin;
+    return firebaseAdmin;
+  } catch (error) {
+    console.warn("Firebase Admin not initialized:", error.message);
+    firebaseAdmin = null;
+    return firebaseAdmin;
+  }
+}
+
+function getBearerToken(req) {
+  const authHeader = String(req.headers.authorization || "");
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
+function getClientIp(req) {
+  const fromForwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return fromForwarded || req.ip || req.socket?.remoteAddress || "unknown";
+}
+
+function pruneSecurityEvents(nowMs) {
+  while (securityEvents.length && nowMs - securityEvents[0].tsMs > SECURITY_WINDOW_MS) {
+    securityEvents.shift();
+  }
+}
+
+function addSecurityEvent(req, statusCode) {
+  if (![401, 403, 429].includes(Number(statusCode))) return;
+
+  const evt = {
+    tsMs: Date.now(),
+    status: Number(statusCode),
+    ip: getClientIp(req),
+    path: String(req.path || req.originalUrl || ""),
+    method: String(req.method || "GET").toUpperCase(),
+  };
+
+  securityEvents.push(evt);
+  pruneSecurityEvents(evt.tsMs);
+
+  if (securityEvents.length > 2000) {
+    securityEvents.splice(0, securityEvents.length - 2000);
+  }
+}
+
+function collectTopCountRows(items, getKey) {
+  const map = new Map();
+  for (const item of items) {
+    const key = String(getKey(item) || "");
+    if (!key) continue;
+    map.set(key, (map.get(key) || 0) + 1);
+  }
+  return Array.from(map.entries())
+    .map(([key, count]) => ({ key, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function upsertSecurityAlert(key, count, message) {
+  const nowMs = Date.now();
+  const existing = securityAlerts.find(
+    (a) => a.key === key && !a.acknowledgedAt && nowMs - Number(a.tsMs || 0) < SECURITY_WINDOW_MS
+  );
+  if (existing) {
+    existing.count = count;
+    existing.message = message;
+    existing.tsMs = nowMs;
+    return;
+  }
+
+  securityAlerts.unshift({
+    alertId: nextSecurityAlertId++,
+    key,
+    count,
+    message,
+    tsMs: nowMs,
+    acknowledgedAt: null,
+  });
+
+  if (securityAlerts.length > 300) {
+    securityAlerts.splice(300);
+  }
+}
+
+function getSecuritySnapshot() {
+  const nowMs = Date.now();
+  pruneSecurityEvents(nowMs);
+
+  const inWindow = securityEvents.filter((e) => nowMs - e.tsMs <= SECURITY_WINDOW_MS);
+
+  const statusCounts = {
+    "401": inWindow.filter((e) => e.status === 401).length,
+    "403": inWindow.filter((e) => e.status === 403).length,
+    "429": inWindow.filter((e) => e.status === 429).length,
+  };
+
+  const topIps = collectTopCountRows(inWindow, (e) => e.ip)
+    .slice(0, 5)
+    .map((row) => ({ ip: row.key, count: row.count }));
+
+  const topPaths = collectTopCountRows(inWindow, (e) => e.path)
+    .slice(0, 5)
+    .map((row) => ({ path: row.key, count: row.count }));
+
+  if (inWindow.length >= SECURITY_THRESHOLD_TOTAL) {
+    upsertSecurityAlert(
+      "global",
+      inWindow.length,
+      `High volume of admin auth failures in last ${Math.round(SECURITY_WINDOW_MS / 60000)} minutes (${inWindow.length} events).`
+    );
+  }
+
+  for (const row of topIps) {
+    if (row.count >= SECURITY_THRESHOLD_PER_IP) {
+      upsertSecurityAlert(
+        `ip:${row.ip}`,
+        row.count,
+        `Repeated admin auth failures from IP ${row.ip} (${row.count} events).`
+      );
+    }
+  }
+
+  for (const row of topPaths) {
+    if (row.count >= SECURITY_THRESHOLD_PER_PATH) {
+      upsertSecurityAlert(
+        `path:${row.path}`,
+        row.count,
+        `Route ${row.path} is receiving repeated failed admin requests (${row.count}).`
+      );
+    }
+  }
+
+  const rateLimitCount = statusCounts["429"];
+  if (rateLimitCount >= Math.max(3, Math.floor(SECURITY_THRESHOLD_PER_IP / 2))) {
+    upsertSecurityAlert(
+      "ratelimit:admin",
+      rateLimitCount,
+      `Rate-limit events detected on admin APIs (${rateLimitCount} recent 429 responses).`
+    );
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    windowMs: SECURITY_WINDOW_MS,
+    totals: {
+      recentEvents: inWindow.length,
+      bufferedAlerts: securityAlerts.length,
+    },
+    statusCounts,
+    thresholds: {
+      total: SECURITY_THRESHOLD_TOTAL,
+      perIp: SECURITY_THRESHOLD_PER_IP,
+      perPath: SECURITY_THRESHOLD_PER_PATH,
+    },
+    topIps,
+    topPaths,
+    recentAlerts: securityAlerts
+      .slice()
+      .sort((a, b) => Number(b.tsMs || 0) - Number(a.tsMs || 0))
+      .slice(0, 50),
+  };
+}
+
+app.use((req, res, next) => {
+  if (!String(req.path || "").startsWith("/api/admin/")) {
+    next();
+    return;
+  }
+  res.on("finish", () => {
+    addSecurityEvent(req, res.statusCode);
+  });
+  next();
 });
+
+async function ensureAdmin(req, res, next) {
+  const token = getBearerToken(req);
+  if (!token) {
+    res.status(401).json({ error: "Missing admin bearer token" });
+    return;
+  }
+
+  const admin = getFirebaseAdmin();
+  if (!admin) {
+    res.status(503).json({ error: "Admin API unavailable: Firebase Admin is not configured" });
+    return;
+  }
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(token, true);
+    const uid = String(decoded.uid || "");
+    const email = normalizeEmail(decoded.email || "");
+
+    let role = "student";
+    try {
+      const roleSnap = await admin.database().ref(`users/${uid}/role`).get();
+      role = String(roleSnap.val() || "student").toLowerCase();
+    } catch (_) {
+      // Ignore role lookup failures, allowlist can still grant access.
+    }
+
+    if (role !== "admin" && !ADMIN_EMAIL_ALLOWLIST.has(email)) {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+
+    if (ADMIN_EMAIL_ALLOWLIST.has(email) && role !== "admin") {
+      try {
+        await admin.database().ref(`users/${uid}`).update({
+          role: "admin",
+          updatedAt: new Date().toISOString(),
+        });
+        role = "admin";
+      } catch (_) {
+        // Best effort only.
+      }
+    }
+
+    req.adminUser = { uid, email, role };
+    next();
+  } catch (error) {
+    res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+
+function mapPaymentStatus(status) {
+  const s = String(status || "").toLowerCase();
+  if (s === "complete" || s === "completed" || s === "success" || s === "succeeded") return "succeeded";
+  if (s === "cancelled" || s === "canceled") return "cancelled";
+  if (s === "failed") return "failed";
+  return s || "pending";
+}
+
+function planAmount(plan) {
+  const p = String(plan || "").toLowerCase();
+  const known = {
+    student_elite: 99,
+    student_premium: 149,
+    teacher_pro: 299,
+    teacher_premium: 399,
+    premium: 199,
+  };
+  return known[p] || 0;
+}
+
+function normalizePaymentRows(rawPayments) {
+  if (Array.isArray(rawPayments)) {
+    return rawPayments
+      .map((row, idx) => ({
+        PaymentID: Number(row.PaymentID || row.paymentId || idx + 1),
+        FirebaseUID: String(row.FirebaseUID || row.uid || ""),
+        DisplayName: String(row.DisplayName || row.displayName || ""),
+        Email: String(row.Email || row.email || ""),
+        Plan: String(row.Plan || row.plan || ""),
+        AmountZAR: Number(row.AmountZAR || row.amount || 0),
+        BillingCycle: String(row.BillingCycle || row.billingCycle || "monthly"),
+        Provider: String(row.Provider || row.provider || "payfast"),
+        Status: mapPaymentStatus(row.Status || row.status),
+        CreatedAt: normalizeIsoDate(row.CreatedAt || row.date || row.createdAt),
+      }))
+      .filter((row) => row.Email || row.FirebaseUID || row.Plan);
+  }
+
+  const out = [];
+  const entries = Object.entries(rawPayments || {});
+  for (let i = 0; i < entries.length; i += 1) {
+    const [email, info] = entries[i];
+    const plan = String(info?.plan || "");
+    out.push({
+      PaymentID: i + 1,
+      FirebaseUID: "",
+      DisplayName: "",
+      Email: String(email || ""),
+      Plan: plan,
+      AmountZAR: Number(info?.amount || planAmount(plan) || 0),
+      BillingCycle: String(info?.billingCycle || "monthly"),
+      Provider: String(info?.provider || "payfast"),
+      Status: mapPaymentStatus(info?.status),
+      CreatedAt: normalizeIsoDate(info?.date || info?.createdAt),
+    });
+  }
+
+  return out;
+}
+
+async function fetchUsersFromDb() {
+  const admin = getFirebaseAdmin();
+  if (!admin) return [];
+
+  try {
+    const snap = await admin.database().ref("users").get();
+    const usersObj = snap.val() || {};
+    return Object.entries(usersObj).map(([uid, raw]) => {
+      const item = raw || {};
+      const email = String(item.email || "");
+      const displayName = String(item.displayName || item.username || email.split("@")[0] || "User");
+      const role = String(item.role || "student").toLowerCase();
+      const createdAt = normalizeIsoDate(item.createdAt || item.created_at || item.joinedAt);
+      const lastLoginAt = normalizeIsoDate(item.lastLoginAt || item.lastSeenAt);
+
+      return {
+        FirebaseUID: uid,
+        DisplayName: displayName,
+        Email: email,
+        Role: role,
+        AuthProvider: String(item.authProvider || "password"),
+        CurrentPlan: String(item.plan || (item.premium ? "premium" : "")),
+        TotalSpent: Number(item.totalSpent || 0),
+        GamesPlayed: Number(item.gamesPlayed || 0),
+        LastLoginAt: lastLoginAt,
+        CreatedAt: createdAt,
+      };
+    });
+  } catch (error) {
+    console.error("Failed loading users from Firebase:", error.message);
+    return [];
+  }
+}
+
+async function fetchSessionsFromDb() {
+  const admin = getFirebaseAdmin();
+  if (!admin) return [];
+
+  try {
+    const snap = await admin.database().ref("sessions").get();
+    const sessionsObj = snap.val() || {};
+    return Object.entries(sessionsObj).map(([sessionCode, raw]) => {
+      const item = raw || {};
+      const players = item.players && typeof item.players === "object" ? Object.values(item.players) : [];
+      const winner = players
+        .slice()
+        .sort((a, b) => Number(b?.score || 0) - Number(a?.score || 0))[0] || null;
+
+      return {
+        SessionCode: String(sessionCode || item.code || ""),
+        GameType: String(item.game || "quiz"),
+        GameMode: String(item.mode || "solo"),
+        HostName: String(item.host || item.hostName || "Teacher"),
+        HostUID: String(item.hostUid || ""),
+        PlayerCount: Number(players.length || 0),
+        WinnerName: winner ? String(winner.name || "") : "",
+        WinnerScore: winner ? Number(winner.score || 0) : null,
+        TotalScore: winner ? Number(winner.score || 0) : null,
+        Status: String(item.status || "waiting").toLowerCase(),
+        CreatedAt: normalizeIsoDate(item.createdAt),
+        JoinedAt: normalizeIsoDate(item.createdAt),
+      };
+    });
+  } catch (error) {
+    console.error("Failed loading sessions from Firebase:", error.message);
+    return [];
+  }
+}
+
+function withUserPaymentStats(users, payments) {
+  const byEmail = new Map();
+  for (const payment of payments) {
+    const key = normalizeEmail(payment.Email);
+    if (!key) continue;
+    if (!byEmail.has(key)) {
+      byEmail.set(key, { totalSpent: 0, latestPlan: "" });
+    }
+    const bucket = byEmail.get(key);
+    if (payment.Status === "succeeded") {
+      bucket.totalSpent += Number(payment.AmountZAR || 0);
+      if (payment.Plan) bucket.latestPlan = payment.Plan;
+    }
+  }
+
+  return users.map((u) => {
+    const stat = byEmail.get(normalizeEmail(u.Email)) || { totalSpent: 0, latestPlan: "" };
+    return {
+      ...u,
+      TotalSpent: Number(u.TotalSpent || 0) || Number(stat.totalSpent || 0),
+      CurrentPlan: u.CurrentPlan || stat.latestPlan || "",
+    };
+  });
+}
+
+function buildUsersPerDay(users, days = 14) {
+  const now = new Date();
+  const map = new Map();
+
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const dt = new Date(now);
+    dt.setDate(now.getDate() - i);
+    const key = dt.toISOString().slice(0, 10);
+    map.set(key, 0);
+  }
+
+  for (const user of users) {
+    if (!user.CreatedAt) continue;
+    const key = String(user.CreatedAt).slice(0, 10);
+    if (map.has(key)) {
+      map.set(key, Number(map.get(key) || 0) + 1);
+    }
+  }
+
+  return Array.from(map.entries()).map(([date, count]) => ({ date, count }));
+}
+
+function sortByDateDesc(items, key) {
+  return items.slice().sort((a, b) => {
+    const at = new Date(a[key] || 0).getTime();
+    const bt = new Date(b[key] || 0).getTime();
+    return bt - at;
+  });
+}
+
+function sessionSortMs(item) {
+  return new Date(item?.FinishedAt || item?.CreatedAt || 0).getTime();
+}
+
+function normalizeSessionRow(row) {
+  const item = row || {};
+  return {
+    SessionCode: String(item.SessionCode || item.sessionCode || ""),
+    GameType: String(item.GameType || item.gameType || "quiz"),
+    GameMode: String(item.GameMode || item.gameMode || "solo"),
+    HostName: String(item.HostName || item.hostName || "Teacher"),
+    HostUID: String(item.HostUID || item.hostUid || ""),
+    PlayerCount: Number(item.PlayerCount || item.playerCount || 0),
+    WinnerName: String(item.WinnerName || item.winnerName || ""),
+    WinnerScore: item.WinnerScore == null ? null : Number(item.WinnerScore),
+    TotalScore: item.TotalScore == null ? null : Number(item.TotalScore),
+    Status: String(item.Status || item.status || "finished").toLowerCase(),
+    CreatedAt: normalizeIsoDate(item.CreatedAt || item.createdAt) || new Date().toISOString(),
+    FinishedAt: normalizeIsoDate(item.FinishedAt || item.finishedAt),
+    ArchivedAt: normalizeIsoDate(item.ArchivedAt || item.archivedAt) || new Date().toISOString(),
+  };
+}
+
+function readSessionHistory() {
+  const raw = safeReadJson(SESSION_HISTORY_FILE, []);
+  if (!Array.isArray(raw)) return [];
+  const normalized = raw
+    .map((row) => normalizeSessionRow(row))
+    .filter((row) => row.SessionCode);
+  return pruneSessionHistory(normalized);
+}
+
+function pruneSessionHistory(rows) {
+  const cutoff = Date.now() - SESSION_HISTORY_RETENTION_MS;
+  const deduped = new Map();
+
+  for (const row of rows || []) {
+    if (!row?.SessionCode) continue;
+    const ts = sessionSortMs(row);
+    if (Number.isFinite(ts) && ts < cutoff) continue;
+    const existing = deduped.get(row.SessionCode);
+    if (!existing || ts >= sessionSortMs(existing)) {
+      deduped.set(row.SessionCode, row);
+    }
+  }
+
+  return Array.from(deduped.values())
+    .sort((a, b) => sessionSortMs(b) - sessionSortMs(a))
+    .slice(0, SESSION_HISTORY_MAX_ROWS);
+}
+
+function upsertSessionHistory(entry) {
+  const history = pruneSessionHistory(readSessionHistory());
+  const idx = history.findIndex((r) => r.SessionCode === entry.SessionCode);
+  if (idx >= 0) {
+    history[idx] = {
+      ...history[idx],
+      ...entry,
+      ArchivedAt: new Date().toISOString(),
+    };
+  } else {
+    history.unshift({
+      ...entry,
+      ArchivedAt: new Date().toISOString(),
+    });
+  }
+  safeWriteJson(SESSION_HISTORY_FILE, pruneSessionHistory(history));
+}
+
+function mergeSessionHistory(currentSessions, archivedSessions) {
+  const byCode = new Map();
+  const pushBest = (row) => {
+    if (!row?.SessionCode) return;
+    const existing = byCode.get(row.SessionCode);
+    if (!existing || sessionSortMs(row) >= sessionSortMs(existing)) {
+      byCode.set(row.SessionCode, row);
+    }
+  };
+
+  for (const row of currentSessions || []) {
+    if (String(row?.Status || "").toLowerCase() !== "active") {
+      pushBest(normalizeSessionRow(row));
+    }
+  }
+  for (const row of archivedSessions || []) {
+    pushBest(normalizeSessionRow(row));
+  }
+
+  const activeCodes = new Set(
+    (currentSessions || [])
+      .filter((row) => String(row?.Status || "").toLowerCase() === "active")
+      .map((row) => String(row?.SessionCode || ""))
+      .filter(Boolean)
+  );
+
+  return Array.from(byCode.values())
+    .filter((row) => !activeCodes.has(row.SessionCode))
+    .sort((a, b) => sessionSortMs(b) - sessionSortMs(a));
+}
 
 // --- AI Hint Endpoint for Escape Game ---
 app.post("/api/ai-hint", async (req, res) => {
@@ -141,8 +634,8 @@ app.post("/api/ai-hint", async (req, res) => {
   let prompt = "You are an expert escape room coach AI. The player is in a 3D escape room game. Based on their current state, provide a helpful, context-aware hint. Be concise, avoid spoilers, and encourage learning.\n";
   prompt += `Game: ${game}\n`;
   prompt += `Level: ${context.level}\n`;
-  prompt += `Inventory: ${Array.isArray(context.inv) ? context.inv.join(", ") : ''}\n`;
-  prompt += `Solved: ${Array.isArray(context.solved) ? context.solved.join(", ") : ''}\n`;
+  prompt += `Inventory: ${Array.isArray(context.inv) ? context.inv.join(", ") : ""}\n`;
+  prompt += `Solved: ${Array.isArray(context.solved) ? context.solved.join(", ") : ""}\n`;
   prompt += `Time left: ${context.secs}s\n`;
   prompt += "Hint:";
   try {
@@ -160,14 +653,89 @@ app.post("/api/ai-hint", async (req, res) => {
   }
 });
 
+app.get("/api/users/:uid/role", async (req, res) => {
+  const uid = String(req.params.uid || "").trim();
+  if (!uid) {
+    res.status(400).json({ error: "Missing uid" });
+    return;
+  }
+
+  const admin = getFirebaseAdmin();
+  if (!admin) {
+    res.json({ role: "student" });
+    return;
+  }
+
+  try {
+    const roleSnap = await admin.database().ref(`users/${uid}/role`).get();
+    const role = String(roleSnap.val() || "student").toLowerCase();
+    res.json({ role });
+  } catch (_) {
+    res.json({ role: "student" });
+  }
+});
+
+app.post("/api/users/sync", async (req, res) => {
+  const payload = req.body || {};
+  const uid = String(payload.uid || "").trim();
+  const email = normalizeEmail(payload.email || "");
+  const role = String(payload.role || "student").toLowerCase();
+
+  if (!uid || !email) {
+    res.status(400).json({ error: "Missing uid or email" });
+    return;
+  }
+
+  const admin = getFirebaseAdmin();
+  if (!admin) {
+    res.status(503).json({ error: "User sync unavailable: Firebase Admin is not configured" });
+    return;
+  }
+
+  const token = getBearerToken(req);
+  if (token) {
+    try {
+      const decoded = await admin.auth().verifyIdToken(token);
+      if (String(decoded.uid || "") !== uid) {
+        res.status(403).json({ error: "Token does not match user" });
+        return;
+      }
+    } catch (_) {
+      res.status(401).json({ error: "Invalid token" });
+      return;
+    }
+  }
+
+  try {
+    const userRef = admin.database().ref(`users/${uid}`);
+    const existingSnap = await userRef.get();
+    const existing = existingSnap.val() || {};
+
+    await userRef.update({
+      email,
+      displayName: String(payload.displayName || existing.displayName || ""),
+      role,
+      inviteChannel: String(payload.inviteChannel || existing.inviteChannel || ""),
+      phone: String(payload.phone || existing.phone || ""),
+      authProvider: String(existing.authProvider || payload.authProvider || "password"),
+      createdAt: existing.createdAt || new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("User sync failed:", error);
+    res.status(500).json({ error: "Could not sync user" });
+  }
+});
+
 // Helper to generate PayFast signature
 function generatePayFastSignature(data, passphrase) {
   let pfData = { ...data };
-  // Remove empty/null fields
   Object.keys(pfData).forEach((k) => {
     if (pfData[k] === undefined || pfData[k] === null) delete pfData[k];
   });
-  // Build query string
   let pfString = Object.keys(pfData)
     .sort()
     .map((key) => `${key}=${encodeURIComponent(pfData[key])}`)
@@ -176,10 +744,8 @@ function generatePayFastSignature(data, passphrase) {
   return crypto.createHash("md5").update(pfString).digest("hex");
 }
 
-// Endpoint to create PayFast payment URL
 app.post("/api/payfast/init", (req, res) => {
   const { amount, item_name, user_email, plan, return_url, cancel_url, notify_url } = req.body;
-  // These should be set in your .env file
   const pf_merchant_id = process.env.PAYFAST_MERCHANT_ID;
   const pf_merchant_key = process.env.PAYFAST_MERCHANT_KEY;
   const pf_passphrase = process.env.PAYFAST_PASSPHRASE;
@@ -200,306 +766,108 @@ app.post("/api/payfast/init", (req, res) => {
     email_address: user_email || "",
     custom_str1: plan || "",
   };
+
   pfData.signature = generatePayFastSignature(pfData, pf_passphrase);
-  const pfQuery = querystring.stringify(pfData);
-  const payfastUrl = `${pf_url}?${pfQuery}`;
+  const payfastUrl = `${pf_url}?${querystring.stringify(pfData)}`;
   res.json({ url: payfastUrl });
 });
 
-// (Optional) IPN endpoint for PayFast notifications
-// (axios, fs, express already required above)
-// app.use(express.urlencoded({ extended: true })); // Already set above
-
-// Save payment + upsert subscription in SLIDEPLAYDB
-async function savePaymentStatus(email, plan, status, provider = 'payfast', amountZAR = 0) {
-  try {
-    // Lookup FirebaseUID by email
-    const userRes = await query('SELECT FirebaseUID FROM Users WHERE Email = @email', { email });
-    if (!userRes.recordset.length) {
-      console.warn('savePaymentStatus: user not found in DB for', email);
-      return;
-    }
-    const uid = userRes.recordset[0].FirebaseUID;
-
-    // Record the payment
-    await query(`
-      INSERT INTO Payments (FirebaseUID, Plan, AmountZAR, BillingCycle, Provider, Status)
-      VALUES (@uid, @plan, @amount, 'monthly', @provider, @status)
-    `, { uid, plan, amount: amountZAR, provider, status: status === 'COMPLETE' ? 'succeeded' : 'pending' });
-
-    // Upsert subscription
-    if (status === 'COMPLETE') {
-      await query(`
-        MERGE Subscriptions AS target
-        USING (SELECT @uid AS FirebaseUID) AS src ON target.FirebaseUID = src.FirebaseUID
-        WHEN MATCHED THEN
-          UPDATE SET Plan = @plan, Status = 'active', RenewsAt = DATEADD(month, 1, SYSUTCDATETIME())
-        WHEN NOT MATCHED THEN
-          INSERT (FirebaseUID, Plan, Status, PriceZAR, RenewsAt)
-          VALUES (@uid, @plan, 'active', @amount, DATEADD(month, 1, SYSUTCDATETIME()));
-      `, { uid, plan, amount: amountZAR });
-    }
-    console.log('DB payment recorded for', email, plan, status);
-  } catch (err) {
-    console.error('savePaymentStatus DB error:', err.message);
-  }
+function savePaymentStatus(email, plan, status) {
+  const existing = safeReadJson(PAYMENTS_FILE, {});
+  existing[email] = {
+    plan,
+    status,
+    date: new Date().toISOString(),
+    amount: planAmount(plan),
+    provider: "payfast",
+    billingCycle: "monthly",
+  };
+  safeWriteJson(PAYMENTS_FILE, existing);
 }
 
-// PayFast IPN handler with verification and Firebase update
 app.post("/api/payfast/ipn", async (req, res) => {
   const ipnData = req.body;
   console.log("PayFast IPN received:", ipnData);
+
   try {
     const pfUrl = process.env.PAYFAST_SANDBOX === "false"
       ? "https://www.payfast.co.za/eng/query/validate"
       : "https://sandbox.payfast.co.za/eng/query/validate";
+
     const rawBody = Object.keys(ipnData)
       .map((k) => `${k}=${encodeURIComponent(ipnData[k])}`)
       .join("&");
+
     const pfRes = await axios.post(pfUrl, rawBody, {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
-    if (pfRes.data.trim() !== "VALID") {
+
+    if (String(pfRes.data || "").trim() !== "VALID") {
       console.error("PayFast IPN not valid:", pfRes.data);
       return res.status(400).send("Invalid IPN");
     }
-    if (ipnData.payment_status === "COMPLETE") {
-      await savePaymentStatus(
-        ipnData.email_address,
-        ipnData.custom_str1,
-        'COMPLETE',
-        'payfast',
-        parseFloat(ipnData.amount_gross || 0)
-      );
-      // --- Firebase Admin SDK: set premium ---
-      try {
-        const admin = require("firebase-admin");
-        if (!admin.apps.length) {
-          const serviceAccount = require("./firebase-service-account.json");
-          admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            databaseURL: "https://slideplayer-d024f-default-rtdb.firebaseio.com/"
+
+    if (String(ipnData.payment_status || "").toUpperCase() === "COMPLETE") {
+      const email = normalizeEmail(ipnData.email_address);
+      const plan = String(ipnData.custom_str1 || "");
+      savePaymentStatus(email, plan, "COMPLETE");
+
+      const admin = getFirebaseAdmin();
+      if (admin && email) {
+        try {
+          const userRecord = await admin.auth().getUserByEmail(email);
+          await admin.database().ref(`users/${userRecord.uid}`).update({
+            premium: true,
+            plan,
+            paidAt: new Date().toISOString(),
+            totalSpent: planAmount(plan),
           });
+        } catch (e) {
+          console.error("Firebase premium update error:", e.message);
         }
-        // Find user by email
-        const userRecord = await admin.auth().getUserByEmail(ipnData.email_address);
-        // Set premium in Realtime Database
-        await admin.database().ref("users/" + userRecord.uid).update({
-          premium: true,
-          plan: ipnData.custom_str1,
-          paidAt: new Date().toISOString(),
-        });
-        console.log("Firebase premium set for", ipnData.email_address);
-      } catch (e) {
-        console.error("Firebase premium update error:", e);
       }
-      // Send email notification
-      if (ipnData.email_address) {
-        const planLabel = String(ipnData.custom_str1 || "premium");
-        const appUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
-        const mail = buildSlidePlayEmail({
-          subject: "Payment Received - SlidePlay",
-          heading: "Payment Confirmed",
-          intro: "Thank you for upgrading your learning experience.",
-          body: `Your payment for the ${planLabel} plan was received successfully. Your premium access is now active.`,
-          ctaLabel: "Go to Dashboard",
-          ctaUrl: appUrl + "/studentpayment.html?payment=success&provider=payfast",
-          footer: "Need help? Contact SlidePlay support.",
-        });
+
+      if (email && process.env.SENDGRID_API_KEY) {
         const msg = {
-          to: ipnData.email_address,
-          from: "slideplayer90@gmail.com",
-          subject: mail.subject,
-          text: mail.text,
-          html: mail.html,
+          to: email,
+          from: process.env.SENDGRID_FROM_EMAIL || "slideplayer90@gmail.com",
+          subject: "Payment Received - SlidePlayer",
+          text: `Thank you for your payment for the ${plan} plan! Your premium access is now active.`,
         };
         try {
           await sgMail.send(msg);
         } catch (e) {
-          console.error("SendGrid error:", e);
+          console.error("SendGrid error:", e.message);
         }
       }
-      console.log("Payment marked COMPLETE for", ipnData.email_address);
+
+      console.log("Payment marked COMPLETE for", email);
     }
-    res.status(200).send("OK");
+
+    return res.status(200).send("OK");
   } catch (err) {
     console.error("PayFast IPN error:", err);
-    res.status(500).send("IPN error");
+    return res.status(500).send("IPN error");
   }
 });
-// ── Coinbase Commerce: Create Crypto Charge ─────────────────────────────────
-app.post("/api/crypto/create-charge", async (req, res) => {
-  const { plan, amount, user_email } = req.body;
-
-  if (!plan || !amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-    return res.status(400).json({ error: "Invalid plan or amount." });
-  }
-
-  const COINBASE_API_KEY = process.env.COINBASE_COMMERCE_API_KEY;
-  if (!COINBASE_API_KEY) {
-    return res.status(503).json({ error: "Crypto payments are not configured on this server." });
-  }
-
-  const appUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
-  const PLAN_LABELS_SERVER = {
-    student_elite: "Student Elite",
-    student_premium: "Student Premium",
-    pro: "Teacher Pro",
-    school: "School Premium",
-  };
-
-  try {
-    const chargeRes = await axios.post(
-      "https://api.commerce.coinbase.com/charges",
-      {
-        name: `SlidePlay ${PLAN_LABELS_SERVER[plan] || plan}`,
-        description: `SlidePlay ${PLAN_LABELS_SERVER[plan] || plan} subscription`,
-        local_price: { amount: Number(amount).toFixed(2), currency: "USD" },
-        pricing_type: "fixed_price",
-        metadata: { plan, user_email: user_email || "" },
-        redirect_url: `${appUrl}/studentpayment.html?payment=success&provider=crypto&plan=${encodeURIComponent(plan)}`,
-        cancel_url: `${appUrl}/studentpayment.html?payment=cancelled&provider=crypto`,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "X-CC-Api-Key": COINBASE_API_KEY,
-          "X-CC-Version": "2018-03-22",
-        },
-        timeout: 10000,
-      }
-    );
-
-    const charge = chargeRes.data?.data;
-    if (charge?.hosted_url) {
-      res.json({ url: charge.hosted_url, chargeId: charge.id });
-    } else {
-      res.status(502).json({ error: "No hosted URL returned from Coinbase Commerce." });
-    }
-  } catch (e) {
-    const apiMsg = e.response?.data?.error?.message;
-    console.error("Coinbase Commerce create-charge error:", apiMsg || e.message);
-    res.status(502).json({ error: apiMsg || "Failed to create crypto charge. Please try again." });
-  }
-});
-
-// ── Coinbase Commerce: Webhook ────────────────────────────────────────────────
-// Coinbase sends an HMAC-SHA256 signed payload; raw body captured via express.json verify above
-app.post("/api/crypto/webhook", async (req, res) => {
-  const signature = req.headers["x-cc-webhook-signature"];
-  const webhookSecret = process.env.COINBASE_COMMERCE_WEBHOOK_SECRET;
-
-  if (!webhookSecret) {
-    console.error("COINBASE_COMMERCE_WEBHOOK_SECRET is not set.");
-    return res.status(500).send("Webhook secret not configured.");
-  }
-  if (!signature || !req.rawBody) {
-    return res.status(400).send("Missing signature or body.");
-  }
-
-  // Verify HMAC-SHA256
-  const expectedSig = crypto
-    .createHmac("sha256", webhookSecret)
-    .update(req.rawBody)
-    .digest("hex");
-  if (signature !== expectedSig) {
-    console.warn("Coinbase Commerce webhook: invalid signature — possible spoofed request.");
-    return res.status(400).send("Invalid signature.");
-  }
-
-  let event;
-  try {
-    event = JSON.parse(req.rawBody.toString());
-  } catch {
-    return res.status(400).send("Invalid JSON payload.");
-  }
-
-  const eventType = event?.event?.type;
-  const { plan, user_email } = event?.event?.data?.metadata || {};
-
-  if (
-    (eventType === "charge:confirmed" || eventType === "charge:resolved") &&
-    plan && user_email
-  ) {
-    savePaymentStatus(user_email, plan, "COMPLETE", 'coinbase', 0);
-
-    // Update Firebase premium status
-    try {
-      const admin = require("firebase-admin");
-      if (!admin.apps.length) {
-        const serviceAccount = require("./firebase-service-account.json");
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-          databaseURL: "https://slideplayer-d024f-default-rtdb.firebaseio.com/",
-        });
-      }
-      const userRecord = await admin.auth().getUserByEmail(user_email);
-      await admin.database().ref("users/" + userRecord.uid).update({
-        premium: true,
-        plan,
-        paidAt: new Date().toISOString(),
-        paymentProvider: "coinbase_commerce",
-      });
-      console.log("Firebase premium set via crypto webhook for", user_email);
-    } catch (e) {
-      console.error("Firebase crypto webhook error:", e.message);
-    }
-
-    // Send confirmation email
-    try {
-      const appUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
-      const mail = buildSlidePlayEmail({
-        subject: "Crypto Payment Confirmed - SlidePlay",
-        heading: "Crypto Payment Confirmed",
-        intro: "Your blockchain payment has been successfully verified.",
-        body: `Your crypto payment for the ${plan} plan has been confirmed. Premium access is now active on your account.`,
-        ctaLabel: "Open Premium",
-        ctaUrl: appUrl + "/studentpayment.html?payment=success&provider=crypto",
-        footer: "Thank you for powering your progress with SlidePlay.",
-      });
-      await sgMail.send({
-        to: user_email,
-        from: "slideplayer90@gmail.com",
-        subject: mail.subject,
-        text: mail.text,
-        html: mail.html,
-      });
-    } catch (e) {
-      console.error("SendGrid crypto confirmation email error:", e.message);
-    }
-  }
-
-  res.status(200).send("OK");
-});
-
-// Integrating SendGrid+ API to send welcome email to new users after signing up
-
 
 app.post("/send-welcome-email", async (req, res) => {
-  const { email, name, role, appUrl } = req.body || {};
-  if (!email) return res.status(400).send("Email is required");
+  const { email } = req.body || {};
+  if (!email) {
+    res.status(400).send("Missing email");
+    return;
+  }
 
-  const resolvedAppUrl = resolveAppUrl(req, appUrl).replace(/\/$/, "");
-  const firstName = String(name || "there").trim().split(/\s+/)[0] || "there";
-  const roleLabel = formatRoleLabel(role);
-  const loginUrl = resolvedAppUrl + "/login.html?email=" + encodeURIComponent(String(email).trim()) + "&welcome=1";
+  if (!process.env.SENDGRID_API_KEY) {
+    res.status(200).send("Email skipped (SendGrid not configured)");
+    return;
+  }
 
-  const mail = buildSlidePlayEmail({
-    subject: "Welcome to SlidePlay, " + firstName + "!",
-    heading: "Welcome to SlidePlay, " + firstName + "!",
-    intro: "Your " + roleLabel + " account is ready.",
-    body: "Thanks for joining SlidePlay.\n\nNext step: choose your plan, then jump into your first game-powered lesson.",
-    ctaLabel: "Open My Account",
-    ctaUrl: loginUrl,
-    footer: "If you did not create this account, contact support immediately.",
-    badge: roleLabel.toUpperCase(),
-  });
   const msg = {
     to: email,
-    from: "slideplayer90@gmail.com",
-    subject: mail.subject,
-    text: mail.text,
-    html: mail.html,
+    from: process.env.SENDGRID_FROM_EMAIL || "slideplayer90@gmail.com",
+    subject: "Welcome to SlidePlayer!",
+    text: "Thank you for signing up for SlidePlayer! We're excited to have you on board. If you have any questions or need assistance, feel free to reach out to our support team.",
   };
 
   try {
@@ -511,153 +879,321 @@ app.post("/send-welcome-email", async (req, res) => {
   }
 });
 
-// ─── DATABASE ENDPOINTS ──────────────────────────────────────────────────────
+app.post("/api/sessions/archive", async (req, res) => {
+  const token = getBearerToken(req);
+  if (!token) {
+    res.status(401).json({ error: "Missing auth token" });
+    return;
+  }
 
-// Sync a Firebase user into the Users table (upsert by FirebaseUID)
-app.post('/api/users/sync', async (req, res) => {
-  const { uid, email, displayName, role } = req.body;
-  if (!uid || !email) return res.status(400).json({ error: 'uid and email required' });
+  const admin = getFirebaseAdmin();
+  if (!admin) {
+    res.status(503).json({ error: "Session archive unavailable: Firebase Admin is not configured" });
+    return;
+  }
+
+  let decoded;
   try {
-    await query(`
-      MERGE Users AS target
-      USING (SELECT @uid AS FirebaseUID) AS src ON target.FirebaseUID = src.FirebaseUID
-      WHEN MATCHED THEN
-        UPDATE SET Email = @email, DisplayName = @displayName, Role = @role, LastLoginAt = SYSUTCDATETIME()
-      WHEN NOT MATCHED THEN
-        INSERT (FirebaseUID, Email, DisplayName, Role) VALUES (@uid, @email, @displayName, @role);
-    `, { uid, email, displayName: displayName || '', role: role || 'student' });
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('users/sync error:', err.message);
-    res.status(500).json({ error: 'DB error' });
+    decoded = await admin.auth().verifyIdToken(token, true);
+  } catch (_) {
+    res.status(401).json({ error: "Invalid auth token" });
+    return;
+  }
+
+  const payload = req.body || {};
+  const sessionCode = String(payload.sessionCode || payload.SessionCode || "").trim().toUpperCase();
+  if (!sessionCode) {
+    res.status(400).json({ error: "Missing sessionCode" });
+    return;
+  }
+
+  const normalized = normalizeSessionRow({
+    SessionCode: sessionCode,
+    GameType: payload.gameType,
+    GameMode: payload.gameMode,
+    HostName: payload.hostName || payload.host || decoded.name || decoded.email || "Teacher",
+    HostUID: decoded.uid,
+    PlayerCount: payload.playerCount,
+    WinnerName: payload.winnerName,
+    WinnerScore: payload.winnerScore,
+    TotalScore: payload.totalScore,
+    Status: payload.status || "finished",
+    CreatedAt: payload.createdAt || payload.startedAt,
+    FinishedAt: payload.finishedAt || new Date().toISOString(),
+  });
+
+  if (!normalized.PlayerCount) {
+    normalized.PlayerCount = Number(payload.players || 0);
+  }
+
+  upsertSessionHistory(normalized);
+  res.json({ ok: true, sessionCode: normalized.SessionCode });
+});
+
+app.get("/api/admin/stats", ensureAdmin, async (_req, res) => {
+  try {
+    const paymentRows = normalizePaymentRows(safeReadJson(PAYMENTS_FILE, {}));
+    const usersRaw = await fetchUsersFromDb();
+    const users = withUserPaymentStats(usersRaw, paymentRows);
+    const sessions = await fetchSessionsFromDb();
+
+    const counts = {
+      total: users.length,
+      students: users.filter((u) => u.Role === "student").length,
+      teachers: users.filter((u) => u.Role === "teacher").length,
+      admins: users.filter((u) => u.Role === "admin").length,
+    };
+
+    const activeSubscriptions = users.filter((u) => u.CurrentPlan).length;
+    const mrr = users.reduce((sum, u) => sum + planAmount(u.CurrentPlan), 0);
+    const totalRevenue = paymentRows
+      .filter((p) => p.Status === "succeeded")
+      .reduce((sum, p) => sum + Number(p.AmountZAR || 0), 0);
+
+    const today = new Date().toISOString().slice(0, 10);
+    const onlineToday = users.filter((u) => String(u.LastLoginAt || "").slice(0, 10) === today).length;
+
+    const recentUsers = sortByDateDesc(users, "CreatedAt")
+      .slice(0, 6)
+      .map((u) => ({
+        name: u.DisplayName || u.Email || u.FirebaseUID,
+        role: u.Role || "student",
+        createdAt: u.CreatedAt,
+      }));
+
+    const sessionsSorted = sortByDateDesc(sessions, "CreatedAt");
+    const recentSessions = sessionsSorted.slice(0, 6).map((s) => ({
+      code: s.SessionCode,
+      status: s.Status,
+      createdAt: s.CreatedAt,
+    }));
+
+    const planBuckets = new Map();
+    for (const u of users) {
+      const plan = String(u.CurrentPlan || "").trim();
+      if (!plan) continue;
+      if (!planBuckets.has(plan)) planBuckets.set(plan, { plan, count: 0, monthlyRevenue: 0 });
+      const bucket = planBuckets.get(plan);
+      bucket.count += 1;
+      bucket.monthlyRevenue += planAmount(plan);
+    }
+
+    const planBreakdown = Array.from(planBuckets.values()).sort((a, b) => b.count - a.count);
+
+    res.json({
+      serverTime: new Date().toISOString(),
+      counts,
+      activeSubscriptions,
+      mrr,
+      totalRevenue,
+      onlineToday,
+      usersPerDay: buildUsersPerDay(users, 14),
+      recentUsers,
+      recentSessions,
+      planBreakdown,
+    });
+  } catch (error) {
+    console.error("Admin stats error:", error);
+    res.status(500).json({ error: "Could not load admin stats" });
   }
 });
 
-// Get a game session by join code
-app.get('/api/sessions/:code', async (req, res) => {
-  const { code } = req.params;
+app.get("/api/admin/users", ensureAdmin, async (_req, res) => {
   try {
-    const result = await query(
-      "SELECT * FROM GameSessions WHERE SessionCode = @code AND Status IN ('waiting','active')",
-      { code }
-    );
-    if (!result.recordset.length) return res.status(404).json({ error: 'Session not found' });
-    res.json(result.recordset[0]);
-  } catch (err) {
-    console.error('sessions/:code error:', err.message);
-    res.status(500).json({ error: 'DB error' });
+    const paymentRows = normalizePaymentRows(safeReadJson(PAYMENTS_FILE, {}));
+    const users = withUserPaymentStats(await fetchUsersFromDb(), paymentRows);
+    res.json({ users: sortByDateDesc(users, "CreatedAt") });
+  } catch (error) {
+    res.status(500).json({ error: "Could not load users" });
   }
 });
 
-// Student joins a session by code
-app.post('/api/sessions/:code/join', async (req, res) => {
-  const { code } = req.params;
-  const { uid, displayName } = req.body;
-  if (!uid) return res.status(400).json({ error: 'uid required' });
+app.get("/api/admin/users/:uid", ensureAdmin, async (req, res) => {
+  const uid = String(req.params.uid || "").trim();
+  if (!uid) {
+    res.status(400).json({ error: "Missing user uid" });
+    return;
+  }
+
   try {
-    // Get session
-    const sess = await query(
-      "SELECT SessionID FROM GameSessions WHERE SessionCode = @code AND Status = 'waiting'",
-      { code }
-    );
-    if (!sess.recordset.length) return res.status(404).json({ error: 'Session not open' });
-    const sessionId = sess.recordset[0].SessionID;
+    const paymentRows = normalizePaymentRows(safeReadJson(PAYMENTS_FILE, {}));
+    const users = withUserPaymentStats(await fetchUsersFromDb(), paymentRows);
+    const user = users.find((u) => u.FirebaseUID === uid);
 
-    // Upsert player
-    await query(`
-      IF NOT EXISTS (SELECT 1 FROM SessionPlayers WHERE SessionID = @sessionId AND StudentUID = @uid)
-        INSERT INTO SessionPlayers (SessionID, StudentUID, DisplayName) VALUES (@sessionId, @uid, @displayName)
-    `, { sessionId, uid, displayName: displayName || uid });
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
 
-    res.json({ ok: true, sessionId });
-  } catch (err) {
-    console.error('sessions/:code/join error:', err.message);
-    res.status(500).json({ error: 'DB error' });
+    const sessions = await fetchSessionsFromDb();
+    const userSessions = sessions.filter((s) => s.HostUID === uid || normalizeEmail(s.HostName) === normalizeEmail(user.DisplayName));
+    const userPayments = paymentRows.filter((p) => normalizeEmail(p.Email) === normalizeEmail(user.Email));
+
+    res.json({
+      user,
+      sessions: sortByDateDesc(userSessions, "CreatedAt"),
+      payments: sortByDateDesc(userPayments, "CreatedAt"),
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Could not load user profile" });
   }
 });
 
-// Get a student's subscription info
-app.get('/api/users/:uid/subscription', async (req, res) => {
-  const { uid } = req.params;
+app.get("/api/admin/sessions", ensureAdmin, async (_req, res) => {
   try {
-    const result = await query(
-      'SELECT Plan, Status, RenewsAt FROM Subscriptions WHERE FirebaseUID = @uid',
-      { uid }
-    );
-    if (!result.recordset.length) return res.json({ Plan: 'free', Status: 'none' });
-    res.json(result.recordset[0]);
-  } catch (err) {
-    console.error('subscription error:', err.message);
-    res.status(500).json({ error: 'DB error' });
+    const allCurrent = sortByDateDesc(await fetchSessionsFromDb(), "CreatedAt");
+    const archived = readSessionHistory();
+    const liveRooms = allCurrent.filter((s) => String(s.Status || "").toLowerCase() === "active");
+    const sessions = mergeSessionHistory(allCurrent, archived);
+    res.json({ sessions, liveRooms });
+  } catch (error) {
+    res.status(500).json({ error: "Could not load sessions" });
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ─── RAG ENDPOINTS ───────────────────────────────────────────────────────────
-
-// Create a SlideDecks record and return the new deckId
-app.post('/api/decks/create', async (req, res) => {
-  const { uid, title, rawText } = req.body;
-  if (!uid || !title) return res.status(400).json({ error: 'uid and title required' });
+app.get("/api/admin/payments", ensureAdmin, async (_req, res) => {
   try {
-    const result = await query(
-      `INSERT INTO SlideDecks (TeacherUID, Title, RawText)
-       OUTPUT INSERTED.DeckID
-       VALUES (@uid, @title, @rawText)`,
-      { uid, title, rawText: rawText || '' }
-    );
-    const deckId = result.recordset[0].DeckID;
-    res.json({ deckId });
-  } catch (err) {
-    console.error('decks/create error:', err.message);
-    res.status(500).json({ error: 'DB error' });
+    const paymentRows = normalizePaymentRows(safeReadJson(PAYMENTS_FILE, {}));
+    const users = await fetchUsersFromDb();
+    const userByEmail = new Map(users.map((u) => [normalizeEmail(u.Email), u]));
+
+    const payments = paymentRows.map((p) => {
+      const user = userByEmail.get(normalizeEmail(p.Email));
+      return {
+        ...p,
+        FirebaseUID: p.FirebaseUID || user?.FirebaseUID || "",
+        DisplayName: p.DisplayName || user?.DisplayName || "",
+      };
+    });
+
+    res.json({ payments: sortByDateDesc(payments, "CreatedAt") });
+  } catch (error) {
+    res.status(500).json({ error: "Could not load payments" });
   }
 });
 
-// Chunk + embed a deck's raw text (runs in background, returns 202 immediately)
-app.post('/api/decks/:deckId/embed', async (req, res) => {
-  const deckId = parseInt(req.params.deckId);
-  const { rawText } = req.body;
-  if (!rawText) return res.status(400).json({ error: 'rawText required' });
-  // Respond immediately so the client isn't blocked — embedding happens async
-  res.json({ ok: true, message: 'Embedding started' });
-  try {
-    const count = await embedDeck(deckId, rawText);
-    // Update QuestionCount on the deck as a proxy for embed status
-    await query('UPDATE SlideDecks SET QuestionCount = @count WHERE DeckID = @deckId', { count, deckId });
-  } catch (err) {
-    console.error(`embed deck ${deckId} error:`, err.message);
+app.get("/api/admin/support/messages", ensureAdmin, async (_req, res) => {
+  const messages = safeReadJson(SUPPORT_FILE, []);
+  if (!Array.isArray(messages)) {
+    res.json({ messages: [] });
+    return;
   }
+  res.json({ messages: sortByDateDesc(messages, "CreatedAt") });
 });
 
-// Grounded study-mode Q&A using RAG
-app.post('/api/study/ask', async (req, res) => {
-  const { deckId, question, history } = req.body;
-  if (!deckId || !question) return res.status(400).json({ error: 'deckId and question required' });
-  try {
-    const result = await studyAsk(parseInt(deckId), question, history || []);
-    res.json(result);
-  } catch (err) {
-    console.error('study/ask error:', err.message);
-    res.status(500).json({ error: 'RAG error' });
+app.patch("/api/admin/support/messages/:id", ensureAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const status = String(req.body?.status || "").toLowerCase();
+  const allowed = new Set(["open", "in_progress", "resolved"]);
+
+  if (!Number.isFinite(id) || id <= 0) {
+    res.status(400).json({ error: "Invalid message id" });
+    return;
   }
+
+  if (!allowed.has(status)) {
+    res.status(400).json({ error: "Invalid status value" });
+    return;
+  }
+
+  const messages = safeReadJson(SUPPORT_FILE, []);
+  if (!Array.isArray(messages)) {
+    res.status(500).json({ error: "Support inbox is unavailable" });
+    return;
+  }
+
+  const idx = messages.findIndex((m) => Number(m?.MessageID) === id);
+  if (idx < 0) {
+    res.status(404).json({ error: "Message not found" });
+    return;
+  }
+
+  messages[idx] = {
+    ...messages[idx],
+    Status: status,
+    UpdatedAt: new Date().toISOString(),
+  };
+
+  if (!safeWriteJson(SUPPORT_FILE, messages)) {
+    res.status(500).json({ error: "Could not persist support status" });
+    return;
+  }
+
+  res.json({ ok: true, message: messages[idx] });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
+app.post("/api/admin/email/send", ensureAdmin, async (req, res) => {
+  if (!process.env.SENDGRID_API_KEY) {
+    res.status(500).json({ error: "SendGrid is not configured" });
+    return;
+  }
 
-app.get('/health', (_req, res) => {
-  res.status(200).json({ ok: true, service: 'slideplay', ts: new Date().toISOString() });
+  const toList = Array.isArray(req.body?.to) ? req.body.to : [];
+  const subject = String(req.body?.subject || "").trim();
+  const text = String(req.body?.text || "").trim();
+
+  const recipients = toList
+    .map((email) => normalizeEmail(email))
+    .filter(Boolean);
+
+  if (!recipients.length || !subject || !text) {
+    res.status(400).json({ error: "Missing recipients, subject, or text" });
+    return;
+  }
+
+  const accepted = [];
+  const failed = [];
+
+  for (const email of recipients) {
+    try {
+      await sgMail.send({
+        to: email,
+        from: process.env.SENDGRID_FROM_EMAIL || "slideplayer90@gmail.com",
+        subject,
+        text,
+      });
+      accepted.push(email);
+    } catch (error) {
+      failed.push({ email, reason: error?.message || "send_failed" });
+    }
+  }
+
+  res.json({ accepted, failed, sent: accepted.length });
 });
 
-const PORT = Number(process.env.PORT || 3000);
+app.get("/api/admin/security-alerts", ensureAdmin, (_req, res) => {
+  res.json(getSecuritySnapshot());
+});
 
-app.listen(PORT, async () => {
-  try {
-    await getPool(); // connect to DB on startup
-  } catch (err) {
-    // Keep the web service running even when SQL is unreachable in hosted envs.
-    console.warn("DB connection unavailable at startup:", err.message);
+app.post("/api/admin/security-alerts/ack", ensureAdmin, (req, res) => {
+  const id = Number(req.body?.alertId);
+  if (!Number.isFinite(id) || id <= 0) {
+    res.status(400).json({ error: "Invalid alert id" });
+    return;
   }
+
+  const alert = securityAlerts.find((a) => Number(a.alertId) === id);
+  if (!alert) {
+    res.status(404).json({ error: "Alert not found" });
+    return;
+  }
+
+  alert.acknowledgedAt = new Date().toISOString();
+  res.json({ ok: true, alertId: id });
+});
+
+app.post("/api/admin/security-alerts/ack-all", ensureAdmin, (_req, res) => {
+  const now = new Date().toISOString();
+  let updated = 0;
+  for (const alert of securityAlerts) {
+    if (!alert.acknowledgedAt) {
+      alert.acknowledgedAt = now;
+      updated += 1;
+    }
+  }
+  res.json({ ok: true, updated });
+});
+
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

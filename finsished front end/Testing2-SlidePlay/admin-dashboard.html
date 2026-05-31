@@ -34,6 +34,7 @@
     .nav a i{width:18px;text-align:center;font-size:.88rem;}
     .nav a:hover{background:rgba(139,92,246,.12);color:var(--text);}
     .nav a.active{background:rgba(139,92,246,.18);color:var(--purple);border-left:3px solid var(--purple);}
+    .nav-badge{margin-left:auto;background:rgba(245,158,11,.22);color:#fbbf24;border:1px solid rgba(245,158,11,.35);border-radius:999px;padding:.08rem .45rem;font-size:.64rem;font-weight:700;min-width:22px;text-align:center;line-height:1.2;display:none;}
     .sidebar-footer{margin-top:auto;}
     .admin-user{display:flex;align-items:center;gap:.75rem;padding:.8rem 1rem;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.15);border-radius:12px;}
     .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0;}
@@ -102,6 +103,9 @@
     .rb.waiting{background:rgba(234,179,8,.12);color:#fbbf24;}
     .rb.active{background:rgba(34,197,94,.12);color:#4ade80;}
     .rb.ended{background:rgba(100,116,139,.12);color:#94a3b8;}
+    .rb.open{background:rgba(245,158,11,.12);color:#fbbf24;}
+    .rb.in_progress{background:rgba(59,130,246,.12);color:#60a5fa;}
+    .rb.resolved{background:rgba(34,197,94,.12);color:#4ade80;}
 
     /* plan breakdown */
     .plan-row{display:grid;grid-template-columns:1fr auto auto;gap:.75rem;align-items:center;padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.82rem;}
@@ -111,6 +115,59 @@
     .plan-rev{color:var(--green);font-size:.76rem;text-align:right;white-space:nowrap;}
     .plan-bar-wrap{grid-column:1/-1;height:4px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;}
     .plan-bar{height:100%;background:linear-gradient(90deg,var(--purple),var(--cyan));border-radius:4px;transition:width .7s ease;}
+
+    /* security monitor */
+    .security-row{margin-bottom:2rem;}
+    .security-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem;margin-bottom:1rem;}
+    @media(max-width:1100px){.security-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+    @media(max-width:700px){.security-grid{grid-template-columns:1fr;}}
+    .sec-stat{background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.16);border-radius:12px;padding:.75rem .9rem;}
+    .sec-stat .lbl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+    .sec-stat .val{font-family:"Orbitron",sans-serif;font-size:1.05rem;margin-top:.2rem;}
+    .sec-stat .sub{font-size:.72rem;color:var(--muted);margin-top:.12rem;}
+    .security-columns{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:1rem;}
+    @media(max-width:1200px){.security-columns{grid-template-columns:1fr;}}
+    .sec-list{max-height:190px;overflow:auto;border:1px solid rgba(255,255,255,.06);border-radius:10px;background:rgba(5,8,20,.45);}
+    .sec-list::-webkit-scrollbar{width:4px;}
+    .sec-list::-webkit-scrollbar-thumb{background:rgba(139,92,246,.35);border-radius:4px;}
+    .sec-item{display:flex;justify-content:space-between;gap:.8rem;padding:.58rem .75rem;border-bottom:1px solid rgba(255,255,255,.04);font-size:.8rem;}
+    .sec-item:last-child{border-bottom:none;}
+    .sec-item .meta{font-size:.72rem;color:var(--muted);text-align:right;white-space:nowrap;}
+    .sec-alert{display:flex;gap:.6rem;padding:.68rem .78rem;border-bottom:1px solid rgba(255,255,255,.04);font-size:.78rem;}
+    .sec-alert:last-child{border-bottom:none;}
+    .sec-alert .icon{color:#f87171;line-height:1.2;}
+    .sec-alert .msg{flex:1;min-width:0;word-break:break-word;}
+    .sec-alert .ts{font-size:.7rem;color:var(--muted);margin-top:.25rem;}
+    .sec-actions{display:flex;align-items:center;gap:.5rem;}
+    .sec-btn{border:1px solid rgba(139,92,246,.35);background:rgba(139,92,246,.12);color:#c4b5fd;border-radius:8px;padding:.3rem .55rem;font-size:.68rem;cursor:pointer;transition:.2s;white-space:nowrap;}
+    .sec-btn:hover{background:rgba(139,92,246,.2);color:#e9d5ff;}
+    .sec-btn:disabled{opacity:.55;cursor:not-allowed;}
+    .sec-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .52rem;border-radius:999px;font-size:.65rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border:1px solid transparent;}
+    .sec-chip.warn{color:#fbbf24;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.28);}
+    .sec-chip.bad{color:#f87171;background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.28);}
+    .sec-chip.info{color:#22d3ee;background:rgba(6,182,212,.12);border-color:rgba(6,182,212,.28);}
+    .sec-chip.ok{color:#4ade80;background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.28);}
+    .sec-health-wrap{display:grid;grid-template-columns:auto 1fr;gap:1rem;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22);border-radius:14px;padding:.9rem 1rem;margin-bottom:.95rem;}
+    .sec-health-score{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font-family:"Orbitron",sans-serif;font-size:1.2rem;color:#bbf7d0;border:2px solid rgba(74,222,128,.45);background:radial-gradient(circle at 30% 20%,rgba(74,222,128,.22),rgba(15,23,42,.4));}
+    .sec-health-right{display:flex;flex-direction:column;justify-content:center;gap:.35rem;min-width:0;}
+    .sec-health-top{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;}
+    .sec-health-label{font-family:"Orbitron",sans-serif;font-size:.9rem;letter-spacing:.04em;}
+    .sec-health-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:999px;font-size:.67rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border:1px solid transparent;}
+    .sec-health-badge.stable{color:#4ade80;background:rgba(22,163,74,.14);border-color:rgba(74,222,128,.34);}
+    .sec-health-badge.elevated{color:#fbbf24;background:rgba(245,158,11,.14);border-color:rgba(251,191,36,.34);}
+    .sec-health-badge.critical{color:#f87171;background:rgba(239,68,68,.14);border-color:rgba(248,113,113,.34);}
+    .sec-health-metrics{display:flex;gap:.85rem;flex-wrap:wrap;color:var(--muted);font-size:.75rem;}
+    .sec-health-metrics strong{font-family:"Orbitron",sans-serif;color:#e2e8f0;font-size:.8rem;}
+    .sec-filter-row{display:flex;justify-content:flex-end;gap:.65rem;flex-wrap:wrap;margin-bottom:.7rem;}
+    .sec-filter{display:flex;align-items:center;gap:.35rem;background:rgba(15,23,42,.42);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.35rem .5rem;}
+    .sec-filter label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+    .sec-filter select{background:transparent;border:none;color:var(--text);font-size:.75rem;outline:none;min-width:110px;}
+    .sec-filter option{background:#0f172a;color:#e2e8f0;}
+    @media(max-width:900px){
+      .sec-health-wrap{grid-template-columns:1fr;}
+      .sec-health-score{width:64px;height:64px;}
+      .sec-filter-row{justify-content:flex-start;}
+    }
 
     .empty-msg{color:var(--muted);text-align:center;padding:1.5rem 0;font-size:.82rem;}
     .main::-webkit-scrollbar{width:5px;}
@@ -183,6 +240,7 @@
     <a onclick="location.href='Ana;yticsPage.html'"><i class="fa fa-chart-line"></i> Analytics</a>
     <a id="navPayments" onclick="showView('payments')"><i class="fa fa-credit-card"></i> Payments</a>
     <a id="navSessions" onclick="showView('sessions')"><i class="fa fa-gamepad"></i> Game Sessions</a>
+    <a id="navSupport" onclick="showView('support')"><i class="fa fa-inbox"></i> Support Inbox <span id="supportBadge" class="nav-badge">0</span></a>
   </div>
   <div class="nav-section">System</div>
   <div class="nav">
@@ -291,6 +349,28 @@
   </div>
 </div>
 
+<!-- SUPPORT VIEW -->
+<div id="supportView" style="display:none;">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>Support Inbox</h1>
+      <div class="breadcrumb">SlidePlay Admin &rsaquo; Support &nbsp;|&nbsp; User help requests</div>
+    </div>
+    <div class="topbar-right">
+      <button class="refresh-btn" onclick="loadSupportMessages()"><i class="fa fa-rotate-right"></i> Refresh</button>
+    </div>
+  </div>
+  <div class="pay-summary">
+    <div class="pay-stat"><div class="ps-val" id="spTotal" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Total Messages</div></div>
+    <div class="pay-stat"><div class="ps-val" id="spOpen" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Open</div></div>
+    <div class="pay-stat"><div class="ps-val" id="spProgress" style="background:linear-gradient(135deg,#3b82f6,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">In Progress</div></div>
+    <div class="pay-stat"><div class="ps-val" id="spResolved" style="background:linear-gradient(135deg,#22c55e,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">--</div><div class="ps-lbl">Resolved</div></div>
+  </div>
+  <div class="panel">
+    <div id="supportTableWrap"><div class="empty-msg">Loading...</div></div>
+  </div>
+</div>
+
 <div id="dashboardView">
   <div class="topbar">
     <div class="topbar-left">
@@ -387,6 +467,75 @@
     </div>
   </div>
 
+  <div class="panel security-row">
+    <div class="panel-header">
+      <div class="panel-title"><i class="fa fa-shield-halved"></i> Security Monitor</div>
+      <div class="panel-sub" id="securityUpdatedAt">Waiting for first update...</div>
+    </div>
+
+    <div class="sec-health-wrap">
+      <div class="sec-health-score" id="secHealthScore">--</div>
+      <div class="sec-health-right">
+        <div class="sec-health-top">
+          <span class="sec-health-label">Security Health</span>
+          <span class="sec-health-badge stable" id="secHealthBadge"><i class="fa fa-circle-check"></i> Stable</span>
+        </div>
+        <div class="sec-health-metrics">
+          <span>Unacked Alerts: <strong id="secUnackedCount">--</strong></span>
+          <span>Hot IPs: <strong id="secHotIpCount">--</strong></span>
+          <span>Last Alert: <strong id="secLastAlertAge">--</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="security-grid">
+      <div class="sec-stat"><div class="lbl">Recent Denials</div><div class="val" id="secRecentEvents">--</div><div class="sub" id="secWindowLbl">window --</div></div>
+      <div class="sec-stat"><div class="lbl">Buffered Alerts</div><div class="val" id="secBufferedAlerts">--</div><div class="sub">rolling history</div></div>
+      <div class="sec-stat"><div class="lbl">Status Mix</div><div class="val" id="secStatusMix">--</div><div class="sub">401 / 403 / 429</div></div>
+      <div class="sec-stat"><div class="lbl">Thresholds</div><div class="val" id="secThresholds">--</div><div class="sub">active alert limits</div></div>
+    </div>
+
+    <div class="sec-filter-row">
+      <div class="sec-filter">
+        <label for="secAlertStateFilter">Alert State</label>
+        <select id="secAlertStateFilter" onchange="applySecurityAlertFilters()">
+          <option value="all">All</option>
+          <option value="unacked">Unacknowledged</option>
+          <option value="acked">Acknowledged</option>
+        </select>
+      </div>
+      <div class="sec-filter">
+        <label for="secAlertTypeFilter">Alert Type</label>
+        <select id="secAlertTypeFilter" onchange="applySecurityAlertFilters()">
+          <option value="all">All</option>
+          <option value="global">Global Surge</option>
+          <option value="ip">IP Pattern</option>
+          <option value="path">Endpoint Pattern</option>
+          <option value="ratelimit">Rate Limit</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="security-columns">
+      <div>
+        <div class="panel-sub" style="margin-bottom:.45rem;">Top Paths</div>
+        <div class="sec-list" id="secTopPaths"><div class="empty-msg">Loading...</div></div>
+      </div>
+      <div>
+        <div class="panel-sub" style="margin-bottom:.45rem;">Top IPs</div>
+        <div class="sec-list" id="secTopIps"><div class="empty-msg">Loading...</div></div>
+      </div>
+      <div>
+        <div class="panel-sub" style="margin-bottom:.45rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+          <span>Recent Alerts</span>
+          <button class="sec-btn" id="secAckAllBtn" onclick="acknowledgeAllSecurityAlerts()">Acknowledge All</button>
+        </div>
+        <div class="sec-list" id="secRecentAlerts"><div class="empty-msg">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- end dashboardView -->
 
 </div><!-- end .main -->
@@ -411,8 +560,15 @@
   ].filter(Boolean).map(v=>String(v).replace(/\/$/, '')))];
   let API=API_BASE;
   const auth=firebase.auth(), db=firebase.database();
-  const ADMIN_CONTACT_EMAILS=['bossmk2209@gmail.com','mutevherichard@gmail.com'];
+  const ADMIN_CONTACT_EMAILS=['bossmk2209@gmail.com','mutevherichard@gmail.com','kingsleydasilva0@gmail.com'];
+  const ADMIN_EMAIL_ALLOWLIST=new Set(ADMIN_CONTACT_EMAILS.map(e=>String(e||'').trim().toLowerCase()));
+
+  function isAllowlistedAdminEmail(email){
+    return ADMIN_EMAIL_ALLOWLIST.has(String(email||'').trim().toLowerCase());
+  }
   let cU=null, cR=null;
+  let securityPollTimer=null;
+  let securityAlertsCache=[];
   const API_REQUEST_TIMEOUT_MS=1200;
 
   async function fetchWithTimeout(url, options={}){
@@ -425,11 +581,40 @@
     }
   }
 
+  async function getAuthToken(forceRefresh=false){
+    const fallback=localStorage.getItem('sp_auth_token')||'';
+    try{
+      const user=auth.currentUser;
+      if(!user || typeof user.getIdToken!=='function') return fallback;
+      const token=await user.getIdToken(Boolean(forceRefresh));
+      if(token) localStorage.setItem('sp_auth_token', token);
+      return token||fallback;
+    }catch(_){
+      return fallback;
+    }
+  }
+
   async function fetchJsonWithApiFallback(path, options={}){
     let lastError=null;
+    const needsAdminAuth=String(path||'').startsWith('/api/admin/');
+
+    async function withAuthHeaders(forceRefresh=false){
+      const merged={...(options||{})};
+      const headers={...(options?.headers||{})};
+      if(needsAdminAuth && !headers.Authorization){
+        const token=await getAuthToken(forceRefresh);
+        if(token) headers.Authorization='Bearer '+token;
+      }
+      merged.headers=headers;
+      return merged;
+    }
+
     for(const base of API_CANDIDATES){
       try{
-        const resp=await fetchWithTimeout(base+path, options);
+        let resp=await fetchWithTimeout(base+path, await withAuthHeaders(false));
+        if(needsAdminAuth && resp.status===401){
+          resp=await fetchWithTimeout(base+path, await withAuthHeaders(true));
+        }
         const data=await resp.json().catch(()=>({}));
         if(resp.status===404){
           throw new Error('Route not found at '+base);
@@ -461,7 +646,7 @@
     if(text===null)return;
 
     const adminApiKey=localStorage.getItem('sp_admin_email_api_key')||'';
-    const authToken=localStorage.getItem('sp_auth_token')||'';
+    const authToken=await getAuthToken(false);
     const headers={ 'Content-Type':'application/json' };
     if(adminApiKey)headers['x-admin-api-key']=adminApiKey;
     if(authToken)headers['Authorization']='Bearer '+authToken;
@@ -489,14 +674,31 @@
   auth.onAuthStateChanged(async(user)=>{
     if(!user){showDenied();return;}
     const snap=await db.ref('users/'+user.uid+'/role').get();
-    if(snap.val()!=='admin'){showDenied();return;}
+    const role=String(snap.val()||'').toLowerCase();
+    const allowlistedAdmin=isAllowlistedAdminEmail(user.email);
+    if(role!=='admin' && !allowlistedAdmin){showDenied();return;}
+    if(allowlistedAdmin && role!=='admin'){
+      try{
+        await db.ref('users/'+user.uid).update({ role:'admin', updatedAt:new Date().toISOString() });
+      }catch(_e){}
+      localStorage.setItem('sp_user_role','admin');
+    }
     document.getElementById('authOverlay').style.display='none';
     document.getElementById('sidebar').style.display='flex';
     document.getElementById('mainContent').style.display='block';
     const name=user.displayName||user.email||'Admin';
     document.getElementById('adminName').textContent=name;
     document.getElementById('adminAvatar').textContent=name.charAt(0).toUpperCase();
+    refreshSupportBadge();
+    setInterval(refreshSupportBadge, 30000);
     loadStats();
+    if(!securityPollTimer){
+      securityPollTimer=setInterval(()=>{
+        if(document.getElementById('dashboardView').style.display!=='none'){
+          loadSecurityAlerts(true);
+        }
+      }, 30000);
+    }
   });
 
   function showDenied(){
@@ -507,6 +709,7 @@
   async function loadStats(){
     try{
       const data=await fetchJsonWithApiFallback('/api/admin/stats');
+      loadSecurityAlerts(true);
 
       document.getElementById('dbStatus').innerHTML='<span class="dot g"></span> SQL DB Connected';
       document.getElementById('cTotal').textContent=fmt(data.counts.total);
@@ -614,18 +817,247 @@
     }
   }
 
+  async function loadSecurityAlerts(silent=false){
+    const setText=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=val; };
+    const topPathsEl=document.getElementById('secTopPaths');
+    const topIpsEl=document.getElementById('secTopIps');
+    const alertsEl=document.getElementById('secRecentAlerts');
+
+    if(!silent){
+      if(topPathsEl) topPathsEl.innerHTML='<div class="empty-msg">Loading...</div>';
+      if(topIpsEl) topIpsEl.innerHTML='<div class="empty-msg">Loading...</div>';
+      if(alertsEl) alertsEl.innerHTML='<div class="empty-msg">Loading...</div>';
+    }
+
+    try{
+      const data=await fetchJsonWithApiFallback('/api/admin/security-alerts');
+      const totals=data.totals||{};
+      const status=data.statusCounts||{};
+      const thresholds=data.thresholds||{};
+
+      const windowMin=Math.max(1,Math.round((data.windowMs||0)/60000));
+      setText('secRecentEvents', fmt(totals.recentEvents||0));
+      setText('secBufferedAlerts', fmt(totals.bufferedAlerts||0));
+      setText('secWindowLbl', 'window '+windowMin+'m');
+      setText('secStatusMix', `${fmt(status['401']||0)} / ${fmt(status['403']||0)} / ${fmt(status['429']||0)}`);
+      setText('secThresholds', `T${thresholds.total||'-'} IP${thresholds.perIp||'-'} P${thresholds.perPath||'-'}`);
+      setText('securityUpdatedAt', 'Updated '+new Date(data.generatedAt||Date.now()).toLocaleTimeString());
+
+      const alerts=data.recentAlerts||[];
+      securityAlertsCache=alerts;
+      updateSecurityHealthSummary({
+        totals,
+        status,
+        thresholds,
+        topIps:data.topIps||[],
+        alerts,
+        windowMin
+      });
+
+      const renderMiniList=(items,leftKey,leftFallback,rightBuilder)=>{
+        if(!items?.length) return '<div class="empty-msg">No recent events</div>';
+        return items.map((it)=>{
+          const left=esc(it[leftKey]||leftFallback);
+          const right=rightBuilder(it);
+          return `<div class="sec-item"><span>${left}</span><span class="meta">${right}</span></div>`;
+        }).join('');
+      };
+
+      if(topPathsEl){
+        topPathsEl.innerHTML=renderMiniList(data.topPaths,'path','/',(it)=>`<span class="sec-chip warn">${fmt(it.count||0)}</span>`);
+      }
+      if(topIpsEl){
+        topIpsEl.innerHTML=renderMiniList(data.topIps,'ip','unknown',(it)=>`<span class="sec-chip info">${fmt(it.count||0)}</span>`);
+      }
+
+      if(alertsEl) applySecurityAlertFilters();
+    }catch(err){
+      if(!silent){
+        if(topPathsEl) topPathsEl.innerHTML='<div class="empty-msg">Security monitor unavailable</div>';
+        if(topIpsEl) topIpsEl.innerHTML='<div class="empty-msg">Security monitor unavailable</div>';
+        if(alertsEl) alertsEl.innerHTML='<div class="empty-msg">'+esc(err.message||'Could not load security data')+'</div>';
+      }
+      securityAlertsCache=[];
+      updateSecurityHealthSummary({ totals:{}, status:{}, thresholds:{}, topIps:[], alerts:[], windowMin:1 });
+      setText('securityUpdatedAt','Security monitor unavailable');
+    }
+  }
+
+  function securityAlertType(key){
+    const raw=String(key||'').toLowerCase();
+    if(raw==='global') return 'global';
+    if(raw.startsWith('ip:')) return 'ip';
+    if(raw.startsWith('path:')) return 'path';
+    if(raw.startsWith('ratelimit:')) return 'ratelimit';
+    return 'other';
+  }
+
+  function renderSecurityAlerts(list){
+    const alertsEl=document.getElementById('secRecentAlerts');
+    if(!alertsEl) return;
+    if(!list.length){
+      alertsEl.innerHTML='<div class="empty-msg">No alerts match current filters</div>';
+      return;
+    }
+    alertsEl.innerHTML=list.slice(0,25).map((a)=>{
+      const ts=a.tsMs?new Date(a.tsMs):null;
+      const ackTs=a.acknowledgedAt?new Date(a.acknowledgedAt):null;
+      const type=securityAlertType(a.key);
+      const typeLabel={global:'Global',ip:'IP',path:'Path',ratelimit:'RateLimit',other:'Other'}[type]||'Other';
+      const typeChipClass=(type==='global' || type==='ratelimit')?'warn':'info';
+      const ackChip=a.acknowledgedAt
+        ? `<span class="sec-chip ok">Ack ${ackTs?ackTs.toLocaleTimeString():''}</span>`
+        : '<span class="sec-chip bad">Unacked</span>';
+      const ackBtn=a.acknowledgedAt
+        ? '<button class="sec-btn" disabled>Acknowledged</button>'
+        : `<button class="sec-btn" onclick="acknowledgeSecurityAlert(${Number(a.alertId||0)})">Acknowledge</button>`;
+      return `
+        <div class="sec-alert">
+          <i class="fa fa-triangle-exclamation icon"></i>
+          <div class="msg">
+            <div>${esc(a.message||'Security alert')}</div>
+            <div class="ts">${ts?ts.toLocaleString():'Unknown time'} • ${esc(a.key||'n/a')} • <span class="sec-chip ${typeChipClass}">${typeLabel}</span> • ${ackChip}</div>
+          </div>
+          <div class="sec-actions">${ackBtn}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function applySecurityAlertFilters(){
+    const stateFilter=String(document.getElementById('secAlertStateFilter')?.value||'all');
+    const typeFilter=String(document.getElementById('secAlertTypeFilter')?.value||'all');
+    const filtered=(securityAlertsCache||[]).filter((alert)=>{
+      const isAck=Boolean(alert?.acknowledgedAt);
+      const statePass=
+        stateFilter==='all' ||
+        (stateFilter==='acked' && isAck) ||
+        (stateFilter==='unacked' && !isAck);
+      const alertType=securityAlertType(alert?.key);
+      const typePass=typeFilter==='all' || alertType===typeFilter;
+      return statePass && typePass;
+    });
+    renderSecurityAlerts(filtered);
+  }
+
+  function updateSecurityHealthSummary(ctx){
+    const totals=ctx?.totals||{};
+    const status=ctx?.status||{};
+    const thresholds=ctx?.thresholds||{};
+    const topIps=ctx?.topIps||[];
+    const alerts=ctx?.alerts||[];
+    const windowMin=Math.max(1,Number(ctx?.windowMin||1));
+
+    const unackedCount=alerts.filter(a=>!a?.acknowledgedAt).length;
+    const lastAlert=alerts[0]||null;
+    const recentEvents=Number(totals.recentEvents||0);
+    const recent429=Number(status['429']||0);
+    const thresholdTotal=Math.max(1,Number(thresholds.total||20));
+    const thresholdIp=Math.max(1,Number(thresholds.perIp||8));
+    const hotIpCount=(topIps||[]).filter(ip=>Number(ip?.count||0)>=thresholdIp).length;
+
+    let score=100;
+    score-=Math.min(28, Math.floor((recentEvents/thresholdTotal)*18));
+    score-=Math.min(30, unackedCount*8);
+    if(recent429>=thresholdIp) score-=14;
+    if((alerts||[]).some(a=>String(a?.key||'')==='global' && !a?.acknowledgedAt)) score-=18;
+    if(hotIpCount>0) score-=Math.min(16, hotIpCount*6);
+    score=Math.max(0,Math.min(100,score));
+
+    let label='Stable';
+    let cls='stable';
+    let icon='fa-circle-check';
+    if(score<60){
+      label='Critical';
+      cls='critical';
+      icon='fa-triangle-exclamation';
+    }else if(score<85){
+      label='Elevated';
+      cls='elevated';
+      icon='fa-shield-exclamation';
+    }
+
+    const healthScoreEl=document.getElementById('secHealthScore');
+    if(healthScoreEl) healthScoreEl.textContent=String(score);
+
+    const healthBadgeEl=document.getElementById('secHealthBadge');
+    if(healthBadgeEl){
+      healthBadgeEl.className='sec-health-badge '+cls;
+      healthBadgeEl.innerHTML='<i class="fa '+icon+'"></i> '+label;
+    }
+
+    const lastAlertAge=lastAlert?.tsMs
+      ? Math.max(0,Math.round((Date.now()-Number(lastAlert.tsMs))/60000))+'m ago'
+      : 'none';
+    const unackedEl=document.getElementById('secUnackedCount');
+    const hotIpEl=document.getElementById('secHotIpCount');
+    const lastEl=document.getElementById('secLastAlertAge');
+    if(unackedEl) unackedEl.textContent=fmt(unackedCount);
+    if(hotIpEl) hotIpEl.textContent=fmt(hotIpCount);
+    if(lastEl) lastEl.textContent=lastAlertAge;
+
+    const scoreBox=document.getElementById('secHealthScore');
+    const healthWrap=scoreBox?.closest('.sec-health-wrap');
+    if(healthWrap){
+      healthWrap.style.borderColor=cls==='critical'?'rgba(248,113,113,.35)':(cls==='elevated'?'rgba(251,191,36,.35)':'rgba(74,222,128,.3)');
+      healthWrap.style.background=cls==='critical'?'rgba(239,68,68,.08)':(cls==='elevated'?'rgba(245,158,11,.08)':'rgba(34,197,94,.08)');
+    }
+
+    const securityUpdatedAt=document.getElementById('securityUpdatedAt');
+    if(securityUpdatedAt && securityUpdatedAt.textContent.startsWith('Updated ')){
+      securityUpdatedAt.textContent+=' • '+label+' in '+windowMin+'m window';
+    }
+  }
+
+  async function acknowledgeSecurityAlert(alertId){
+    if(!alertId) return;
+    try{
+      await fetchJsonWithApiFallback('/api/admin/security-alerts/ack',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ alertId:Number(alertId) })
+      });
+      loadSecurityAlerts(true);
+    }catch(err){
+      alert('Could not acknowledge alert: '+err.message);
+    }
+  }
+
+  async function acknowledgeAllSecurityAlerts(){
+    const btn=document.getElementById('secAckAllBtn');
+    const prev=btn?btn.textContent:'';
+    if(btn){ btn.disabled=true; btn.textContent='Acknowledging...'; }
+    try{
+      const data=await fetchJsonWithApiFallback('/api/admin/security-alerts/ack-all',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:'{}'
+      });
+      loadSecurityAlerts(true);
+      if((Number(data.updated||0))===0){
+        alert('No unacknowledged alerts found.');
+      }
+    }catch(err){
+      alert('Could not acknowledge alerts: '+err.message);
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent=prev||'Acknowledge All'; }
+    }
+  }
+
   let _allUsers=[];
   function showView(v){
-    ['dashboard','payments','sessions','users'].forEach(id=>{
+    ['dashboard','payments','sessions','users','support'].forEach(id=>{
       document.getElementById(id+'View').style.display=v===id?'block':'none';
     });
     document.getElementById('navDashboard').classList.toggle('active',v==='dashboard');
     document.getElementById('navPayments').classList.toggle('active',v==='payments');
     document.getElementById('navSessions').classList.toggle('active',v==='sessions');
     document.getElementById('navUsers').classList.toggle('active',v==='users');
+    document.getElementById('navSupport').classList.toggle('active',v==='support');
+    if(v==='dashboard') loadStats();
     if(v==='payments')loadPayments();
     if(v==='sessions')loadSessions();
     if(v==='users')loadUsers();
+    if(v==='support')loadSupportMessages();
   }
   async function loadUsers(){
     const wrap=document.getElementById('usersTableWrap');
@@ -774,6 +1206,85 @@
       wrap.innerHTML='<div class="empty-msg">Could not load payments: '+esc(err.message)+'</div>';
     }
   }
+
+  async function loadSupportMessages(){
+    const wrap=document.getElementById('supportTableWrap');
+    wrap.innerHTML='<div class="empty-msg">Loading...</div>';
+    try{
+      const data=await fetchJsonWithApiFallback('/api/admin/support/messages');
+      const rows=data.messages||[];
+      const open=rows.filter(r=>(r.Status||'').toLowerCase()==='open').length;
+      const inProgress=rows.filter(r=>(r.Status||'').toLowerCase()==='in_progress').length;
+      const resolved=rows.filter(r=>(r.Status||'').toLowerCase()==='resolved').length;
+
+      document.getElementById('spTotal').textContent=fmt(rows.length);
+      document.getElementById('spOpen').textContent=fmt(open);
+      document.getElementById('spProgress').textContent=fmt(inProgress);
+      document.getElementById('spResolved').textContent=fmt(resolved);
+      updateSupportBadge(open);
+
+      if(!rows.length){
+        wrap.innerHTML='<div class="empty-msg">No support messages yet</div>';
+        return;
+      }
+
+      wrap.innerHTML='<table class="pay-table"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Subject</th><th>Message</th><th>Source</th><th>Status</th><th>Date</th></tr></thead><tbody>'+
+        rows.map(r=>{
+          const status=(r.Status||'open').toLowerCase();
+          return '<tr>'+
+            '<td style="font-family:Orbitron,sans-serif;color:var(--purple);font-size:.78rem">#'+esc(r.MessageID)+'</td>'+
+            '<td>'+esc(r.Name||'--')+'</td>'+
+            '<td style="color:var(--muted)">'+esc(r.Email||'--')+'</td>'+
+            '<td>'+esc(r.Subject||'--')+'</td>'+
+            '<td style="max-width:340px;white-space:pre-wrap;">'+esc(r.MessageText||'')+'</td>'+
+            '<td style="color:var(--muted);font-size:.76rem">'+esc(r.SourcePage||'--')+'</td>'+
+            '<td>'+
+              '<select onchange="updateSupportStatus('+Number(r.MessageID)+', this.value)" style="background:rgba(14,18,36,.9);border:1px solid rgba(255,255,255,.12);color:#e2e8f0;border-radius:8px;padding:.32rem .45rem;font-size:.76rem;">'+
+                '<option value="open"'+(status==='open'?' selected':'')+'>Open</option>'+
+                '<option value="in_progress"'+(status==='in_progress'?' selected':'')+'>In Progress</option>'+
+                '<option value="resolved"'+(status==='resolved'?' selected':'')+'>Resolved</option>'+
+              '</select>'+
+            '</td>'+
+            '<td style="color:var(--muted);font-size:.76rem">'+(r.CreatedAt?new Date(r.CreatedAt).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'})+' '+new Date(r.CreatedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}):'--')+'</td>'+
+          '</tr>';
+        }).join('')+
+      '</tbody></table>';
+    }catch(err){
+      wrap.innerHTML='<div class="empty-msg">Could not load support inbox: '+esc(err.message)+'</div>';
+    }
+  }
+
+  async function updateSupportStatus(id, status){
+    try{
+      await fetchJsonWithApiFallback('/api/admin/support/messages/'+encodeURIComponent(id),{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ status })
+      });
+      loadSupportMessages();
+    }catch(err){
+      alert('Could not update support status: '+err.message);
+      loadSupportMessages();
+    }
+  }
+
+  async function refreshSupportBadge(){
+    try{
+      const data=await fetchJsonWithApiFallback('/api/admin/support/messages');
+      const rows=data.messages||[];
+      const open=rows.filter(r=>(r.Status||'').toLowerCase()==='open').length;
+      updateSupportBadge(open);
+    }catch(_){ }
+  }
+
+  function updateSupportBadge(openCount){
+    const badge=document.getElementById('supportBadge');
+    if(!badge) return;
+    const n=Number(openCount)||0;
+    badge.textContent=String(n);
+    badge.style.display=n>0?'inline-block':'none';
+  }
+
   function fmt(n){return Number(n||0).toLocaleString();}
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   function timeAgo(iso){

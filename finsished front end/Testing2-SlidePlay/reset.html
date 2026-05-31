@@ -219,13 +219,15 @@
         sendPasswordResetEmail,
       } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
+      // Keep auth project aligned with login/signup (authentication.js)
       const firebaseConfig = {
-        apiKey: "AIzaSyAhxLX6fffl9477tNoqlmQomr51oL-6PDM",
-        authDomain: "slideplayer-d024f.firebaseapp.com",
-        projectId: "slideplayer-d024f",
-        storageBucket: "slideplayer-d024f.appspot.com",
-        messagingSenderId: "59789322114",
-        appId: "1:59789322114:web:99b1546f1a9040ca9ad19b",
+        apiKey: "AIzaSyA0myDAsJoOUuX4FpSZEknQ4_E0uUYNCYE",
+        authDomain: "slideplay-38d3f.firebaseapp.com",
+        databaseURL: "https://slideplay-38d3f-default-rtdb.firebaseio.com",
+        projectId: "slideplay-38d3f",
+        storageBucket: "slideplay-38d3f.firebasestorage.app",
+        messagingSenderId: "902561315134",
+        appId: "1:902561315134:web:3bfd74c4124acd4d1e546f",
       };
 
       const app = initializeApp(firebaseConfig);
@@ -242,12 +244,25 @@
         message.className = "message";
 
         try {
-          await sendPasswordResetEmail(auth, email.value);
+          const normalizedEmail = String(email.value || "").trim().toLowerCase();
+          if (!normalizedEmail) {
+            message.textContent = "Enter your email address first.";
+            message.classList.add("error");
+            return;
+          }
+
+          await sendPasswordResetEmail(auth, normalizedEmail);
 
           message.textContent = "Reset email sent! Check your inbox.";
           message.classList.add("success");
         } catch (error) {
-          message.textContent = error.message;
+          if (error?.code === "auth/user-not-found") {
+            message.textContent = "No account found for that email.";
+          } else if (error?.code === "auth/invalid-email") {
+            message.textContent = "Please enter a valid email address.";
+          } else {
+            message.textContent = "Could not send reset email right now. Please try again.";
+          }
           message.classList.add("error");
         }
       });

