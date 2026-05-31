@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeopardy Quiz - Mode Select</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg0: #050c18;
+      --line: rgba(255,255,255,0.09);
+      --text: #eef4ff;
+      --muted: #7a96b4;
+      --gold: #ffb830;
+      --gold2: #e8920a;
+      --cyan: #22e5e0;
+      --cyan2: #0fa8a4;
+      --card-bg: rgba(8,16,30,0.92);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--text);
+      background: var(--bg0);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #bg-canvas {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* blobs */
+    body::before {
+      content: ''; position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+      width: 600px; height: 600px; top: -180px; left: -160px;
+      background: radial-gradient(circle, rgba(255,184,48,0.14) 0%, transparent 65%);
+      filter: blur(60px);
+    }
+    body::after {
+      content: ''; position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+      width: 560px; height: 560px; bottom: -150px; right: -120px;
+      background: radial-gradient(circle, rgba(34,229,224,0.13) 0%, transparent 65%);
+      filter: blur(60px);
+    }
+
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Shell Ã¢â€â‚¬Ã¢â€â‚¬ */
+    .shell {
+      position: relative; z-index: 1;
+      width: min(900px, 93vw);
+      padding: clamp(20px, 3.5vw, 40px) clamp(16px, 3.5vw, 44px);
+    }
+
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Header Ã¢â€â‚¬Ã¢â€â‚¬ */
+    .header { text-align: center; margin-bottom: 32px; }
+
+    .game-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 0.67rem; letter-spacing: 0.24em; text-transform: uppercase;
+      color: var(--gold); border: 1px solid rgba(255,184,48,0.38);
+      padding: 5px 14px; border-radius: 999px;
+      background: rgba(255,184,48,0.07); margin-bottom: 14px;
+    }
+    .game-badge::before {
+      content: ''; display: inline-block;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--gold); box-shadow: 0 0 8px var(--gold);
+      animation: pdot 1.8s ease-in-out infinite;
+    }
+    @keyframes pdot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.35; transform: scale(0.65); }
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: 'Orbitron', sans-serif; font-weight: 900;
+      font-size: clamp(1.9rem, 5vw, 3.2rem);
+      line-height: 1; letter-spacing: 0.05em; text-transform: uppercase;
+      background: linear-gradient(135deg, #ffffff 20%, var(--cyan) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 20px rgba(34,229,224,0.3));
+    }
+
+    .sub {
+      margin: 0; color: var(--muted);
+      font-size: 0.94rem; line-height: 1.5;
+    }
+
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Cards wrapper with VS badge Ã¢â€â‚¬Ã¢â€â‚¬ */
+    .cards-wrap {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    @media (max-width: 620px) {
+      .cards-wrap { grid-template-columns: 1fr; }
+      .vs-badge { display: none; }
+    }
+
+    .vs-badge {
+      position: absolute;
+      top: 150px; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--bg0);
+      border: 2px solid rgba(255,255,255,0.14);
+      display: grid; place-items: center;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem; font-weight: 900;
+      letter-spacing: 0.05em; color: var(--muted);
+      box-shadow: 0 0 0 6px var(--bg0);
+    }
+
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Cards Ã¢â€â‚¬Ã¢â€â‚¬ */
+    .card {
+      position: relative; text-decoration: none; color: inherit;
+      border-radius: 20px; overflow: hidden;
+      border: 1px solid var(--line); background: var(--card-bg);
+      display: flex; flex-direction: column;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+      animation: card-in 0.5s ease both;
+    }
+    .card:nth-child(1) { animation-delay: 0.08s; }
+    .card:nth-child(3) { animation-delay: 0.22s; }
+
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(28px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .card:hover, .card:focus-visible { outline: none; transform: translateY(-6px) scale(1.012); }
+    .card.gold-card:hover  { border-color: rgba(255,184,48,0.55); box-shadow: 0 24px 56px rgba(0,0,0,0.5), 0 0 36px rgba(255,184,48,0.16); }
+    .card.cyan-card:hover  { border-color: rgba(34,229,224,0.55); box-shadow: 0 24px 56px rgba(0,0,0,0.5), 0 0 36px rgba(34,229,224,0.15); }
+
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Card preview art area Ã¢â€â‚¬Ã¢â€â‚¬ */
+    .card-preview {
+      height: 150px;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    /* 2D preview Ã¢â‚¬â€ mini Jeopardy board */
+    .gold-card .card-preview {
+      background: linear-gradient(160deg, #1a0f00 0%, #0d0800 100%);
+    }
+    .jboard {
+      position: absolute;
+      inset: 12px 16px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: 28px repeat(4, 1fr);
+      gap: 4px;
+    }
+    .jcell {
+      border-radius: 4px;
+      display: grid; place-items: center;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.58rem; font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+    .jcell.jhead {
+      background: rgba(255,184,48,0.18);
+      border: 1px solid rgba(255,184,48,0.3);
+      color: rgba(255,184,48,0.7);
+      font-size: 0.5rem; letter-spacing: 0.1em;
+    }
+    .jcell.jval {
+      background: rgba(255,184,48,0.08);
+      border: 1px solid rgba(255,184,48,0.18);
+      color: rgba(255,184,48,0.55);
+    }
+    .jcell.jval.lit {
+      background: rgba(255,184,48,0.22);
+      border-color: rgba(255,184,48,0.5);
+      color: var(--gold);
+      box-shadow: 0 0 10px rgba(255,184,48,0.2);
+    }
+    .jcell.jval.used {
+      background: rgba(255,184,48,0.03);
+      border-color: rgba(255,184,48,0.07);
+      color: transparent;
+    }
+    /* top edge glow */
+    .gold-card .card-preview::after {
+      content: ''; position: absolute;
+      top: 0; left: 8%; right: 8%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      border-radius: 0 0 3px 3px;
+    }
+
+    /* 3D preview Ã¢â‚¬â€ perspective stage */
+    .cyan-card .card-preview {
+      background: linear-gradient(160deg, #00141a 0%, #000d0f 100%);
+    }
+    .stage-scene {
+      position: absolute; inset: 0;
+      display: flex; align-items: flex-end; justify-content: center;
+      padding-bottom: 12px;
+      perspective: 220px;
+    }
+    .stage-floor {
+      width: 82%; height: 28px;
+      background: linear-gradient(to bottom, rgba(34,229,224,0.12), rgba(34,229,224,0.04));
+      border: 1px solid rgba(34,229,224,0.25);
+      border-radius: 4px 4px 0 0;
+      transform: rotateX(50deg);
+      transform-origin: bottom center;
+      box-shadow: 0 0 30px rgba(34,229,224,0.1), inset 0 1px 0 rgba(34,229,224,0.2);
+      position: relative;
+    }
+    .stage-floor::before {
+      content: ''; position: absolute;
+      inset: 3px 10px;
+      background: repeating-linear-gradient(90deg, rgba(34,229,224,0.08) 0px, rgba(34,229,224,0.08) 1px, transparent 1px, transparent 18px);
+    }
+    .stage-podiums {
+      position: absolute;
+      bottom: 12px; left: 0; right: 0;
+      display: flex; justify-content: center;
+      align-items: flex-end; gap: 10px;
+    }
+    .spod {
+      border-radius: 3px 3px 0 0;
+      background: rgba(34,229,224,0.07);
+      border: 1px solid rgba(34,229,224,0.2);
+      border-bottom: none;
+    }
+    .spod-1 { width: 26px; height: 32px; }
+    .spod-2 { width: 26px; height: 44px; background: rgba(34,229,224,0.12); border-color: rgba(34,229,224,0.35); box-shadow: 0 0 14px rgba(34,229,224,0.15); }
+    .spod-3 { width: 26px; height: 24px; }
+    .stage-beam {
+      position: absolute;
+      top: 6px; left: 50%; transform: translateX(-50%);
+      width: 2px; height: 50px;
+      background: linear-gradient(to bottom, rgba(34,229,224,0.6), transparent);
+      filter: blur(3px);
+    }
+    .stage-beam::before {
+      content: ''; position: absolute;
+      top: -4px; left: 50%; transform: translateX(-50%);
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: rgba(34,229,224,0.85);
+      box-shadow: 0 0 14px 4px rgba(34,229,224,0.6);
+    }
+    .cyan-card .card-preview::after {
+      content: ''; position: absolute;
+      top: 0; left: 8%; right: 8%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      border-radius: 0 0 3px 3px;
+    }
+
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Card body Ã¢â€â‚¬Ã¢â€â‚¬ */
+    .card-body {
+      padding: 20px 22px 22px;
+      display: flex; flex-direction: column;
+      gap: 10px; flex: 1;
+    }
+
+    .card-top { display: flex; align-items: center; gap: 12px; }
+
+    .icon-wrap {
+      width: 44px; height: 44px;
+      border-radius: 12px; display: grid; place-items: center;
+      font-size: 1.35rem; flex-shrink: 0;
+    }
+    .gold-card .icon-wrap {
+      background: linear-gradient(135deg, rgba(255,184,48,0.22), rgba(255,184,48,0.06));
+      border: 1px solid rgba(255,184,48,0.3);
+      box-shadow: 0 0 14px rgba(255,184,48,0.12);
+    }
+    .cyan-card .icon-wrap {
+      background: linear-gradient(135deg, rgba(34,229,224,0.2), rgba(34,229,224,0.05));
+      border: 1px solid rgba(34,229,224,0.28);
+      box-shadow: 0 0 14px rgba(34,229,224,0.12);
+    }
+    .icon-wrap svg { display: block; flex-shrink: 0; }
+
+    .card-meta { display: flex; flex-direction: column; gap: 4px; }
+
+    .pill {
+      align-self: flex-start; font-size: 0.62rem;
+      letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;
+      padding: 3px 10px; border-radius: 999px;
+    }
+    .gold-pill { background: rgba(255,184,48,0.12); border: 1px solid rgba(255,184,48,0.36); color: #ffd47a; }
+    .cyan-pill { background: rgba(34,229,224,0.10); border: 1px solid rgba(34,229,224,0.34); color: #7af9f6; }
+
+    .rec-badge {
+      align-self: flex-start; font-size: 0.58rem;
+      letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px;
+      background: rgba(34,229,224,0.15); border: 1px solid rgba(34,229,224,0.4);
+      color: var(--cyan);
+    }
+
+    .card-title {
+      margin: 0;
+      font-family: 'Orbitron', sans-serif; font-weight: 700;
+      font-size: 1.15rem; letter-spacing: 0.02em; color: #fff;
+    }
+
+    .card-desc {
+      margin: 0; color: var(--muted);
+      font-size: 0.89rem; line-height: 1.55; flex: 1;
+    }
+
+    .features { display: flex; flex-wrap: wrap; gap: 5px; }
+    .feat-tag {
+      font-size: 0.7rem; padding: 3px 9px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--muted);
+    }
+
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Launch button Ã¢â€â‚¬Ã¢â€â‚¬ */
+    .launch-btn {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; margin-top: 6px;
+      font-size: 0.82rem; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 12px 20px; border-radius: 11px;
+      width: 100%;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+    }
+    .launch-btn .arrow { transition: transform 0.16s ease; }
+    .card:hover .launch-btn .arrow { transform: translateX(4px); }
+
+    .gold-card .launch-btn {
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      color: #180e00;
+      box-shadow: 0 4px 20px rgba(255,184,48,0.28);
+    }
+    .cyan-card .launch-btn {
+      background: linear-gradient(135deg, var(--cyan), var(--cyan2));
+      color: #001817;
+      box-shadow: 0 4px 20px rgba(34,229,224,0.24);
+    }
+    .gold-card:hover .launch-btn { filter: brightness(1.08); box-shadow: 0 6px 28px rgba(255,184,48,0.42); }
+    .cyan-card:hover .launch-btn  { filter: brightness(1.08); box-shadow: 0 6px 28px rgba(34,229,224,0.38); }
+
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Footer row Ã¢â€â‚¬Ã¢â€â‚¬ */
+    .footer-row {
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 20px;
+    }
+
+    .back {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--muted); text-decoration: none;
+      font-size: 0.85rem; padding: 8px 0;
+      transition: color 0.15s;
+    }
+    .back:hover { color: #fff; }
+    .back-icon { font-size: 1em; transition: transform 0.15s; }
+    .back:hover .back-icon { transform: translateX(-3px); }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+
+  <main class="shell">
+    <header class="header">
+      <div class="game-badge">Jeopardy Quiz</div>
+      <h1>Choose Your Mode</h1>
+      <p class="sub">Same questions &mdash; two completely different ways to play.</p>
+    </header>
+
+    <section class="cards-wrap" aria-label="Quiz version choices">
+      <!-- 2D card -->
+      <a id="quiz-2d-link" class="card gold-card" href="../jeopardy-quiz/index.html">
+        <!-- mini board preview -->
+        <div class="card-preview">
+          <div class="jboard">
+            <div class="jcell jhead">CAT A</div>
+            <div class="jcell jhead">CAT B</div>
+            <div class="jcell jhead">CAT C</div>
+            <div class="jcell jhead">CAT D</div>
+            <div class="jcell jhead">CAT E</div>
+            <div class="jcell jval">100</div><div class="jcell jval">100</div><div class="jcell jval">100</div><div class="jcell jval">100</div><div class="jcell jval">100</div>
+            <div class="jcell jval used"></div><div class="jcell jval">200</div><div class="jcell jval lit">200</div><div class="jcell jval">200</div><div class="jcell jval used"></div>
+            <div class="jcell jval">300</div><div class="jcell jval used"></div><div class="jcell jval">300</div><div class="jcell jval used"></div><div class="jcell jval">300</div>
+            <div class="jcell jval">400</div><div class="jcell jval">400</div><div class="jcell jval used"></div><div class="jcell jval">400</div><div class="jcell jval">400</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-top">
+            <div class="icon-wrap"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="8" height="5" rx="1.5" fill="rgba(255,184,48,0.85)"/><rect x="12" y="2" width="5" height="5" rx="1.5" fill="rgba(255,184,48,0.5)"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="rgba(255,184,48,0.5)"/><rect x="9" y="9" width="8" height="5" rx="1.5" fill="rgba(255,184,48,0.75)"/><rect x="7" y="16" width="5" height="6" rx="1.5" fill="rgba(255,184,48,0.55)"/><rect x="14" y="16" width="8" height="6" rx="1.5" fill="rgba(255,184,48,0.85)"/></svg></div>
+            <div class="card-meta">
+              <span class="pill gold-pill">2D Quiz</span>
+            </div>
+          </div>
+          <h2 class="card-title">Classic 2D</h2>
+        <p class="card-desc">A clean Jeopardy-style board &mdash; pick categories, answer fast, and rack up points. Sharp and direct.</p>
+          <div class="features">
+            <span class="feat-tag">Category board</span>
+            <span class="feat-tag">Fast rounds</span>
+            <span class="feat-tag">Solo &amp; multi</span>
+          </div>
+          <span class="launch-btn">Launch 2D <span class="arrow">&rarr;</span></span>
+        </div>
+      </a>
+
+      <div class="vs-badge">VS</div>
+
+      <!-- 3D card -->
+      <a id="quiz-3d-link" class="card cyan-card" href="../jeopardy-3d/index.html?game=quiz">
+        <!-- stage preview -->
+        <div class="card-preview">
+          <div class="stage-scene">
+            <div class="stage-floor"></div>
+          </div>
+          <div class="stage-podiums">
+            <div class="spod spod-1"></div>
+            <div class="spod spod-2"></div>
+            <div class="spod spod-3"></div>
+          </div>
+          <div class="stage-beam"></div>
+        </div>
+        <div class="card-body">
+          <div class="card-top">
+            <div class="icon-wrap"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2" y="12" width="20" height="9" rx="1.5" fill="rgba(34,229,224,0.10)" stroke="rgba(34,229,224,0.35)" stroke-width="1"/><rect x="6" y="15" width="3" height="3" rx="0.8" fill="rgba(34,229,224,0.55)"/><rect x="11" y="14" width="4" height="4" rx="0.8" fill="rgba(34,229,224,0.8)"/><rect x="17" y="16" width="2" height="2" rx="0.5" fill="rgba(34,229,224,0.35)"/><line x1="12" y1="2" x2="12" y2="12" stroke="rgba(34,229,224,0.85)" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="2" r="1.8" fill="rgba(34,229,224,1)"/></svg></div>
+            <div class="card-meta">
+              <span class="pill cyan-pill">3D Quiz Show</span>
+              <span class="rec-badge">Recommended</span>
+            </div>
+          </div>
+          <h2 class="card-title">Immersive 3D</h2>
+          <p class="card-desc">A full game-show stage with 3D visuals, dramatic spotlights, and animated reveals that bring the competition to life.</p>
+          <div class="features">
+            <span class="feat-tag">3D stage</span>
+            <span class="feat-tag">Animated reveals</span>
+            <span class="feat-tag">High drama</span>
+          </div>
+          <span class="launch-btn">Launch 3D <span class="arrow">&rarr;</span></span>
+        </div>
+      </a>
+    </section>
+
+    <div class="footer-row">
+      <a id="back-link" class="back" href="../../slide_upload/games.html">
+        <span class="back-icon">&larr;</span> Back to games
+      </a>
+    </div>
+  </main>
+
+  <script>
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ canvas background Ã¢â€â‚¬Ã¢â€â‚¬ */
+    (function() {
+      var c = document.getElementById('bg-canvas'), ctx = c.getContext('2d'), dots = [];
+      function resize() { c.width = innerWidth; c.height = innerHeight; }
+      resize(); addEventListener('resize', resize);
+      for (var i = 0; i < 100; i++) {
+        dots.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.3 + 0.25,
+          a: Math.random(), da: (Math.random() * 0.005 + 0.001) * (Math.random() < .5 ? 1 : -1) });
+      }
+      function draw() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        dots.forEach(function(d) {
+          d.a += d.da; if (d.a <= 0 || d.a >= 1) d.da *= -1;
+          ctx.globalAlpha = d.a * 0.5;
+          ctx.beginPath(); ctx.arc(d.x * c.width, d.y * c.height, d.r, 0, Math.PI * 2);
+          ctx.fillStyle = '#fff'; ctx.fill();
+        });
+        ctx.globalAlpha = 1; requestAnimationFrame(draw);
+      }
+      draw();
+    })();
+
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ link configuration Ã¢â€â‚¬Ã¢â€â‚¬ */
+    (function configureLinks() {
+      var params = new URLSearchParams(window.location.search);
+      var source = params.get('source') || '';
+      var from = params.get('from') || '';
+      if (!from) params.set('from', 'quiz-selector');
+
+      var p2d = new URLSearchParams(params.toString()); p2d.delete('game');
+      var p3d = new URLSearchParams(params.toString()); p3d.set('game', 'quiz');
+
+      var twoD  = document.getElementById('quiz-2d-link');
+      var threeD = document.getElementById('quiz-3d-link');
+      var back  = document.getElementById('back-link');
+
+      if (twoD)  twoD.href  = '../jeopardy-quiz/index.html'  + (p2d.toString() ? '?' + p2d.toString() : '');
+      if (threeD) threeD.href = '../jeopardy-3d/index.html' + (p3d.toString() ? '?' + p3d.toString() : '');
+      if (back && source === 'upload') back.href = '../../slide_upload/games.html';
+    })();
+  </script>
+</body>
+</html>
