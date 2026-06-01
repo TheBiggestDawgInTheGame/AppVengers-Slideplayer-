@@ -155,13 +155,39 @@ function normalizeBaseUrl(value) {
   }
 }
 
+function isLocalLikeBaseUrl(baseUrl) {
+  const normalized = normalizeBaseUrl(baseUrl);
+  if (!normalized) return true;
+  try {
+    const host = new URL(normalized).hostname.toLowerCase();
+    if (!host) return true;
+    return (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "0.0.0.0" ||
+      host === "temp.local" ||
+      host.endsWith(".local")
+    );
+  } catch (_) {
+    return true;
+  }
+}
+
 function getPublicBaseUrl(req) {
-  const envBase = normalizeBaseUrl(PUBLIC_SITE_URL);
-  if (envBase) return envBase;
   const proto = String(req.headers["x-forwarded-proto"] || req.protocol || "https").split(",")[0].trim() || "https";
   const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
-  if (!host) return "";
-  return normalizeBaseUrl(`${proto}://${host}`);
+  const requestBase = host ? normalizeBaseUrl(`${proto}://${host}`) : "";
+  const envBase = normalizeBaseUrl(PUBLIC_SITE_URL);
+
+  if (requestBase && !isLocalLikeBaseUrl(requestBase)) {
+    return requestBase;
+  }
+
+  if (envBase && !isLocalLikeBaseUrl(envBase)) {
+    return envBase;
+  }
+
+  return normalizeBaseUrl(EMAIL_APP_URL) || "https://appvengers-slideplayer-1.onrender.com";
 }
 
 function toAbsoluteUrl(req, routePath) {
