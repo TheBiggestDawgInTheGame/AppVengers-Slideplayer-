@@ -23,6 +23,7 @@ if (process.env.SENDGRID_API_KEY) {
 }
 
 const PAYMENTS_FILE = path.join(__dirname, "payfast_payments.json");
+const USERS_FILE = path.join(__dirname, "users-local.json");
 const SUPPORT_FILE = path.join(__dirname, "support-messages.json");
 const SESSION_HISTORY_FILE = path.join(__dirname, "session-history.json");
 const DEFAULT_DB_URL = "https://slideplay-38d3f-default-rtdb.firebaseio.com";
@@ -60,6 +61,10 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
+const slideUploadDir = path.resolve(__dirname, "../../slide_upload");
+if (fs.existsSync(slideUploadDir)) {
+  app.use("/slide_upload", express.static(slideUploadDir));
+}
 
 function safeReadJson(filePath, fallbackValue) {
   try {
@@ -91,6 +96,45 @@ function normalizeIsoDate(value) {
   return Number.isFinite(dt.getTime()) ? dt.toISOString() : null;
 }
 
+function normalizeServiceAccount(raw) {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Service account JSON is missing or invalid");
+  }
+
+  const serviceAccount = { ...raw };
+  serviceAccount.project_id = String(serviceAccount.project_id || "").trim();
+  serviceAccount.client_email = String(serviceAccount.client_email || "").trim();
+  serviceAccount.private_key = String(serviceAccount.private_key || "");
+
+  // Handle one-line env values that keep escaped newlines.
+  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n").trim();
+  if (serviceAccount.private_key && !serviceAccount.private_key.endsWith("\n")) {
+    serviceAccount.private_key += "\n";
+  }
+
+  const placeholderHit =
+    serviceAccount.private_key.includes("YOUR_PRIVATE_KEY") ||
+    String(serviceAccount.private_key_id || "").includes("YOUR_PRIVATE_KEY_ID") ||
+    serviceAccount.client_email.includes("firebase-adminsdk-xxxx") ||
+    String(serviceAccount.client_id || "").includes("YOUR_CLIENT_ID");
+
+  if (placeholderHit) {
+    throw new Error(
+      "Service account is still using placeholder values. Download a real key from Firebase Console > Project Settings > Service accounts."
+    );
+  }
+
+  if (!serviceAccount.project_id || !serviceAccount.client_email || !serviceAccount.private_key) {
+    throw new Error("Service account is missing project_id, client_email, or private_key");
+  }
+
+  if (!serviceAccount.private_key.includes("BEGIN PRIVATE KEY") || !serviceAccount.private_key.includes("END PRIVATE KEY")) {
+    throw new Error("Service account private_key is not a valid PEM block");
+  }
+
+  return serviceAccount;
+}
+
 function getFirebaseAdmin() {
   if (firebaseAdminInitAttempted) return firebaseAdmin;
   firebaseAdminInitAttempted = true;
@@ -103,9 +147,9 @@ function getFirebaseAdmin() {
       const serviceAccountPath = path.join(__dirname, "firebase-service-account.json");
 
       if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+        serviceAccount = normalizeServiceAccount(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON));
       } else if (fs.existsSync(serviceAccountPath)) {
-        serviceAccount = require(serviceAccountPath);
+        serviceAccount = normalizeServiceAccount(require(serviceAccountPath));
       }
 
       if (!serviceAccount) {
@@ -133,6 +177,20 @@ function getBearerToken(req) {
   const authHeader = String(req.headers.authorization || "");
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : "";
+}
+
+function decodeJwtPayload(token) {
+  try {
+    const payload = String(token || "").split(".")[1] || "";
+    if (!payload) return null;
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = base64.length % 4;
+    const normalized = base64 + (pad ? "=".repeat(4 - pad) : "");
+    const json = Buffer.from(normalized, "base64").toString("utf8");
+    return JSON.parse(json);
+  } catch (_) {
+    return null;
+  }
 }
 
 function getClientIp(req) {
@@ -302,6 +360,21 @@ async function ensureAdmin(req, res, next) {
 
   const admin = getFirebaseAdmin();
   if (!admin) {
+    const isLocalHost = req.hostname === "localhost" || req.hostname === "127.0.0.1";
+    if (isLocalHost) {
+      const payload = decodeJwtPayload(token);
+      const email = normalizeEmail(payload?.email || "");
+      if (ADMIN_EMAIL_ALLOWLIST.has(email)) {
+        req.adminUser = {
+          uid: String(payload?.user_id || payload?.uid || "local-admin"),
+          email,
+          role: "admin",
+          devFallback: true,
+        };
+        next();
+        return;
+      }
+    }
     res.status(503).json({ error: "Admin API unavailable: Firebase Admin is not configured" });
     return;
   }
@@ -405,7 +478,9 @@ function normalizePaymentRows(rawPayments) {
 
 async function fetchUsersFromDb() {
   const admin = getFirebaseAdmin();
-  if (!admin) return [];
+  if (!admin) {
+    return readLocalUsers();
+  }
 
   try {
     const snap = await admin.database().ref("users").get();
@@ -433,8 +508,78 @@ async function fetchUsersFromDb() {
     });
   } catch (error) {
     console.error("Failed loading users from Firebase:", error.message);
-    return [];
+    return readLocalUsers();
   }
+}
+
+function readLocalUsers() {
+  const rows = safeReadJson(USERS_FILE, []);
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => ({
+      FirebaseUID: String(row.FirebaseUID || row.uid || ""),
+      DisplayName: String(row.DisplayName || row.displayName || row.username || "User"),
+      Email: normalizeEmail(row.Email || row.email || ""),
+      Role: String(row.Role || row.role || "student").toLowerCase(),
+      AuthProvider: String(row.AuthProvider || row.authProvider || "password"),
+      CurrentPlan: String(row.CurrentPlan || row.plan || ""),
+      TotalSpent: Number(row.TotalSpent || row.totalSpent || 0),
+      GamesPlayed: Number(row.GamesPlayed || row.gamesPlayed || 0),
+      LastLoginAt: normalizeIsoDate(row.LastLoginAt || row.lastLoginAt),
+      CreatedAt: normalizeIsoDate(row.CreatedAt || row.createdAt) || new Date().toISOString(),
+    }))
+    .filter((row) => row.FirebaseUID || row.Email);
+}
+
+function upsertLocalUser(payload) {
+  const uid = String(payload.uid || payload.FirebaseUID || "").trim();
+  const email = normalizeEmail(payload.email || payload.Email || "");
+  if (!uid || !email) return false;
+
+  const users = readLocalUsers();
+  const idx = users.findIndex((u) => u.FirebaseUID === uid || normalizeEmail(u.Email) === email);
+  const existing = idx >= 0 ? users[idx] : null;
+
+  const nextUser = {
+    FirebaseUID: uid,
+    DisplayName: String(payload.displayName || existing?.DisplayName || email.split("@")[0] || "User"),
+    Email: email,
+    Role: String(payload.role || existing?.Role || "student").toLowerCase(),
+    AuthProvider: String(payload.authProvider || existing?.AuthProvider || "password"),
+    CurrentPlan: String(payload.plan || existing?.CurrentPlan || ""),
+    TotalSpent: Number(payload.totalSpent || existing?.TotalSpent || 0),
+    GamesPlayed: Number(payload.gamesPlayed || existing?.GamesPlayed || 0),
+    LastLoginAt: new Date().toISOString(),
+    CreatedAt: existing?.CreatedAt || new Date().toISOString(),
+  };
+
+  if (idx >= 0) users[idx] = nextUser;
+  else users.push(nextUser);
+  return safeWriteJson(USERS_FILE, users);
+}
+
+function incrementLocalGamesPlayed(payload) {
+  const uid = String(payload.uid || payload.FirebaseUID || "").trim();
+  const email = normalizeEmail(payload.email || payload.Email || "");
+  if (!uid && !email) return false;
+
+  const users = readLocalUsers();
+  let idx = users.findIndex((u) => (uid && u.FirebaseUID === uid) || (email && normalizeEmail(u.Email) === email));
+
+  if (idx < 0) {
+    const saved = upsertLocalUser(payload);
+    if (!saved) return false;
+    const refreshed = readLocalUsers();
+    idx = refreshed.findIndex((u) => (uid && u.FirebaseUID === uid) || (email && normalizeEmail(u.Email) === email));
+    if (idx < 0) return false;
+    refreshed[idx].GamesPlayed = Number(refreshed[idx].GamesPlayed || 0) + 1;
+    refreshed[idx].LastLoginAt = new Date().toISOString();
+    return safeWriteJson(USERS_FILE, refreshed);
+  }
+
+  users[idx].GamesPlayed = Number(users[idx].GamesPlayed || 0) + 1;
+  users[idx].LastLoginAt = new Date().toISOString();
+  return safeWriteJson(USERS_FILE, users);
 }
 
 async function fetchSessionsFromDb() {
@@ -688,7 +833,12 @@ app.post("/api/users/sync", async (req, res) => {
 
   const admin = getFirebaseAdmin();
   if (!admin) {
-    res.status(503).json({ error: "User sync unavailable: Firebase Admin is not configured" });
+    const saved = upsertLocalUser(payload);
+    if (!saved) {
+      res.status(500).json({ error: "User sync unavailable: could not persist local fallback" });
+      return;
+    }
+    res.json({ ok: true, fallback: "local" });
     return;
   }
 
@@ -772,18 +922,39 @@ app.post("/api/payfast/init", (req, res) => {
   res.json({ url: payfastUrl });
 });
 
-function savePaymentStatus(email, plan, status) {
-  const existing = safeReadJson(PAYMENTS_FILE, {});
-  existing[email] = {
-    plan,
-    status,
-    date: new Date().toISOString(),
-    amount: planAmount(plan),
-    provider: "payfast",
-    billingCycle: "monthly",
-  };
-  safeWriteJson(PAYMENTS_FILE, existing);
+function savePaymentStatus(email, plan, status, provider = "payfast", billingCycle = "monthly", amountOverride) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !plan) return;
+
+  const existingRows = normalizePaymentRows(safeReadJson(PAYMENTS_FILE, {}));
+  existingRows.unshift({
+    PaymentID: Date.now(),
+    Email: normalizedEmail,
+    Plan: String(plan),
+    AmountZAR: Number.isFinite(Number(amountOverride)) ? Number(amountOverride) : planAmount(plan),
+    Provider: String(provider || "payfast"),
+    BillingCycle: String(billingCycle || "monthly"),
+    Status: mapPaymentStatus(status),
+    CreatedAt: new Date().toISOString(),
+  });
+  safeWriteJson(PAYMENTS_FILE, existingRows.slice(0, 5000));
 }
+
+app.post("/api/payments/simulate", (req, res) => {
+  const email = normalizeEmail(req.body?.email || "");
+  const plan = String(req.body?.plan || "").trim();
+  const provider = String(req.body?.provider || "card").trim() || "card";
+  const billingCycle = String(req.body?.billingCycle || "monthly").trim() || "monthly";
+  const amount = Number(req.body?.amount);
+
+  if (!email || !plan) {
+    res.status(400).json({ error: "Missing email or plan" });
+    return;
+  }
+
+  savePaymentStatus(email, plan, "COMPLETE", provider, billingCycle, amount);
+  res.json({ ok: true });
+});
 
 app.post("/api/payfast/ipn", async (req, res) => {
   const ipnData = req.body;
@@ -928,6 +1099,53 @@ app.post("/api/sessions/archive", async (req, res) => {
 
   upsertSessionHistory(normalized);
   res.json({ ok: true, sessionCode: normalized.SessionCode });
+});
+
+app.post("/api/gameplay/record", (req, res) => {
+  const body = req.body || {};
+  const uid = String(body.uid || "").trim();
+  const email = normalizeEmail(body.email || "");
+
+  if (!uid && !email) {
+    res.status(400).json({ error: "Missing uid or email" });
+    return;
+  }
+
+  const hostName = String(body.displayName || body.hostName || email || "Player");
+  const sessionCode = String(body.sessionCode || `LOCAL-${Date.now().toString(36).toUpperCase()}`)
+    .trim()
+    .toUpperCase();
+
+  const recorded = incrementLocalGamesPlayed({
+    uid,
+    email,
+    displayName: hostName,
+    role: String(body.role || "student").toLowerCase(),
+  });
+
+  if (!recorded) {
+    res.status(500).json({ error: "Could not persist gameplay record" });
+    return;
+  }
+
+  upsertSessionHistory(
+    normalizeSessionRow({
+      SessionCode: sessionCode,
+      GameType: String(body.gameType || "quiz"),
+      GameMode: String(body.gameMode || "solo"),
+      HostName: hostName,
+      HostUID: uid,
+      PlayerCount: Number(body.playerCount || 1),
+      WinnerName: hostName,
+      WinnerScore: Number(body.winnerScore || body.totalScore || 0),
+      TotalScore: Number(body.totalScore || body.winnerScore || 0),
+      Status: "finished",
+      CreatedAt: body.createdAt || new Date().toISOString(),
+      FinishedAt: new Date().toISOString(),
+    })
+  );
+
+  res.json({ ok: true, sessionCode });
 });
 
 app.get("/api/admin/stats", ensureAdmin, async (_req, res) => {
@@ -1192,6 +1410,14 @@ app.post("/api/admin/security-alerts/ack-all", ensureAdmin, (_req, res) => {
     }
   }
   res.json({ ok: true, updated });
+});
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({ ok: true, service: "slideplay-app" });
+});
+
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "main.html"));
 });
 
 app.listen(PORT, () => {
