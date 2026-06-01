@@ -44,15 +44,17 @@ const storedQuizData = readJsonStorage(GENERATED_QUIZ_KEY, []);
 function loadQuizQuestions() {
   if (Array.isArray(storedQuizData) && storedQuizData.length > 0) {
     return storedQuizData
-      .filter(item => item && typeof item.question === 'string' && Array.isArray(item.options))
+      .filter(item => item && (typeof item.question === 'string' || typeof item.questionText === 'string'))
       .map(item => ({
-        prompt: String(item.question),
-        options: item.options.map((text, idx) => ({
+        prompt: String(item.question || item.questionText || '').trim(),
+        options: (Array.isArray(item.options) ? item.options : (Array.isArray(item.answers) ? item.answers : [])).map((text, idx) => ({
           text: String(text),
-          correct: idx === Number(item.correct)
+          correct: idx === (Number.isInteger(item.correct)
+            ? Number(item.correct)
+            : (typeof item.correctAnswer === 'number' ? Number(item.correctAnswer) : 0))
         }))
       }))
-      .filter(item => item.options.length >= 2);
+      .filter(item => item.prompt.length > 5 && item.options.length >= 2);
   }
   return [];
 }

@@ -26,6 +26,10 @@ const UP_GAME_URLS = {
 };
 
 const UP_COMING_SOON_GAMES = new Set(["snake", "pacman"]);
+const GENERATED_QUIZ_KEY = "slidePlayGeneratedQuizData";
+const UPLOADED_FILES_KEY = "slidePlayUploadedFiles";
+const JEOPARDY_QUIZ_COUNT_KEY = "slidePlayJeopardyQuizQuestionCount";
+const JEOPARDY_3D_COUNT_KEY = "slidePlayJeopardy3dQuestionCount";
 
 const UP_FAKE_NAMES = [
   "Sipho M.","Ayanda K.","Thabo N.","Zanele D.","Lebo P.",
@@ -143,6 +147,66 @@ async function upSendNotifications() {
 function upHidden(id, hide) {
   const el = document.getElementById(id);
   if (el) hide ? el.classList.add("hidden") : el.classList.remove("hidden");
+}
+
+function normalizeQuestionsForGames(list) {
+  if (!Array.isArray(list)) return [];
+
+  return list
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+
+      const question = String(item.question || item.questionText || "").trim();
+      const options = Array.isArray(item.options)
+        ? item.options.map((opt) => String(opt || "").trim()).filter(Boolean)
+        : [];
+
+      let correct = Number.isInteger(item.correct) ? item.correct : -1;
+      if (correct < 0 && typeof item.correctAnswer === "string") {
+        const idx = { A: 0, B: 1, C: 2, D: 3 }[item.correctAnswer.toUpperCase()];
+        if (Number.isInteger(idx)) correct = idx;
+      }
+      if (correct < 0 && typeof item.correctAnswer === "boolean" && options.length >= 2) {
+        correct = item.correctAnswer ? 0 : 1;
+      }
+
+      if (!question || options.length < 2) return null;
+      if (correct < 0 || correct >= options.length) correct = 0;
+
+      return {
+        question,
+        options,
+        correct,
+        source: "upload"
+      };
+    })
+    .filter(Boolean);
+}
+
+function persistUploadArtifacts(result, countHint) {
+  const fallbackText = String(result?.rawText || "").trim();
+  const normalizedQuestions = normalizeQuestionsForGames(result?.questions || []);
+
+  const uploadedMeta = up.uploadedFile
+    ? [{
+        originalName: up.uploadedFile.name,
+        type: up.uploadedFile.type || "",
+        size: Number(up.uploadedFile.size || 0),
+        extractedText: fallbackText,
+        uploadedAt: new Date().toISOString(),
+      }]
+    : [];
+
+  const requestedCount = Math.max(5, Math.min(40, Number(up.questionCount || countHint || 10)));
+
+  try {
+    localStorage.setItem(UPLOADED_FILES_KEY, JSON.stringify(uploadedMeta));
+    localStorage.setItem(GENERATED_QUIZ_KEY, JSON.stringify(normalizedQuestions));
+    localStorage.setItem(JEOPARDY_QUIZ_COUNT_KEY, String(requestedCount));
+    localStorage.setItem(JEOPARDY_3D_COUNT_KEY, String(requestedCount));
+  } catch (_error) {
+    // Storage can fail in private mode or restricted browsers.
+  }
 }
 
 async function upArchiveSession(status = "finished") {
@@ -313,6 +377,8 @@ async function upStartProcessing() {
     // Fallback: keep a reasonable default count
     if (!up.questionCount || up.questionCount === 0) up.questionCount = countHint || 10;
   }
+
+  persistUploadArtifacts(result, countHint);
 
   setProgress("Done!", 100);
 
@@ -538,6 +604,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Question count input
   document.getElementById("upQCountInput")?.addEventListener("input", function () {
     up.questionCount = Math.max(1, Math.min(50, parseInt(this.value) || 1));
+    try {
+      const clamped = Math.max(5, Math.min(40, up.questionCount));
+      localStorage.setItem(JEOPARDY_QUIZ_COUNT_KEY, String(clamped));
+      localStorage.setItem(JEOPARDY_3D_COUNT_KEY, String(clamped));
+    } catch (_error) {}
   });
 
   // Mode cards

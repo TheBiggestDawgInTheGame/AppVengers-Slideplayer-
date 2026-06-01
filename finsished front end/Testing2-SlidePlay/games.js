@@ -3,6 +3,8 @@ const UPLOADED_FILES_KEY = 'slidePlayUploadedFiles';
 const DEMO_SESSION_KEY = 'slidePlayDemoSession';
 const PLAY_STYLE_KEY = 'slidePlayPlayStyle';
 const PLAY_PLAYERS_KEY = 'slidePlayPlayers';
+const JEOPARDY_COUNT_KEY = 'slidePlayJeopardyQuizQuestionCount';
+const JEOPARDY_3D_COUNT_KEY = 'slidePlayJeopardy3dQuestionCount';
 
 function getStudentPlan() {
   try {
@@ -233,6 +235,11 @@ function launchGame() {
     return;
   }
 
+  const inferredCount = getRequestedQuestionCountForLaunch();
+  if (inferredCount >= 5) {
+    hrefToLaunch = appendCountToHref(hrefToLaunch, inferredCount);
+  }
+
   const players = selectedStyle === 'solo' ? ['Solo Player'] : getPlayerNames();
   localStorage.setItem(PLAY_STYLE_KEY, selectedStyle);
   localStorage.setItem(PLAY_PLAYERS_KEY, JSON.stringify(players));
@@ -277,6 +284,50 @@ psmCopyCode.addEventListener('click', () => {
     }, 1500);
   });
 });
+
+function getRequestedQuestionCountForLaunch() {
+  const quizLen = Number(Array.isArray(generatedQuiz) ? generatedQuiz.length : 0);
+  if (quizLen >= 5) {
+    return Math.max(5, Math.min(40, quizLen));
+  }
+
+  const stored2d = Number.parseInt(localStorage.getItem(JEOPARDY_COUNT_KEY) || '', 10);
+  if (Number.isFinite(stored2d)) {
+    return Math.max(5, Math.min(40, stored2d));
+  }
+
+  const stored3d = Number.parseInt(localStorage.getItem(JEOPARDY_3D_COUNT_KEY) || '', 10);
+  if (Number.isFinite(stored3d)) {
+    return Math.max(5, Math.min(40, stored3d));
+  }
+
+  return 0;
+}
+
+function appendCountToHref(href, count) {
+  try {
+    const target = new URL(href, window.location.href);
+    if (!target.searchParams.get('count')) {
+      target.searchParams.set('count', String(count));
+    }
+    return target.pathname + target.search + target.hash;
+  } catch (_error) {
+    return href;
+  }
+}
+
+function enableGuestLibraryMode() {
+  localStorage.setItem('sp_guest_mode', 'true');
+  localStorage.removeItem('sp_auth_token');
+  localStorage.removeItem('sp_user_uid');
+  localStorage.removeItem('sp_user_email');
+  localStorage.setItem('sp_user_role', 'guest');
+  localStorage.setItem('sp_user_displayName', 'Guest');
+
+  window.alert('Guest mode enabled. You can keep playing without signing in.');
+}
+
+document.getElementById('libraryGuestBtn')?.addEventListener('click', enableGuestLibraryMode);
 
 psmQuizVersionOptions.forEach((btn) => {
   btn.addEventListener('click', () => {

@@ -2,6 +2,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/fireba
 import {
   getAuth,
   GoogleAuthProvider,
+  setPersistence,
+  browserLocalPersistence,
+  inMemoryPersistence,
+  onAuthStateChanged,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -38,8 +42,18 @@ const API_BASE = (
 ).replace(/\/$/, "");
 auth.languageCode = "en";
 const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: "select_account" });
+provider.addScope("email");
+provider.addScope("profile");
 const EMAIL_VERIFIED_KEY = "sp_user_email_verified";
 const EMAIL_VERIFIED_SENT_AT_KEY = "sp_last_verification_email_sent_at";
+const GOOGLE_AUTH_INTENT_KEY = "sp_google_auth_intent";
+const GOOGLE_AUTH_INTENT_TS_KEY = "sp_google_auth_intent_ts";
+const GOOGLE_AUTH_INTENT_MAX_AGE_MS = 15 * 60 * 1000;
+
+let authPersistenceReady = false;
+let googleFinalizeInFlight = false;
+let googleAuthListenerInitialized = false;
 
 const ADMIN_EMAIL_ALLOWLIST = new Set([
   "bossmk2209@gmail.com",
@@ -111,6 +125,69 @@ function verificationActionSettings() {
     url: (window.location.origin || "") + "/login.html?verify=1",
     handleCodeInApp: false,
   };
+}
+
+async function ensureAuthPersistence() {
+  if (authPersistenceReady) return;
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+  } catch (_) {
+    try {
+      await setPersistence(auth, inMemoryPersistence);
+    } catch (_) {
+      // Best effort only.
+    }
+  }
+  authPersistenceReady = true;
+}
+
+function markGoogleAuthIntent() {
+  try {
+    localStorage.setItem(GOOGLE_AUTH_INTENT_KEY, "1");
+    localStorage.setItem(GOOGLE_AUTH_INTENT_TS_KEY, String(Date.now()));
+  } catch (_) {}
+}
+
+function clearGoogleAuthIntent() {
+  try {
+    localStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
+    localStorage.removeItem(GOOGLE_AUTH_INTENT_TS_KEY);
+  } catch (_) {}
+}
+
+function hasFreshGoogleAuthIntent() {
+  try {
+    if (localStorage.getItem(GOOGLE_AUTH_INTENT_KEY) !== "1") return false;
+    const ts = Number(localStorage.getItem(GOOGLE_AUTH_INTENT_TS_KEY) || "0");
+    return Number.isFinite(ts) && Date.now() - ts <= GOOGLE_AUTH_INTENT_MAX_AGE_MS;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function runFinalizeGoogleSignIn(user) {
+  if (!user || googleFinalizeInFlight) return;
+  googleFinalizeInFlight = true;
+  try {
+    await finalizeGoogleSignIn(user);
+    clearGoogleAuthIntent();
+  } finally {
+    googleFinalizeInFlight = false;
+  }
+}
+
+function setupGoogleAuthRecoveryListener() {
+  if (googleAuthListenerInitialized) return;
+  googleAuthListenerInitialized = true;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user || !hasFreshGoogleAuthIntent() || googleFinalizeInFlight) return;
+    try {
+      await runFinalizeGoogleSignIn(user);
+    } catch (err) {
+      console.error("Google auth recovery failed:", err?.code || err?.message || err);
+    }
+  });
 }
 
 async function sendVerificationEmailSafely(user, timeoutMs = 4500) {
@@ -394,20 +471,55 @@ function setupGoogle(btnId) {
   const btn = document.getElementById(btnId);
   if (!btn) return;
 
+  async function startGoogleRedirectWithWatchdog(button, buttonId, failMessage) {
+    let settled = false;
+    const watchdog = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resetGoogleButton(button, buttonId);
+      clearGoogleAuthIntent();
+      _showGoogleError(button, failMessage);
+    }, 6500);
+
+    try {
+      await signInWithRedirect(auth, provider);
+      settled = true;
+      clearTimeout(watchdog);
+    } catch (err) {
+      if (!settled) {
+        settled = true;
+        clearTimeout(watchdog);
+      }
+      throw err;
+    }
+  }
+
   btn.addEventListener("click", async (e) => {
     e.preventDefault();
+    await ensureAuthPersistence();
+    markGoogleAuthIntent();
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Signing in...`;
 
     if (isMobileAuthFlow()) {
       // Popup auth is often blocked on mobile browsers; redirect flow is more reliable.
-      await signInWithRedirect(auth, provider);
+      try {
+        await startGoogleRedirectWithWatchdog(
+          btn,
+          btnId,
+          "Google redirect could not start. Please allow popups/cookies and try again."
+        );
+      } catch (err) {
+        resetGoogleButton(btn, btnId);
+        clearGoogleAuthIntent();
+        _showGoogleError(btn, "Unable to start Google sign-in redirect. Please try again.");
+      }
       return;
     }
 
     try {
       const result = await signInWithPopup(auth, provider);
-      await finalizeGoogleSignIn(result.user);
+      await runFinalizeGoogleSignIn(result.user);
     } catch (err) {
       console.error("Google sign-in error:", err.code || err.message);
       const fallbackCodes = new Set([
@@ -417,31 +529,49 @@ function setupGoogle(btnId) {
         "auth/operation-not-supported-in-this-environment",
       ]);
       if (fallbackCodes.has(err?.code)) {
-        await signInWithRedirect(auth, provider);
+        try {
+          await startGoogleRedirectWithWatchdog(
+            btn,
+            btnId,
+            "Google redirect did not open. Please allow popups/cookies and try again."
+          );
+        } catch (_) {
+          resetGoogleButton(btn, btnId);
+          clearGoogleAuthIntent();
+          _showGoogleError(btn, "Popup was blocked and redirect could not start. Please try again.");
+        }
         return;
       }
       resetGoogleButton(btn, btnId);
+      clearGoogleAuthIntent();
       _showGoogleError(btn, err?.code === "auth/unauthorized-domain"
-        ? "Google sign-in is not enabled for this domain yet."
+        ? `Google sign-in is not enabled for ${window.location.hostname} yet. Please add this domain in Firebase Auth > Authorized domains.`
         : "Google sign-in failed. Please try again.");
     }
   });
 }
 
 async function handleGoogleRedirect() {
+  await ensureAuthPersistence();
   try {
     const result = await getRedirectResult(auth);
     if (result?.user) {
-      await finalizeGoogleSignIn(result.user);
+      await runFinalizeGoogleSignIn(result.user);
+      return;
+    }
+
+    if (hasFreshGoogleAuthIntent() && auth.currentUser) {
+      await runFinalizeGoogleSignIn(auth.currentUser);
     }
   } catch (err) {
     console.error("Google redirect sign-in error:", err.code || err.message);
     const btn = document.getElementById("googleLoginBtn") || document.getElementById("googleBtn");
     const btnId = btn?.id || "googleBtn";
     resetGoogleButton(btn, btnId);
+    clearGoogleAuthIntent();
     if (btn) {
       _showGoogleError(btn, err?.code === "auth/unauthorized-domain"
-        ? "Google sign-in is not enabled for this domain yet."
+        ? `Google sign-in is not enabled for ${window.location.hostname} yet. Please add this domain in Firebase Auth > Authorized domains.`
         : "Google sign-in failed. Please try again.");
     }
   }
@@ -650,4 +780,5 @@ prefillLoginFromEmailLink();
 setupLoginForm();
 setupResendVerificationButton();
 setupGoogle("googleLoginBtn");  // login.html Google button
+setupGoogleAuthRecoveryListener();
 handleGoogleRedirect();         // resolve redirect result on every page load

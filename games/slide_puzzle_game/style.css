@@ -107,6 +107,26 @@ body {
   color: var(--text-soft);
 }
 
+.how-to-play {
+  margin-top: 12px;
+  border: 1px solid rgba(159, 181, 216, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+}
+
+.how-to-play summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #e6f2ff;
+}
+
+.how-to-play ol {
+  margin: 10px 0 0 18px;
+  color: #c8dbf7;
+  line-height: 1.45;
+}
+
 .slot-grid {
   margin-top: 14px;
   display: grid;

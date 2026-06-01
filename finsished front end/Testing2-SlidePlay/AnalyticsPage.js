@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", function () {
   applySubscriptionUnlocks();
 });
 
+let hasRealAnalyticsData = false;
+
 // ── Subscription-based unlocks ─────────────────────────────────────────────
 function applySubscriptionUnlocks() {
   try {
@@ -28,12 +30,144 @@ function applySubscriptionUnlocks() {
 
 // Initialize all analytics features
 function initializeAnalytics() {
+  hasRealAnalyticsData = hydrateAnalyticsFromLocalData();
   animateProgressBars();
   setupLeaderboardInteractivity();
   setupChartInteractivity();
   setupBadgeInteractivity();
   setupMilestoneInteractivity();
   startLiveUpdates();
+}
+
+function readJsonStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (_error) {
+    return fallback;
+  }
+}
+
+function formatDuration(ms) {
+  const safe = Math.max(0, Number(ms || 0));
+  const totalSeconds = Math.floor(safe / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(value);
+}
+
+function hydrateAnalyticsFromLocalData() {
+  const tracker = readJsonStorage("spProgressTracker", null);
+  const progressSessions = readJsonStorage("sp_class_progress", []);
+  const reports = readJsonStorage("sp_game_reports", []);
+
+  let sessions = Array.isArray(progressSessions) ? progressSessions.slice() : [];
+  if ((!sessions || sessions.length === 0) && Array.isArray(tracker?.gameSessions)) {
+    sessions = tracker.gameSessions.slice();
+  }
+
+  if ((!sessions || sessions.length === 0) && Array.isArray(reports)) {
+    sessions = reports.map((report, idx) => ({
+      game: report?.gameType || report?.meta?.source || "Game",
+      date: String(report?.createdAt || report?.finishedAt || new Date().toISOString()).slice(0, 10),
+      durationMs: Number(report?.durationSec || 0) * 1000,
+      score: Number(report?.score || 0),
+      completion: Number(report?.totalQuestions || 0) > 0
+        ? Math.round((Number(report?.correctCount || 0) / Number(report?.totalQuestions || 1)) * 100)
+        : 0,
+      timestamp: report?.createdAt || idx,
+    }));
+  }
+
+  const totalSessions = sessions.length;
+  setText("totalSessionsValue", totalSessions);
+
+  if (totalSessions === 0) {
+    setText("recentActivitiesList", "No gameplay data yet. Play a game to start tracking progress.");
+    return false;
+  }
+
+  const totalDurationMs = sessions.reduce((sum, s) => sum + Number(s.durationMs || 0), 0);
+  const avgDuration = totalDurationMs / Math.max(1, totalSessions);
+  setText("avgSessionTime", formatDuration(avgDuration));
+
+  const avgCompletion = Math.round(
+    sessions.reduce((sum, s) => sum + Number(s.completion || 0), 0) / Math.max(1, totalSessions)
+  );
+  setText("completionRateValue", `${Math.max(0, Math.min(100, avgCompletion))}%`);
+
+  const now = new Date();
+  const weeklyDates = new Set();
+  sessions.forEach((s) => {
+    const dt = new Date(s.timestamp || s.date || now.toISOString());
+    const days = Math.floor((now - dt) / (24 * 60 * 60 * 1000));
+    if (days >= 0 && days < 7) {
+      weeklyDates.add(dt.toISOString().slice(0, 10));
+    }
+  });
+  const weeklyEngagement = Math.round((weeklyDates.size / 7) * 100);
+  setText("weeklyEngagementValue", `${weeklyEngagement}%`);
+  setText("activeUsersValue", 1);
+
+  const totalScore = sessions.reduce((sum, s) => sum + Number(s.score || 0), 0);
+  const goal = Math.max(100, totalSessions * 100);
+  const progress = Math.max(0, Math.min(100, Math.round((totalScore / goal) * 100)));
+
+  const fill = document.getElementById("goalProgressFill");
+  if (fill) fill.style.width = `${progress}%`;
+  setText("goalProgressText", `${totalScore} / ${goal}`);
+
+  const recentActivitiesList = document.getElementById("recentActivitiesList");
+  if (recentActivitiesList) {
+    const items = sessions
+      .slice()
+      .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+      .slice(0, 6)
+      .map((s) => {
+        const game = String(s.game || "Game");
+        const date = String(s.date || "");
+        const duration = formatDuration(Number(s.durationMs || 0));
+        const score = Number(s.score || 0);
+        return `<div class="intel-item"><strong>${game}</strong><span>${date} • ${duration} • ${score} pts</span></div>`;
+      })
+      .join("");
+    recentActivitiesList.innerHTML = items;
+  }
+
+  const leaderboardBody = document.getElementById("leaderboardBody");
+  if (leaderboardBody) {
+    const byGame = new Map();
+    sessions.forEach((s) => {
+      const key = String(s.game || "Game");
+      if (!byGame.has(key)) byGame.set(key, { score: 0, streak: 0 });
+      const row = byGame.get(key);
+      row.score += Number(s.score || 0);
+      row.streak += 1;
+    });
+
+    const entries = Array.from(byGame.entries())
+      .map(([game, values]) => ({ game, score: values.score, streak: values.streak }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8);
+
+    leaderboardBody.innerHTML = entries
+      .map((entry, idx) => `
+        <div class="leaderboard-entry">
+          <div class="rank">#${idx + 1}</div>
+          <div class="user-info"><span>${entry.game}</span><span>Sessions: ${entry.streak}</span></div>
+          <div class="score">${entry.score}</div>
+          <div class="streak">${entry.streak}</div>
+        </div>
+      `)
+      .join("");
+  }
+
+  return true;
 }
 
 // Animate progress bars on page load
@@ -275,6 +409,10 @@ document.head.appendChild(notificationStyle);
 
 // Live updates simulation
 function startLiveUpdates() {
+  if (hasRealAnalyticsData) {
+    return;
+  }
+
   // Update leaderboard scores in real-time (every 5 seconds)
   setInterval(updateLeaderboardScores, 5000);
 

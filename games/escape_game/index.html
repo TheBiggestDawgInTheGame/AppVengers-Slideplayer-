@@ -313,13 +313,13 @@
       return plan === 'student_elite' || plan === 'student_premium';
     }
 
-    const upgradeUrl = '../../finsished front end/Testing2-SlidePlay/studentpayment.html';
+    const upgradeUrl = '../../finsished%20front%20end/Testing2-SlidePlay/studentpayment.html';
     const premiumCard = document.getElementById('btn-3d');
     if (premiumCard && !isPaidPlan()) {
       premiumCard.addEventListener('click', function (event) {
         event.preventDefault();
-        const go = window.confirm('The 3D Escape Room is a premium feature.\n\nOpen the 2D free version now, or go to the upgrade page to unlock 3D?');
-        if (go) window.location.href = upgradeUrl;
+        const forward = window.location.search || '';
+        window.location.href = upgradeUrl + (upgradeUrl.includes('?') ? '&' : '?') + 'return=' + encodeURIComponent(window.location.pathname + forward);
       });
     }
 

@@ -123,6 +123,10 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+function isValidE164Phone(value) {
+  return /^\+[1-9]\d{7,14}$/.test(String(value || "").trim());
+}
+
 function normalizeIsoDate(value) {
   if (!value && value !== 0) return null;
   const dt = typeof value === "number" ? new Date(value) : new Date(String(value));
@@ -1376,6 +1380,40 @@ app.post("/api/gameplay/record", (req, res) => {
   );
 
   res.json({ ok: true, sessionCode });
+});
+
+app.post("/api/sms/test", async (req, res) => {
+  const to = String(req.body?.to || "").trim();
+  if (!isValidE164Phone(to)) {
+    res.status(400).json({ ok: false, code: "INVALID_PHONE", error: "Phone must be in E.164 format (for example: +27831234567)." });
+    return;
+  }
+
+  const sid = String(process.env.TWILIO_ACCOUNT_SID || "").trim();
+  const token = String(process.env.TWILIO_AUTH_TOKEN || "").trim();
+  const from = String(process.env.TWILIO_FROM_NUMBER || "").trim();
+
+  if (!sid || !token || !from) {
+    res.status(503).json({ ok: false, code: "NOT_CONFIGURED", error: "SMS service is not configured." });
+    return;
+  }
+
+  let twilio;
+  try {
+    twilio = require("twilio");
+  } catch (_error) {
+    res.status(503).json({ ok: false, code: "NOT_CONFIGURED", error: "Twilio package is not installed on the server." });
+    return;
+  }
+
+  try {
+    const client = twilio(sid, token);
+    const body = `SlidePlay test SMS: your notifications are connected. Time: ${new Date().toISOString()}`;
+    const message = await client.messages.create({ from, to, body });
+    res.json({ ok: true, sid: message?.sid || null });
+  } catch (error) {
+    res.status(502).json({ ok: false, code: "SEND_FAILED", error: String(error?.message || "Unable to send SMS.") });
+  }
 });
 
 app.get("/api/admin/stats", ensureAdmin, async (_req, res) => {

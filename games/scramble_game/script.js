@@ -29,6 +29,8 @@ const levelConfig = {
 };
 
 const levelButtons = document.querySelectorAll('.btn-level');
+const aboutBtn = document.getElementById('aboutBtn');
+const guestBtn = document.getElementById('guestBtn');
 const scrambleBox = document.getElementById('scrambleBox');
 const answerInput = document.getElementById('answerInput');
 const submitBtn = document.getElementById('submitBtn');
@@ -77,6 +79,17 @@ answerInput.addEventListener('keydown', event => {
         event.preventDefault();
         checkAnswer();
     }
+});
+
+aboutBtn?.addEventListener('click', () => {
+    window.location.href = '../../finsished front end/Testing2-SlidePlay/about.html';
+});
+
+guestBtn?.addEventListener('click', () => {
+    localStorage.setItem('sp_guest_mode', 'true');
+    localStorage.setItem('sp_user_role', 'guest');
+    localStorage.setItem('sp_user_displayName', 'Guest');
+    alert('Guest mode enabled for this game session.');
 });
 
 function setDifficulty(level) {
