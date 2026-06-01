@@ -67,6 +67,10 @@ const slideUploadDir = path.resolve(__dirname, "../../slide_upload");
 if (fs.existsSync(slideUploadDir)) {
   app.use("/slide_upload", express.static(slideUploadDir));
 }
+const sharedAssetsDir = path.resolve(__dirname, "../../shared");
+if (fs.existsSync(sharedAssetsDir)) {
+  app.use("/shared", express.static(sharedAssetsDir));
+}
 const sharedGamesDir = path.resolve(__dirname, "../../games");
 if (fs.existsSync(sharedGamesDir)) {
   app.use("/games", express.static(sharedGamesDir));

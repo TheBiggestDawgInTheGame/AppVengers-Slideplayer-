@@ -292,6 +292,31 @@
   }
   .gm-mode-btn:hover::before { opacity: 1; }
   .gm-mode-btn:hover::after { opacity: 0.8; transform: scaleX(1); }
+  .gm-mode-btn.gm-locked {
+    border-color: rgba(255, 203, 102, 0.46);
+    background: linear-gradient(160deg, rgba(44, 37, 22, 0.82) 0%, rgba(39, 29, 18, 0.9) 100%);
+    cursor: not-allowed;
+  }
+  .gm-mode-btn.gm-locked:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: rgba(255, 203, 102, 0.58);
+    background: linear-gradient(160deg, rgba(50, 40, 24, 0.88) 0%, rgba(44, 33, 20, 0.92) 100%);
+  }
+  .gm-mode-btn .gm-lock-pill {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 203, 102, 0.45);
+    color: #ffd46d;
+    background: rgba(255, 212, 109, 0.12);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
   .gm-mode-btn.gm-selected {
     border: 2px solid #00ddb4;
     background: linear-gradient(155deg, rgba(17,29,33,0.96), rgba(14,24,31,0.96));
@@ -724,6 +749,81 @@
 
   const isServerMode = window.location.protocol !== 'file:';
 
+  function readSubscription(key) {
+    try {
+      return JSON.parse(localStorage.getItem(key) || 'null');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function isSubscriptionActive(sub) {
+    if (!sub || typeof sub !== 'object') return false;
+    const status = String(sub.status || '').toLowerCase();
+    return status !== 'cancelled' && status !== 'locked' && status !== 'expired';
+  }
+
+  function getActivePlan() {
+    const studentSub = readSubscription('sp_student_subscription');
+    if (isSubscriptionActive(studentSub) && studentSub.plan) {
+      return String(studentSub.plan);
+    }
+
+    const teacherSub = readSubscription('sp_teacher_subscription');
+    if (isSubscriptionActive(teacherSub) && teacherSub.plan) {
+      return String(teacherSub.plan);
+    }
+
+    return 'free';
+  }
+
+  function isPaidPlanForModes(plan) {
+    return plan === 'student_elite' ||
+      plan === 'student_premium' ||
+      plan === 'pro' ||
+      plan === 'school';
+  }
+
+  function modeRequiresPaid(mode) {
+    return mode === 'hotseat' || mode === 'tournament' || mode === 'live';
+  }
+
+  function isTeacherContext() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('teacher') === '1') return true;
+    const role = String(localStorage.getItem('sp_user_role') || '').toLowerCase();
+    return role === 'teacher';
+  }
+
+  function getUpgradeUrlByRole() {
+    const returnTo = encodeURIComponent(window.location.href);
+    if (isTeacherContext()) {
+      return 'onboarding-payment.html?role=teacher&source=mode-picker&returnTo=' + returnTo;
+    }
+    return 'studentpayment.html?source=mode-picker&return=' + returnTo;
+  }
+
+  function getModeUpgradeMessage(mode) {
+    const pretty = mode === 'hotseat'
+      ? 'Multiplayer'
+      : mode === 'tournament'
+        ? 'Tournament'
+        : 'Live 2-Player';
+
+    if (isTeacherContext()) {
+      return pretty + ' is a paid feature.\n\nUpgrade to Teacher Pro or School Premium to unlock multiplayer game modes.\n\nGo to plans now?';
+    }
+
+    return pretty + ' is a paid feature.\n\nUpgrade to Elite or Premium to unlock multiplayer game modes.\n\nGo to plans now?';
+  }
+
+  function showPaidGateForMode(mode) {
+    const go = window.confirm(getModeUpgradeMessage(mode));
+    if (go) {
+      window.location.href = getUpgradeUrlByRole();
+    }
+  }
+
   function injectStyles() {
     if (document.getElementById('gm-styles')) return;
     const s = document.createElement('style');
@@ -744,6 +844,7 @@
     const fromUpload = params.get('source') === 'upload';
     const preStyle = fromUpload ? (localStorage.getItem('slidePlayPlayStyle') || '') : '';
     const prePlayers = fromUpload ? tryParseJson(localStorage.getItem('slidePlayPlayers'), []) : [];
+    const activePlan = getActivePlan();
 
     if (!fromUpload || !preStyle) {
       mount();
@@ -760,6 +861,11 @@
       activeMode = 'single';
       safeStart();
     } else if (preStyle === 'multiplayer') {
+      if (!isPaidPlanForModes(activePlan)) {
+        renderPickMode();
+        showPaidGateForMode('hotseat');
+        return;
+      }
       activeMode = 'hotseat';
       // Build player name list — show a quick turn-ready screen for P1
       const playerNames = prePlayers.length >= 2 ? prePlayers : ['Player 1', 'Player 2'];
@@ -768,6 +874,11 @@
       config._playerIndex = 0;
       renderHotseatPreLaunch(playerNames);
     } else if (preStyle === 'tournament') {
+      if (!isPaidPlanForModes(activePlan)) {
+        renderPickMode();
+        showPaidGateForMode('tournament');
+        return;
+      }
       activeMode = 'tournament';
       const playerNames = prePlayers.length >= 2 ? prePlayers : ['Player 1', 'Player 2'];
       config._playerNames = playerNames;
@@ -807,6 +918,49 @@
 
   function tryParseJson(str, fallback) {
     try { return JSON.parse(str) || fallback; } catch (_) { return fallback; }
+  }
+
+  function getApiBase() {
+    const fromStorage = localStorage.getItem('slideplay_api_base');
+    if (fromStorage && fromStorage.trim()) {
+      return fromStorage.trim().replace(/\/$/, '');
+    }
+    return window.location.origin;
+  }
+
+  function getPlayerCountForMode() {
+    if (activeMode === 'single') return 1;
+    if (activeMode === 'live') return 2;
+    if (activeMode === 'hotseat' || activeMode === 'tournament') {
+      const names = Array.isArray(config?._playerNames) ? config._playerNames : [];
+      return Math.max(2, names.length || 0);
+    }
+    return 1;
+  }
+
+  function recordGameplay(score) {
+    const uid = String(localStorage.getItem('sp_user_uid') || '').trim();
+    const email = String(localStorage.getItem('sp_user_email') || '').trim().toLowerCase();
+    if (!uid && !email) return;
+
+    const payload = {
+      uid,
+      email,
+      displayName: String(localStorage.getItem('sp_user_name') || email || 'Player').trim(),
+      role: String(localStorage.getItem('sp_user_role') || 'student').toLowerCase(),
+      gameType: String(config?.gameLabel || document.title || 'game'),
+      gameMode: activeMode === 'single' ? 'solo' : String(activeMode || 'solo'),
+      playerCount: getPlayerCountForMode(),
+      totalScore: Number(score || 0),
+      winnerScore: Number(score || 0),
+    };
+
+    fetch(getApiBase() + '/api/gameplay/record', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {});
   }
 
   function safeReset() {
@@ -1012,12 +1166,15 @@
     hideConnectionBadge();
     resetTournamentState();
     overlayEl.classList.remove('gm-hidden');
+    const activePlan = getActivePlan();
+    const paidForModes = isPaidPlanForModes(activePlan);
 
     const liveBtn = isServerMode
-      ? `<button class="gm-mode-btn" data-mode="live" type="button">
+      ? `<button class="gm-mode-btn ${paidForModes ? '' : 'gm-locked'}" data-mode="live" type="button">
            <span class="gm-mi">&#127760;</span>
            <strong>Live 2-Player</strong>
            <small>2 devices at once</small>
+           ${paidForModes ? '' : '<span class="gm-lock-pill">Elite+</span>'}
          </button>`
       : '';
 
@@ -1033,15 +1190,17 @@
             <strong>Solo</strong>
             <small>Play alone at your own pace</small>
           </button>
-          <button class="gm-mode-btn" data-mode="hotseat" type="button">
+          <button class="gm-mode-btn ${paidForModes ? '' : 'gm-locked'}" data-mode="hotseat" type="button">
             <span class="gm-mi">&#128101;</span>
             <strong>Multiplayer</strong>
             <small>Take turns with friends, best score wins</small>
+            ${paidForModes ? '' : '<span class="gm-lock-pill">Elite+</span>'}
           </button>
-          <button class="gm-mode-btn" data-mode="tournament" type="button">
+          <button class="gm-mode-btn ${paidForModes ? '' : 'gm-locked'}" data-mode="tournament" type="button">
             <span class="gm-mi">&#127942;</span>
             <strong>Tournament</strong>
             <small>Bracket competition, leaderboard finale</small>
+            ${paidForModes ? '' : '<span class="gm-lock-pill">Premium</span>'}
           </button>
           ${liveBtn}
         </div>
@@ -1055,9 +1214,14 @@
 
     overlayEl.querySelectorAll('.gm-mode-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        if (modeRequiresPaid(mode) && !paidForModes) {
+          showPaidGateForMode(mode);
+          return;
+        }
         overlayEl.querySelectorAll('.gm-mode-btn').forEach((b) => b.classList.remove('gm-selected'));
         btn.classList.add('gm-selected');
-        activeMode = btn.dataset.mode;
+        activeMode = mode;
         overlayEl.querySelector('#gm-confirm').disabled = false;
       });
     });
@@ -1717,15 +1881,18 @@
           p1Score = score;
           renderTurnReady(2, p1Score);
         } else if (phase === 'p2') {
+          recordGameplay(Math.max(Number(p1Score) || 0, Number(score) || 0));
           renderHotseatResult(p1Score, score);
         }
       } else if (activeMode === 'live') {
+        recordGameplay(score);
         stopScorePolling();
         updateLiveHud();
         if (socket) socket.emit('round-end', { code: roomCode, score });
         renderWaitingForResult();
       } else if (activeMode === 'tournament') {
         if (tournamentRemote) {
+          recordGameplay(score);
           stopScorePolling();
           updateLiveHud();
           if (socket) socket.emit('round-end', { code: roomCode, score });
@@ -1738,8 +1905,11 @@
           renderTournamentSecondTurn();
         } else if (phase === 'tourney-p2') {
           tournamentMatch.bScore = score;
+          recordGameplay(Math.max(Number(tournamentMatch.aScore) || 0, Number(tournamentMatch.bScore) || 0));
           renderTournamentMatchResult();
         }
+      } else if (activeMode === 'single') {
+        recordGameplay(score);
       }
     }
   };
