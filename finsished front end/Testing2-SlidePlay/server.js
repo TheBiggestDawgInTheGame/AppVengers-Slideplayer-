@@ -27,6 +27,8 @@ const USERS_FILE = path.join(__dirname, "users-local.json");
 const SUPPORT_FILE = path.join(__dirname, "support-messages.json");
 const SESSION_HISTORY_FILE = path.join(__dirname, "session-history.json");
 const DEFAULT_DB_URL = "https://slideplay-38d3f-default-rtdb.firebaseio.com";
+const EMAIL_BRAND_NAME = process.env.EMAIL_BRAND_NAME || "SlidePlay";
+const EMAIL_APP_URL = process.env.APP_URL || "https://appvengers-slideplayer-1.onrender.com";
 const SESSION_HISTORY_MAX_ROWS = Math.max(50, Number(process.env.SESSION_HISTORY_MAX_ROWS || 1000));
 const SESSION_HISTORY_RETENTION_DAYS = Math.max(7, Number(process.env.SESSION_HISTORY_RETENTION_DAYS || 120));
 const SESSION_HISTORY_RETENTION_MS = SESSION_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -98,6 +100,55 @@ function normalizeIsoDate(value) {
   if (!value && value !== 0) return null;
   const dt = typeof value === "number" ? new Date(value) : new Date(String(value));
   return Number.isFinite(dt.getTime()) ? dt.toISOString() : null;
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function normalizeTextToHtml(value) {
+  const safe = escapeHtml(value || "");
+  return safe.replace(/\n/g, "<br>");
+}
+
+function getSendgridFrom() {
+  const email = String(process.env.SENDGRID_FROM_EMAIL || "slideplayer90@gmail.com").trim();
+  const name = String(process.env.SENDGRID_FROM_NAME || EMAIL_BRAND_NAME).trim();
+  if (name) {
+    return { email, name };
+  }
+  return email;
+}
+
+function renderEmailTemplate({ title, intro, bodyHtml, ctaLabel, ctaUrl }) {
+  const safeTitle = escapeHtml(title || EMAIL_BRAND_NAME);
+  const safeIntro = normalizeTextToHtml(intro || "");
+  const safeBody = bodyHtml || "";
+  const safeCtaLabel = escapeHtml(ctaLabel || "Open App");
+  const safeCtaUrl = escapeHtml(ctaUrl || EMAIL_APP_URL);
+  const safeBrand = escapeHtml(EMAIL_BRAND_NAME);
+  return `
+  <div style="margin:0;padding:24px;background:#f3f6fb;font-family:Segoe UI,Arial,sans-serif;">
+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e6ebf2;border-radius:14px;overflow:hidden;">
+      <div style="background:linear-gradient(120deg,#06b6d4,#0ea5e9);padding:22px 24px;color:#ffffff;">
+        <div style="font-size:12px;letter-spacing:.08em;opacity:.92;text-transform:uppercase;">${safeBrand}</div>
+        <h1 style="margin:8px 0 0;font-size:24px;line-height:1.2;">${safeTitle}</h1>
+      </div>
+      <div style="padding:24px;color:#0f172a;line-height:1.6;font-size:15px;">
+        <p style="margin:0 0 14px;">${safeIntro}</p>
+        <div style="margin:0 0 20px;">${safeBody}</div>
+        <a href="${safeCtaUrl}" style="display:inline-block;background:#0ea5e9;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:10px;font-weight:600;">${safeCtaLabel}</a>
+      </div>
+      <div style="padding:14px 24px;border-top:1px solid #e6ebf2;color:#64748b;font-size:12px;">
+        You are receiving this email from ${safeBrand}.
+      </div>
+    </div>
+  </div>`;
 }
 
 function normalizeServiceAccount(raw) {
@@ -1003,11 +1054,19 @@ app.post("/api/payfast/ipn", async (req, res) => {
       }
 
       if (email && process.env.SENDGRID_API_KEY) {
+        const planLabel = escapeHtml(plan || "Premium");
         const msg = {
           to: email,
-          from: process.env.SENDGRID_FROM_EMAIL || "slideplayer90@gmail.com",
-          subject: "Payment Received - SlidePlayer",
+          from: getSendgridFrom(),
+          subject: `Payment Received - ${EMAIL_BRAND_NAME}`,
           text: `Thank you for your payment for the ${plan} plan! Your premium access is now active.`,
+          html: renderEmailTemplate({
+            title: "Payment Confirmed",
+            intro: `Thanks for upgrading to ${plan || "your selected"} plan.`,
+            bodyHtml: `<p>Your premium access is now active. You can launch games and continue learning immediately.</p><p><strong>Plan:</strong> ${planLabel}</p>`,
+            ctaLabel: "Open SlidePlay",
+            ctaUrl: `${EMAIL_APP_URL}/main.html`,
+          }),
         };
         try {
           await sgMail.send(msg);
@@ -1040,9 +1099,16 @@ app.post("/send-welcome-email", async (req, res) => {
 
   const msg = {
     to: email,
-    from: process.env.SENDGRID_FROM_EMAIL || "slideplayer90@gmail.com",
-    subject: "Welcome to SlidePlayer!",
+    from: getSendgridFrom(),
+    subject: `Welcome to ${EMAIL_BRAND_NAME}!`,
     text: "Thank you for signing up for SlidePlayer! We're excited to have you on board. If you have any questions or need assistance, feel free to reach out to our support team.",
+    html: renderEmailTemplate({
+      title: `Welcome to ${EMAIL_BRAND_NAME}`,
+      intro: "Thanks for signing up. Your account is ready.",
+      bodyHtml: "<p>Start by uploading your slides, generating a quiz, and jumping into game mode.</p><p>If you need help, reply to this email and our support team will assist you.</p>",
+      ctaLabel: "Start Learning",
+      ctaUrl: `${EMAIL_APP_URL}/login.html`,
+    }),
   };
 
   try {
@@ -1353,13 +1419,14 @@ app.post("/api/admin/email/send", ensureAdmin, async (req, res) => {
   const toList = Array.isArray(req.body?.to) ? req.body.to : [];
   const subject = String(req.body?.subject || "").trim();
   const text = String(req.body?.text || "").trim();
+  const html = String(req.body?.html || "").trim();
 
   const recipients = toList
     .map((email) => normalizeEmail(email))
     .filter(Boolean);
 
-  if (!recipients.length || !subject || !text) {
-    res.status(400).json({ error: "Missing recipients, subject, or text" });
+  if (!recipients.length || !subject || (!text && !html)) {
+    res.status(400).json({ error: "Missing recipients, subject, and body (text or html)" });
     return;
   }
 
@@ -1370,9 +1437,16 @@ app.post("/api/admin/email/send", ensureAdmin, async (req, res) => {
     try {
       await sgMail.send({
         to: email,
-        from: process.env.SENDGRID_FROM_EMAIL || "slideplayer90@gmail.com",
+        from: getSendgridFrom(),
         subject,
-        text,
+        text: text || " ",
+        html: html || renderEmailTemplate({
+          title: subject,
+          intro: "Message from your SlidePlay admin team.",
+          bodyHtml: `<p>${normalizeTextToHtml(text)}</p>`,
+          ctaLabel: "Open SlidePlay",
+          ctaUrl: `${EMAIL_APP_URL}/main.html`,
+        }),
       });
       accepted.push(email);
     } catch (error) {
