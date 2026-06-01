@@ -1,8 +1,6 @@
 ﻿<!doctype html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SlidePlay</title>
 
     <link
@@ -15,7 +13,6 @@
       href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="responsive-shared.css" />
 
     <style>
       * {
@@ -102,34 +99,8 @@
       }
 
       .logo {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
         font-size: 2rem;
-        line-height: 1;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-      }
-
-      .logo-mark {
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        color: #ffffff;
-        background: radial-gradient(circle at 20% 20%, #22d3ee 0%, #8b5cf6 55%, #0ea5e9 100%);
-        box-shadow: 0 8px 18px rgba(14, 165, 233, 0.35), 0 2px 8px rgba(139, 92, 246, 0.45);
-      }
-
-      .logo-word {
-        background: linear-gradient(90deg, #22d3ee 0%, #8b5cf6 45%, #06b6d4 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        text-shadow: 0 0 28px rgba(34, 211, 238, 0.15);
+        color: #8b5cf6;
       }
 
       .nav-links {
@@ -352,18 +323,18 @@
     </div>
 
     <header class="navbar">
-      <h1 class="logo"><span class="logo-mark"><i class="fa-solid fa-bolt"></i></span><span class="logo-word">SlidePlay</span></h1>
+      <h1 class="logo">SlidePlay</h1>
 
       <nav class="nav-links">
-        <a href="main.html" class="active" data-i18n="Home">Home</a>
-        <a href="features.html" data-i18n="Features">Features</a>
-        <a href="about.html" data-i18n="About">About</a>
-        <a href="help.html" data-i18n="Help">Help</a>
+        <a href="index.html" class="active">Home</a>
+        <a href="features.html">Features</a>
+        <a href="about.html">About</a>
+        <a href="help.html">Help</a>
       </nav>
 
       <div style="display: flex; gap: 12px;">
-        <a href="login.html" class="signup-btn" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);" data-i18n="Login">Login</a>
-        <a href="signup.html" class="signup-btn" data-i18n="Sign Up">Sign Up</a>
+        <a href="login.html" class="signup-btn" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6);">Login</a>
+        <a href="signup.html" class="signup-btn">Sign Up</a>
       </div>
     </header>
 
@@ -379,67 +350,67 @@
         experience.
       </p>
 
-      <a href="login.html" class="start-btn" data-i18n="Start Playing">
+      <a href="login.html" class="start-btn">
         <i class="fa-solid fa-play"></i> Start Playing
       </a>
 
       <div class="stats">
         <div class="stat-box">
           <div class="stat-number">50K+</div>
-          <p data-i18n="Students">Students</p>
+          <p>Students</p>
         </div>
 
         <div class="stat-box">
           <div class="stat-number">120K+</div>
-          <p data-i18n="Games Played">Games Played</p>
+          <p>Games Played</p>
         </div>
 
         <div class="stat-box">
           <div class="stat-number">95%</div>
-          <p data-i18n="Engagement">Engagement</p>
+          <p>Engagement</p>
         </div>
       </div>
     </section>
 
     <section>
-      <h2 data-i18n="Explore Features">Explore Features</h2>
-      <p data-i18n="Everything you need to turn studying into a game.">Everything you need to turn studying into a game.</p>
+      <h2>Explore Features</h2>
+      <p>Everything you need to turn studying into a game.</p>
 
       <div class="features-grid">
         <div class="card">
           <i class="fa-solid fa-gamepad"></i>
-          <h3 data-i18n="Real Games">Real Games</h3>
-          <p data-i18n="Learn through gameplay, not boring memorisation.">Learn through gameplay, not boring memorisation.</p>
+          <h3>Real Games</h3>
+          <p>Learn through gameplay, not boring memorisation.</p>
         </div>
 
         <div class="card">
           <i class="fa-solid fa-robot"></i>
-          <h3 data-i18n="AI Quiz Engine">AI Quiz Engine</h3>
-          <p data-i18n="Smart quizzes generated from your content.">Smart quizzes generated from your content.</p>
+          <h3>AI Quiz Engine</h3>
+          <p>Smart quizzes generated from your content.</p>
         </div>
 
         <div class="card">
           <i class="fa-solid fa-coffee"></i>
-          <h3 data-i18n="Study Modes">Study Modes</h3>
-          <p data-i18n="Competitive or chill learning modes.">Competitive or chill learning modes.</p>
+          <h3>Study Modes</h3>
+          <p>Competitive or chill learning modes.</p>
         </div>
 
         <div class="card">
           <i class="fa-solid fa-chart-line"></i>
-          <h3 data-i18n="Progress Tracking">Progress Tracking</h3>
-          <p data-i18n="Monitor growth, mastery, and streaks.">Monitor growth, mastery, and streaks.</p>
+          <h3>Progress Tracking</h3>
+          <p>Monitor growth, mastery, and streaks.</p>
         </div>
 
         <div class="card">
           <i class="fa-solid fa-trophy"></i>
-          <h3 data-i18n="Tournaments">Tournaments</h3>
-          <p data-i18n="Compete with classmates in challenges.">Compete with classmates in challenges.</p>
+          <h3>Tournaments</h3>
+          <p>Compete with classmates in challenges.</p>
         </div>
 
         <div class="card">
           <i class="fa-solid fa-crown"></i>
-          <h3 data-i18n="Rewards">Rewards</h3>
-          <p data-i18n="Unlock perks, badges, and privileges.">Unlock perks, badges, and privileges.</p>
+          <h3>Rewards</h3>
+          <p>Unlock perks, badges, and privileges.</p>
         </div>
       </div>
     </section>
@@ -473,17 +444,17 @@
 
       <div class="mode-grid">
         <div class="mode-card">
-          <h3>Study Mode</h3>
+          <h3>🎯 Study Mode</h3>
           <p>Competitive learning with streaks and leaderboards.</p>
         </div>
 
         <div class="mode-card">
-          <h3>Chill Mode</h3>
+          <h3>🌙 Chill Mode</h3>
           <p>Relaxed learning at your own pace.</p>
         </div>
 
         <div class="mode-card">
-          <h3>Tournament Mode</h3>
+          <h3>🏆 Tournament Mode</h3>
           <p>Battle classmates in real-time.</p>
         </div>
       </div>
@@ -529,7 +500,7 @@
     </section>
 
     <footer>
-      <p>(c) 2026 SlidePlay. All Rights Reserved.</p>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
     </footer>
 
     <script>
@@ -557,6 +528,5 @@
 
       setInterval(createParticle, 150);
     </script>
-    <script src="i18n-sa.js"></script>
-</body>
+  </body>
 </html>

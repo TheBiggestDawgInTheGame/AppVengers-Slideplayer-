@@ -17,6 +17,25 @@ function isPaidPlan() {
   return p === 'student_elite' || p === 'student_premium';
 }
 
+function getUserRole() {
+  return String(localStorage.getItem('sp_user_role') || 'student').toLowerCase();
+}
+
+function getUpgradeUrlForRole() {
+  const returnTo = encodeURIComponent(window.location.href);
+  if (getUserRole() === 'teacher') {
+    return 'onboarding-payment.html?role=teacher&source=games-modal&returnTo=' + returnTo;
+  }
+  return 'studentpayment.html?source=games-modal&return=' + returnTo;
+}
+
+function getPlanLabelForRole(style) {
+  if (getUserRole() === 'teacher') {
+    return style === 'tournament' ? 'School Premium' : 'Teacher Pro';
+  }
+  return style === 'tournament' ? 'Student Premium' : 'Student Elite';
+}
+
 function readJson(key, fallback) {
   try {
     const parsed = JSON.parse(localStorage.getItem(key) || 'null');
@@ -160,8 +179,8 @@ psmOptions.forEach((btn) => {
     const style = btn.dataset.style;
 
     if ((style === 'multiplayer' || style === 'tournament') && !isPaidPlan()) {
-      const planName = style === 'tournament' ? 'Student Premium' : 'Student Elite';
-      const upgradeUrl = 'studentpayment.html';
+      const planName = getPlanLabelForRole(style);
+      const upgradeUrl = getUpgradeUrlForRole();
       const go = window.confirm(
         `🔒 ${style.charAt(0).toUpperCase() + style.slice(1)} mode is available on paid plans.\n\nUpgrade to ${planName} (from R90/mo) to unlock multiplayer & tournament play.\n\nClick OK to view plans.`
       );

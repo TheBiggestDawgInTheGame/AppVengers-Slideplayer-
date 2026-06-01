@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "SessionCode": "LOCAL-MPU73C9Q",
+    "GameType": "jeopardy_quiz",
+    "GameMode": "solo",
+    "HostName": "Oba Femi",
+    "HostUID": "dIICvXCsibb1G3anS8litzNKi1t2",
+    "PlayerCount": 1,
+    "WinnerName": "Oba Femi",
+    "WinnerScore": 100,
+    "TotalScore": 100,
+    "Status": "finished",
+    "CreatedAt": "2026-05-31T19:51:06.975Z",
+    "FinishedAt": "2026-05-31T19:51:06.975Z",
+    "ArchivedAt": "2026-05-31T19:51:06.976Z"
+  },
+  {
+    "SessionCode": "LOCAL-MPU72Q8L",
+    "GameType": "jeopardy_quiz",
+    "GameMode": "solo",
+    "HostName": "Oba Femi",
+    "HostUID": "dIICvXCsibb1G3anS8litzNKi1t2",
+    "PlayerCount": 1,
+    "WinnerName": "Oba Femi",
+    "WinnerScore": 100,
+    "TotalScore": 100,
+    "Status": "finished",
+    "CreatedAt": "2026-05-31T19:50:38.424Z",
+    "FinishedAt": "2026-05-31T19:50:38.424Z",
+    "ArchivedAt": "2026-05-31T19:50:38.425Z"
+  }
+]

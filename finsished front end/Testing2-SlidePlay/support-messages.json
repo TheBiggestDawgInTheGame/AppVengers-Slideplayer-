@@ -1,0 +1,35 @@
+[
+  {
+    "MessageID": 3,
+    "Name": "Badge Test",
+    "Email": "badge@example.com",
+    "Subject": "Badge Open Count",
+    "MessageText": "Leave this as open so unread badge should increment.",
+    "SourcePage": "help.html",
+    "Status": "open",
+    "CreatedAt": "2026-05-30T20:04:36.402Z",
+    "UpdatedAt": null
+  },
+  {
+    "MessageID": 2,
+    "Name": "QA User",
+    "Email": "qa@example.com",
+    "Subject": "Help Center Request",
+    "MessageText": "This is a support test from the Help page submission flow.",
+    "SourcePage": "help.html",
+    "Status": "open",
+    "CreatedAt": "2026-05-30T19:56:07.017Z",
+    "UpdatedAt": null
+  },
+  {
+    "MessageID": 1,
+    "Name": "Mobile Tester",
+    "Email": "tester@example.com",
+    "Subject": "Login issue on mobile",
+    "MessageText": "I cannot complete signup on Android after selecting a plan.",
+    "SourcePage": "help.html",
+    "Status": "resolved",
+    "CreatedAt": "2026-05-30T19:54:36.905Z",
+    "UpdatedAt": "2026-05-30T19:55:34.154Z"
+  }
+]

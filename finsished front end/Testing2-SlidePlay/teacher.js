@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
    ================================================================ */
 
 const SESS_GAMES = [
-  { id: "quiz",     name: "Jeopardy Modes",      icon: "fa-cubes",            color: "#8b5cf6", kicker: "2D + 3D", note: "Choose classic board or immersive stage" },
+  { id: "quiz",     name: "Jeopardy Modes",      icon: "fa-cubes",            color: "#8b5cf6", kicker: "2D + 3D", note: "Choose classic board or immersive stage", requiresPaid: true },
   { id: "jeopardy", name: "Classic Slide Quiz",  icon: "fa-table-columns",    color: "#f59e0b", kicker: "2D Only", note: "Direct quiz with timer and instant feedback" },
   { id: "scramble", name: "Word Scramble",  icon: "fa-font",            color: "#06b6d4" },
   { id: "memory",   name: "Memory Chain",   icon: "fa-brain",           color: "#ec4899" },
@@ -176,6 +176,48 @@ const sess = {
 };
 
 // ── Helpers ────────────────────────────────────────────────────
+function sessReadSub(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || "null");
+  } catch (_) {
+    return null;
+  }
+}
+
+function sessSubActive(sub) {
+  if (!sub || typeof sub !== "object") return false;
+  const status = String(sub.status || "").toLowerCase();
+  return status !== "cancelled" && status !== "locked" && status !== "expired";
+}
+
+function sessCurrentPlan() {
+  const teacherSub = sessReadSub("sp_teacher_subscription");
+  if (sessSubActive(teacherSub) && teacherSub.plan) return String(teacherSub.plan);
+
+  const studentSub = sessReadSub("sp_student_subscription");
+  if (sessSubActive(studentSub) && studentSub.plan) return String(studentSub.plan);
+
+  return "free";
+}
+
+function sessHasPaidAccess() {
+  const plan = sessCurrentPlan();
+  return plan === "student_elite" ||
+    plan === "student_premium" ||
+    plan === "pro" ||
+    plan === "school";
+}
+
+function sessPaidUpgradePrompt(featureName) {
+  const returnTo = encodeURIComponent(window.location.href);
+  const go = window.confirm(
+    featureName + " is a paid feature.\n\nUpgrade to Teacher Pro or School Premium to unlock this mode.\n\nGo to plans now?"
+  );
+  if (go) {
+    window.location.href = "onboarding-payment.html?role=teacher&source=session&returnTo=" + returnTo;
+  }
+}
+
 function sessGenCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
@@ -215,6 +257,7 @@ function sessOpen() {
 
   // Reset game grid selection
   buildSessGameGrid();
+  sessApplyModeAccess();
 
   // Reset next button on game step
   const nb = document.getElementById("sessNextToMode");
@@ -272,8 +315,10 @@ function sessGoStep(n) {
 function buildSessGameGrid() {
   const grid = document.getElementById("sessGameGrid");
   if (!grid) return;
+  const paid = sessHasPaidAccess();
   grid.innerHTML = SESS_GAMES.map(g => `
-    <div class="sgc ${SESS_COMING_SOON_GAMES.has(g.id) ? "sgc-soon" : ""}" data-id="${g.id}" onclick="${SESS_COMING_SOON_GAMES.has(g.id) ? `sessShowComingSoon('${g.id}')` : `sessPickGame('${g.id}')`}" style="--gc:${g.color}">
+    <div class="sgc ${SESS_COMING_SOON_GAMES.has(g.id) ? "sgc-soon" : ""} ${!paid && g.requiresPaid ? "sgc-gated" : ""}" data-id="${g.id}" onclick="${SESS_COMING_SOON_GAMES.has(g.id) ? `sessShowComingSoon('${g.id}')` : `sessPickGame('${g.id}')`}" style="--gc:${g.color}">
+      ${!paid && g.requiresPaid ? '<div class="sgc-gate-overlay"><i class="fa-solid fa-lock"></i><span>Elite/Premium</span></div>' : ''}
       ${g.kicker ? `<span class="sgc-kicker">${g.kicker}</span>` : ''}
       <div class="sgc-icon"><i class="fa-solid ${g.icon}"></i></div>
       <span>${g.name}</span>
@@ -289,7 +334,18 @@ function sessPickGame(id) {
     sessShowComingSoon(id);
     return;
   }
-  sess.game = SESS_GAMES.find(g => g.id === id) || null;
+  const picked = SESS_GAMES.find(g => g.id === id) || null;
+  if (picked && picked.requiresPaid && !sessHasPaidAccess()) {
+    const card = document.querySelector(`.sgc[data-id="${id}"]`);
+    if (card) {
+      card.classList.add("smc-shake");
+      setTimeout(() => card.classList.remove("smc-shake"), 400);
+    }
+    sessPaidUpgradePrompt("Jeopardy 3D mode");
+    return;
+  }
+
+  sess.game = picked;
   document.querySelectorAll(".sgc").forEach(el => el.classList.toggle("sel", el.dataset.id === id));
   const nb = document.getElementById("sessNextToMode");
   if (nb) nb.disabled = false;
@@ -372,8 +428,38 @@ function sessStartProcessing() {
 
 // ── Paid gate shake ───────────────────────────────────────────
 function sessShowPaidGate(el) {
+  if (sessHasPaidAccess()) {
+    document.querySelectorAll(".sess-mode-card").forEach(c => c.classList.remove("active"));
+    el.classList.add("active");
+    sess.mode = el.dataset.mode || "individual";
+    return;
+  }
   el.classList.add("smc-shake");
   setTimeout(() => el.classList.remove("smc-shake"), 400);
+  sessPaidUpgradePrompt("Group and Tournament modes");
+}
+
+function sessApplyModeAccess() {
+  const paid = sessHasPaidAccess();
+  const paidCards = document.querySelectorAll(".sess-mode-card.smc-gated");
+
+  paidCards.forEach((card) => {
+    const overlay = card.querySelector(".paid-gate-overlay");
+    if (paid) {
+      card.classList.remove("smc-gated");
+      card.removeAttribute("onclick");
+      if (overlay) overlay.remove();
+    } else {
+      card.classList.add("smc-gated");
+      if (!overlay) {
+        const gate = document.createElement("div");
+        gate.className = "paid-gate-overlay";
+        gate.innerHTML = '<i class="fa-solid fa-lock"></i><span>Upgrade to Unlock</span>';
+        card.prepend(gate);
+      }
+      card.setAttribute("onclick", "sessShowPaidGate(this)");
+    }
+  });
 }
 
 async function sessPersistClassRecord() {
@@ -428,7 +514,7 @@ function sessActivateWaitroom() {
     gameEl.innerHTML = `<i class="fa-solid ${sess.game.icon}"></i> ${sess.game.name}`;
 
   const modeEl = document.getElementById("ssLiveMode");
-  if (modeEl) modeEl.textContent = { individual: "Individual", tournament: "Tournament", moderated: "Moderated" }[sess.mode] || "Individual";
+  if (modeEl) modeEl.textContent = { individual: "Individual", groups: "Groups", tournament: "Tournament", moderated: "Moderated" }[sess.mode] || "Individual";
 
   // Persist to localStorage so students can look it up
   localStorage.setItem("sp_active_session", JSON.stringify({
@@ -516,6 +602,8 @@ document.addEventListener("DOMContentLoaded", () => {
     sessCopyText("ssBigCode", this);
   });
 
+  sessApplyModeAccess();
+
   // Mode card selection (free cards only)
   document.querySelectorAll(".sess-mode-card:not(.smc-gated)").forEach(card => {
     card.addEventListener("click", function () {
@@ -530,6 +618,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!sess.game) {
       alert("Please go back and select a game first.");
       sessGoStep(2);
+      return;
+    }
+    if (sess.game.requiresPaid && !sessHasPaidAccess()) {
+      sessPaidUpgradePrompt("Jeopardy 3D mode");
+      return;
+    }
+    if ((sess.mode === "groups" || sess.mode === "tournament") && !sessHasPaidAccess()) {
+      sessPaidUpgradePrompt("Group and Tournament modes");
       return;
     }
     if (sess.joinTimer) { clearInterval(sess.joinTimer); sess.joinTimer = null; }

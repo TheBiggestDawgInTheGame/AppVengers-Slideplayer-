@@ -1,272 +1,17 @@
-// ── Return Handlers (PayFast / Coinbase / Stripe) ─────
-function i18nText(key, fallback) {
-  if (window.SP_I18N && typeof window.SP_I18N.t === "function") {
-    return window.SP_I18N.t(key, fallback);
-  }
-  return fallback;
-}
-
-function isStrictPaymentMode() {
-  const forcedStrict = localStorage.getItem("sp_force_strict_payments") === "1";
-  const allowInsecureReturn = localStorage.getItem("sp_allow_insecure_payment_return") === "1";
-  const isLocalHost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-  return forcedStrict || (!isLocalHost && !allowInsecureReturn);
-}
-
-const STRICT_PAYMENT_MODE = isStrictPaymentMode();
-
-function showVerificationPending(providerName) {
-  showFailureModal(
-    providerName,
-    i18nText(
-      "payment.serverVerificationPending",
-      "Payment is awaiting secure server verification. Your plan will unlock after confirmation is received."
-    )
-  );
-}
-
-async function syncSubscriptionFromBackend(uid, subKey, payKey) {
-  if (!uid) return false;
-
-  const response = await fetch("/api/users/" + encodeURIComponent(uid) + "/subscription");
-  if (!response.ok) return false;
-
-  const subscription = await response.json();
-  const isActive = Boolean(subscription && subscription.active);
-  if (!isActive) return false;
-
-  const nextSubscription = {
-    plan: subscription.plan,
-    status: subscription.status,
-    billing: subscription.billing || "monthly",
-    provider: subscription.provider || "stripe",
-    activatedAt: new Date(subscription.activatedAt || Date.now()).toISOString(),
-    updatedAt: new Date(subscription.updatedAt || Date.now()).toISOString(),
-  };
-
-  localStorage.setItem(subKey, JSON.stringify(nextSubscription));
-  const existingPayments = (function () {
-    try { return JSON.parse(localStorage.getItem(payKey) || "[]"); }
-    catch (_) { return []; }
-  })();
-  if (!existingPayments.some((entry) => entry && entry.receiptId === subscription.sessionId)) {
-    existingPayments.unshift({
-      receiptId: subscription.sessionId || generateReceiptId(),
-      plan: subscription.plan,
-      amount: "R0",
-      date: new Date().toISOString(),
-      status: "paid",
-      method: subscription.provider || "stripe",
-    });
-    localStorage.setItem(payKey, JSON.stringify(existingPayments));
-  }
-
-  return true;
-}
-
+// ── PayFast Return Handler & Animation ───────────────
 document.addEventListener("DOMContentLoaded", function () {
+  // Check for PayFast return
   const urlParams = new URLSearchParams(window.location.search);
-
-  // ── Stripe return (?checkout=success&session_id=...) ──
-  if (urlParams.get("checkout") === "success") {
-    const sessionId = urlParams.get("session_id");
-    showProcessingModal();
-    setTimeout(async () => {
-      try {
-        const res = await fetch("/api/stripe/checkout-session/" + encodeURIComponent(sessionId));
-        const data = await res.json();
-        let paymentActivated = false;
-        if (data.paymentStatus === "paid" || data.status === "complete") {
-          const pending = (function () {
-            try { return JSON.parse(sessionStorage.getItem("sp_stripe_pending") || "null"); }
-            catch (_) { return null; }
-          })();
-          const planKey   = (pending && pending.plan)   ? pending.plan   : (data.metadata && data.metadata.plan   ? data.metadata.plan   : "pro");
-          const billingKey= (pending && pending.billing) ? pending.billing: (data.metadata && data.metadata.billing ? data.metadata.billing: "monthly");
-          const subKey    = (pending && pending.subscriptionKey) ? pending.subscriptionKey : SUBSCRIPTION_KEY;
-          const payKey    = (pending && pending.paymentsKey)     ? pending.paymentsKey     : PAYMENTS_KEY;
-          const receiptId = data.receiptId || generateReceiptId();
-          const renewsOn  = new Date();
-          if (billingKey === "yearly") renewsOn.setFullYear(renewsOn.getFullYear() + 1);
-          else renewsOn.setMonth(renewsOn.getMonth() + 1);
-          const planLabels = { free:"Free", student_elite:"Elite", student_premium:"Premium", pro:"Teacher Pro", school:"School Premium" };
-          const planMonthly = { free:0, student_elite:90, student_premium:150, pro:12, school:49 };
-          const planYearly  = { free:0, student_elite:860, student_premium:1400, pro:115, school:470 };
-          const price = billingKey === "yearly" ? (planYearly[planKey]||0) : (planMonthly[planKey]||0);
-          const resolvedUid = localStorage.getItem("sp_user_uid") || (data.metadata && data.metadata.customerUid ? data.metadata.customerUid : "");
-
-          if (STRICT_PAYMENT_MODE) {
-            paymentActivated = await syncSubscriptionFromBackend(resolvedUid, subKey, payKey);
-            if (!paymentActivated) {
-              showVerificationPending("Stripe");
-            }
-          } else {
-            const subscription = {
-              plan: planKey, billing: billingKey, price,
-              activatedAt: new Date().toISOString(),
-              renewsOn: renewsOn.toISOString(), receiptId,
-            };
-            const payments = (function () {
-              try { return JSON.parse(localStorage.getItem(payKey) || "[]"); }
-              catch (_) { return []; }
-            })();
-            payments.unshift({ receiptId, plan: planLabels[planKey]||planKey, amount: "R"+price, date: new Date().toISOString(), status: "paid", method: "stripe" });
-            localStorage.setItem(subKey,  JSON.stringify(subscription));
-            localStorage.setItem(payKey,  JSON.stringify(payments));
-            paymentActivated = true;
-          }
-
-          sessionStorage.removeItem("sp_stripe_pending");
-          if (paymentActivated) {
-            showSuccessModal(planKey, receiptId);
-          }
-        } else {
-          showFailureModal("Stripe", i18nText("payment.verificationFailed", "Payment verification failed."));
-        }
-        if (paymentActivated) triggerConfetti();
-      } catch (e) {
-        showFailureModal("Stripe", i18nText("payment.verificationFailed", "Payment verification failed."));
-      }
-    }, 1200);
-    return;
-  }
-
-  // ── Coinbase return (?payment=success|cancel&provider=crypto) ──
-  if (urlParams.get("provider") === "crypto") {
-    const cryptoStatus = urlParams.get("payment");
-    if (cryptoStatus === "success") {
-      showProcessingModal();
-      setTimeout(async () => {
-        if (STRICT_PAYMENT_MODE) {
-          const pending = (function () {
-            try { return JSON.parse(sessionStorage.getItem("sp_crypto_pending") || "null"); }
-            catch (_) { return null; }
-          })();
-          const subKey = (pending && pending.subscriptionKey) ? pending.subscriptionKey : SUBSCRIPTION_KEY;
-          const payKey = (pending && pending.paymentsKey) ? pending.paymentsKey : PAYMENTS_KEY;
-          const uid = localStorage.getItem("sp_user_uid") || "";
-          const synced = await syncSubscriptionFromBackend(uid, subKey, payKey);
-          if (synced) {
-            sessionStorage.removeItem("sp_crypto_pending");
-            showSuccessModal((pending && pending.plan) ? pending.plan : "student_elite", generateReceiptId());
-            triggerConfetti();
-          } else {
-            showVerificationPending("Coinbase");
-          }
-          return;
-        }
-
-        const cbData = (function () {
-          try { return JSON.parse(sessionStorage.getItem("sp_crypto_pending") || "null"); }
-          catch (_) { return null; }
-        })();
-        if (cbData && cbData.plan) {
-          const renewsOn = new Date();
-          if (cbData.isYearly) renewsOn.setFullYear(renewsOn.getFullYear() + 1);
-          else renewsOn.setMonth(renewsOn.getMonth() + 1);
-          const subKey = cbData.subscriptionKey || SUBSCRIPTION_KEY;
-          const payKey = cbData.paymentsKey || PAYMENTS_KEY;
-          const planLabels = { free:"Free", student_elite:"Elite", student_premium:"Premium", pro:"Teacher Pro", school:"School Premium" };
-          const planMonthly = { free:0, student_elite:90, student_premium:150, pro:12, school:49 };
-          const planYearly  = { free:0, student_elite:860, student_premium:1400, pro:115, school:470 };
-          const price = cbData.isYearly ? (planYearly[cbData.plan]||0) : (planMonthly[cbData.plan]||0);
-          const discountedPrice = Math.max(0, price - Math.round((price * (cbData.discount||0)) / 100));
-          const receiptId = generateReceiptId();
-          const subscription = {
-            plan: cbData.plan, billing: cbData.isYearly ? "yearly" : "monthly", price: discountedPrice,
-            activatedAt: new Date().toISOString(), renewsOn: renewsOn.toISOString(), receiptId,
-          };
-          const payments = (function () {
-            try { return JSON.parse(localStorage.getItem(payKey) || "[]"); }
-            catch (_) { return []; }
-          })();
-          payments.unshift({ receiptId, plan: planLabels[cbData.plan]||cbData.plan, amount: "R"+discountedPrice, date: new Date().toISOString(), status: "paid", method: "crypto" });
-          localStorage.setItem(subKey, JSON.stringify(subscription));
-          localStorage.setItem(payKey, JSON.stringify(payments));
-          sessionStorage.removeItem("sp_crypto_pending");
-          showSuccessModal(cbData.plan, receiptId);
-          triggerConfetti();
-        } else {
-          showFailureModal("Coinbase", i18nText("payment.verificationFailed", "Payment verification failed."));
-        }
-      }, 1800);
-    } else if (cryptoStatus === "cancel") {
-      showFailureModal("Coinbase", i18nText("payment.notCaptured", "No payment was captured. You can try again anytime."));
-    } else {
-      showFailureModal("Coinbase", i18nText("payment.verificationFailed", "Payment verification failed."));
-    }
-    return;
-  }
-
-  // ── PayFast return (?payfast=success) ──────────────
   if (urlParams.has("payfast")) {
     const status = urlParams.get("payfast");
     if (status === "success") {
       showProcessingModal();
-      setTimeout(async () => {
-        if (STRICT_PAYMENT_MODE) {
-          const pending = (function () {
-            try { return JSON.parse(sessionStorage.getItem("sp_payfast_pending") || "null"); }
-            catch (_) { return null; }
-          })();
-          const subKey = (pending && pending.subscriptionKey) ? pending.subscriptionKey : SUBSCRIPTION_KEY;
-          const payKey = (pending && pending.paymentsKey) ? pending.paymentsKey : PAYMENTS_KEY;
-          const uid = localStorage.getItem("sp_user_uid") || "";
-          const synced = await syncSubscriptionFromBackend(uid, subKey, payKey);
-          if (synced) {
-            sessionStorage.removeItem("sp_payfast_pending");
-            showSuccessModal((pending && pending.plan) ? pending.plan : "student_elite", generateReceiptId());
-            triggerConfetti();
-          } else {
-            showVerificationPending("PayFast");
-          }
-          return;
-        }
-
-        // Restore plan info saved before the PayFast redirect
-        const pfData = (function () {
-          try { return JSON.parse(sessionStorage.getItem("sp_payfast_pending") || "null"); }
-          catch (_) { return null; }
-        })();
-        if (pfData && pfData.plan) {
-          // Reconstruct subscription and write it — same logic as completePurchase()
-          const renewsOn = new Date();
-          if (pfData.isYearly) { renewsOn.setFullYear(renewsOn.getFullYear() + 1); }
-          else { renewsOn.setMonth(renewsOn.getMonth() + 1); }
-          const subscriptionKey = pfData.subscriptionKey || "sp_student_subscription";
-          const paymentsKey = pfData.paymentsKey || "sp_student_payments";
-          const planLabels = { free:"Free", student_elite:"Elite", student_premium:"Premium", pro:"Teacher Pro", school:"School Premium" };
-          const planMonthly = { free:0, student_elite:90, student_premium:150, pro:12, school:49 };
-          const planYearly  = { free:0, student_elite:860, student_premium:1400, pro:115, school:470 };
-          const price = pfData.isYearly ? (planYearly[pfData.plan] || 0) : (planMonthly[pfData.plan] || 0);
-          const discountedPrice = Math.max(0, price - Math.round((price * (pfData.discount || 0)) / 100));
-          const receiptId = generateReceiptId();
-          const subscription = {
-            plan: pfData.plan,
-            billing: pfData.isYearly ? "yearly" : "monthly",
-            price: discountedPrice,
-            activatedAt: new Date().toISOString(),
-            renewsOn: renewsOn.toISOString(),
-            receiptId: receiptId,
-          };
-          const payments = (function () {
-            try { return JSON.parse(localStorage.getItem(paymentsKey) || "[]"); }
-            catch (_) { return []; }
-          })();
-          payments.unshift({ receiptId, plan: planLabels[pfData.plan] || pfData.plan, amount: "R" + discountedPrice, date: new Date().toISOString(), status: "paid", method: "payfast" });
-          localStorage.setItem(subscriptionKey, JSON.stringify(subscription));
-          localStorage.setItem(paymentsKey, JSON.stringify(payments));
-          sessionStorage.removeItem("sp_payfast_pending");
-          showSuccessModal(pfData.plan, receiptId);
-          triggerConfetti();
-        } else {
-          showFailureModal("PayFast", i18nText("payment.verificationFailed", "Payment verification failed."));
-        }
+      setTimeout(() => {
+        showSuccessModal(selectedPlan || "paid", generateReceiptId());
+        triggerConfetti();
       }, 1800);
     } else if (status === "cancel") {
-      showFailureModal("PayFast", i18nText("payment.notCaptured", "No payment was captured. You can try again anytime."));
-    } else {
-      showFailureModal("PayFast", i18nText("payment.verificationFailed", "Payment verification failed."));
+      alert("PayFast payment was cancelled.");
     }
   }
 });
@@ -277,53 +22,10 @@ function showProcessingModal() {
     modal = document.createElement("div");
     modal.id = "processingModal";
     modal.className = "modal-overlay";
-    modal.innerHTML = `<div class="success-panel"><div class="success-icon"><i class="fa-solid fa-spinner fa-spin"></i></div><h2>${i18nText("payment.processing", "Processing Payment...")}</h2><p>${i18nText("payment.pleaseWait", "Please wait while we verify your payment.")}</p></div>`;
+    modal.innerHTML = `<div class="success-panel"><div class="success-icon"><i class="fa-solid fa-spinner fa-spin"></i></div><h2>Processing Payment…</h2><p>Please wait while we verify your payment.</p></div>`;
     document.body.appendChild(modal);
   }
   modal.classList.add("open");
-}
-
-function hideProcessingModal() {
-  const modal = document.getElementById("processingModal");
-  if (modal) modal.classList.remove("open");
-}
-
-function showFailureModal(title, message) {
-  hideProcessingModal();
-  let modal = document.getElementById("failureModal");
-  if (!modal) {
-    modal = document.createElement("div");
-    modal.id = "failureModal";
-    modal.className = "modal-overlay open";
-    modal.innerHTML = `
-      <div class="success-panel">
-        <div class="success-icon"><i class="fa-solid fa-circle-xmark"></i></div>
-        <h2>Payment Failed</h2>
-        <p id="failureMessage">Your payment could not be completed.</p>
-        <div class="success-actions">
-          <button type="button" class="pay-btn" id="failureTryAgain">Try Again</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  }
-
-  const h2 = modal.querySelector("h2");
-  const msg = modal.querySelector("#failureMessage");
-  if (h2) h2.textContent = title ? title + ": " + i18nText("payment.failed", "Payment Failed") : i18nText("payment.failed", "Payment Failed");
-  if (msg) msg.textContent = message || "Your payment could not be completed.";
-  modal.classList.add("open");
-
-  const tryBtn = modal.querySelector("#failureTryAgain");
-  if (tryBtn) {
-    tryBtn.addEventListener("click", function () {
-      modal.classList.remove("open");
-    }, { once: true });
-  }
-
-  modal.addEventListener("click", function (e) {
-    if (e.target === modal) modal.classList.remove("open");
-  }, { once: true });
 }
 
 function triggerConfetti() {
@@ -373,19 +75,6 @@ function setupPayFast() {
       const price = isYearly ? PLAN_YEARLY[plan] : PLAN_MONTHLY[plan];
       const discountedPrice = Math.max(0, price - Math.round((price * appliedDiscount) / 100));
       const user_email = localStorage.getItem("sp_user_email") || "";
-      const user_phone  = localStorage.getItem("sp_user_phone")  || "";
-      const user_uid = localStorage.getItem("sp_user_uid") || "";
-      // ── Save plan info before leaving the page so it can be restored on return ──
-      try {
-        sessionStorage.setItem("sp_payfast_pending", JSON.stringify({
-          plan,
-          isYearly,
-          discount: appliedDiscount,
-          billing: isYearly ? "yearly" : "monthly",
-          subscriptionKey: SUBSCRIPTION_KEY,
-          paymentsKey: PAYMENTS_KEY,
-        }));
-      } catch (_) {}
       const res = await fetch("/api/payfast/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -393,9 +82,6 @@ function setupPayFast() {
           amount: discountedPrice,
           item_name: PLAN_LABELS[plan],
           user_email,
-          user_uid,
-          billing: isYearly ? "yearly" : "monthly",
-          phone: user_phone,
           plan,
         }),
       });
@@ -403,131 +89,18 @@ function setupPayFast() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        sessionStorage.removeItem("sp_payfast_pending");
         alert("Could not initiate PayFast payment: " + (data.error || "Unknown error"));
         btn.disabled = false;
         btn.innerHTML = '<span><i class="fa-solid fa-lock"></i> Pay with PayFast</span>';
       }
     } catch (e) {
-      sessionStorage.removeItem("sp_payfast_pending");
       alert("PayFast error: " + e.message);
       btn.disabled = false;
       btn.innerHTML = '<span><i class="fa-solid fa-lock"></i> Pay with PayFast</span>';
     }
   });
 }
-
-// ── Coinbase Commerce Integration ────────────────────
-function setupCoinbase() {
-  const btn = document.getElementById("cryptoBtn");
-  if (!btn) return;
-  btn.addEventListener("click", async function () {
-    btn.disabled = true;
-    btn.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin"></i> Redirecting…</span>';
-    try {
-      const plan = selectedPlan || "free";
-      const price = isYearly ? PLAN_YEARLY[plan] : PLAN_MONTHLY[plan];
-      const discountedPrice = Math.max(0, price - Math.round((price * appliedDiscount) / 100));
-      const user_email = localStorage.getItem("sp_user_email") || "";
-      const user_phone  = localStorage.getItem("sp_user_phone")  || "";
-      const user_uid = localStorage.getItem("sp_user_uid") || "";
-      try {
-        sessionStorage.setItem("sp_crypto_pending", JSON.stringify({
-          plan, isYearly, discount: appliedDiscount,
-          billing: isYearly ? "yearly" : "monthly",
-          subscriptionKey: SUBSCRIPTION_KEY, paymentsKey: PAYMENTS_KEY,
-        }));
-      } catch (_) {}
-      const returnUrl = window.location.origin + window.location.pathname
-        + "?payment=success&provider=crypto";
-      const cancelUrl = window.location.origin + window.location.pathname
-        + "?payment=cancel&provider=crypto";
-      const res = await fetch("/api/crypto/create-charge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: discountedPrice,
-          currency: "ZAR",
-          name: PLAN_LABELS[plan],
-          description: "SlidePlay " + PLAN_LABELS[plan] + " subscription",
-          customer_email: user_email,
-          customer_phone: user_phone,
-          user_uid,
-          billing: isYearly ? "yearly" : "monthly",
-          plan,
-          redirect_url: returnUrl,
-          cancel_url: cancelUrl,
-        }),
-      });
-      const data = await res.json();
-      if (data.hosted_url || data.url) {
-        window.location.href = data.hosted_url || data.url;
-      } else {
-        sessionStorage.removeItem("sp_crypto_pending");
-        alert("Could not initiate crypto payment: " + (data.error || "Unknown error"));
-        btn.disabled = false;
-        btn.innerHTML = '<span><i class="fa-brands fa-bitcoin"></i> Pay with Crypto</span>';
-      }
-    } catch (e) {
-      sessionStorage.removeItem("sp_crypto_pending");
-      alert("Crypto payment error: " + e.message);
-      btn.disabled = false;
-      btn.innerHTML = '<span><i class="fa-brands fa-bitcoin"></i> Pay with Crypto</span>';
-    }
-  });
-}
-
-// ── Stripe Integration ────────────────────────────────
-function setupStripe() {
-  const btn = document.getElementById("stripeBtn");
-  if (!btn) return;
-  btn.addEventListener("click", async function () {
-    btn.disabled = true;
-    btn.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin"></i> Redirecting…</span>';
-    try {
-      const plan = selectedPlan || "free";
-      const billing = isYearly ? "yearly" : "monthly";
-      const user_email = localStorage.getItem("sp_user_email") || "";
-      const user_name  = localStorage.getItem("sp_user_name")  || "";
-      const user_phone = localStorage.getItem("sp_user_phone") || "";
-      const user_uid   = localStorage.getItem("sp_user_uid") || "";
-      try {
-        sessionStorage.setItem("sp_stripe_pending", JSON.stringify({
-          plan, billing, subscriptionKey: SUBSCRIPTION_KEY, paymentsKey: PAYMENTS_KEY,
-        }));
-      } catch (_) {}
-      const pageUrl = window.location.origin + window.location.pathname;
-      const res = await fetch("/api/stripe/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan, billingPeriod: billing,
-          customerEmail: user_email,
-          customerName: user_name,
-          customerPhone: user_phone,
-          customerUid: user_uid,
-          successUrl: pageUrl,
-          cancelUrl: pageUrl,
-        }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        sessionStorage.removeItem("sp_stripe_pending");
-        alert("Could not initiate Stripe payment: " + (data.error || "Unknown error"));
-        btn.disabled = false;
-        btn.innerHTML = '<span><i class="fa-brands fa-stripe-s"></i> Pay with Stripe</span>';
-      }
-    } catch (e) {
-      sessionStorage.removeItem("sp_stripe_pending");
-      alert("Stripe error: " + e.message);
-      btn.disabled = false;
-      btn.innerHTML = '<span><i class="fa-brands fa-stripe-s"></i> Pay with Stripe</span>';
-    }
-  });
-}
-
+// payment.js — SlidePlay Billing & Subscription Logic
 
 // ── Role detection (set data-role="student" on <body> for student page) ──
 const IS_STUDENT = document.body.getAttribute("data-role") === "student";
@@ -588,8 +161,6 @@ document.addEventListener("DOMContentLoaded", function () {
   setupInvoiceToggle();
   setupCancelSub();
   setupPayFast();
-  setupCoinbase();
-  setupStripe();
   formatCardInputs();
 
   // ── URL param auto-open (from gate redirect) ──
@@ -1003,37 +574,21 @@ function completePurchase(method) {
 // ── Success Modal ─────────────────────────────────
 
 function showSuccessModal(plan, receiptId) {
-  hideProcessingModal();
   const modal = document.getElementById("successModal");
   const receiptEl = document.getElementById("receiptId");
   const planMsg = document.getElementById("successPlanMsg");
-  const heading = modal ? modal.querySelector("h2") : null;
 
   if (receiptEl) receiptEl.textContent = receiptId;
-  if (heading) heading.textContent = i18nText("payment.success", "Payment Successful");
   if (planMsg)
-    planMsg.textContent = "Your " + (PLAN_LABELS[plan] || plan) + " plan is now active.";
+    planMsg.textContent = "Your " + PLAN_LABELS[plan] + " plan is now active.";
   if (modal) modal.classList.add("open");
-
-  // Determine if there's a return destination (set by gate modal's payWithFast/payWithStripe)
-  const returnUrl = sessionStorage.getItem("pg_return");
-
-  function handleClose() {
-    if (modal) modal.classList.remove("open");
-    // ── Redirect back to originating page with payment success flag ──
-    if (returnUrl) {
-      sessionStorage.removeItem("pg_return");
-      const sep = returnUrl.includes("?") ? "&" : "?";
-      window.location.href = returnUrl + sep + "payment=success&plan=" + encodeURIComponent(plan);
-    }
-  }
 
   const viewInvoicesBtn = document.getElementById("successViewInvoices");
   if (viewInvoicesBtn) {
     viewInvoicesBtn.addEventListener(
       "click",
       function () {
-        if (modal) modal.classList.remove("open");
+        modal.classList.remove("open");
         showInvoices();
       },
       { once: true },
@@ -1043,14 +598,10 @@ function showSuccessModal(plan, receiptId) {
   modal.addEventListener(
     "click",
     function (e) {
-      if (e.target === modal) handleClose();
+      if (e.target === modal) modal.classList.remove("open");
     },
     { once: true },
   );
-
-  // Also wire the close/done button if present
-  const doneBtn = modal ? modal.querySelector(".success-close, #successClose, [data-dismiss='success']") : null;
-  if (doneBtn) doneBtn.addEventListener("click", handleClose, { once: true });
 }
 
 // ── Invoice Toggle ────────────────────────────────

@@ -631,25 +631,3 @@ body::before {
 .psm-room-hint strong { color: #aac4e0; }
 .psm-join-btn { margin-top: 10px; }
 .psm-launch-room-btn { margin-top: 16px; }
-
-/* -- Global Theme Sync: Light Mode -- */
-body.light-mode {
-	--bg: #f6f8ff;
-	--card-bg: #eef2ff;
-	--card-solid: #ffffff;
-	--text: #0f172a;
-	--text-soft: #475569;
-	--line: rgba(99, 102, 241, 0.2);
-	background:
-		radial-gradient(circle at 8% 16%, rgba(99, 102, 241, 0.14), transparent 32%),
-		radial-gradient(circle at 86% 10%, rgba(236, 72, 153, 0.12), transparent 36%),
-		radial-gradient(circle at 80% 84%, rgba(59, 130, 246, 0.12), transparent 40%),
-		linear-gradient(160deg, #f8fafc 0%, #eef2ff 45%, #e2e8f0 100%);
-}
-
-body.light-mode .topbar,
-body.light-mode .game-card,
-body.light-mode .psm-panel {
-	background: rgba(255, 255, 255, 0.92);
-	border-color: rgba(99, 102, 241, 0.2);
-}

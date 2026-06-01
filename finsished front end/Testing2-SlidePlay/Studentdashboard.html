@@ -1,7 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <style>
                 /* Sidebar Icon Glow */
                 .nav-links a i {
@@ -25,30 +24,6 @@
                 }
                 .top-user:hover, .nav-footer .user-pill:hover {
                     box-shadow: 0 0 36px 8px #ffd700cc, 0 4px 24px #8b5cf6cc;
-                }
-
-                .email-verify-chip {
-                  display: inline-flex;
-                  align-items: center;
-                  gap: 6px;
-                  margin-top: 4px;
-                  padding: 3px 10px;
-                  border-radius: 999px;
-                  border: 1px solid rgba(255,255,255,0.2);
-                  font-family: 'Poppins', sans-serif;
-                  font-size: 0.67rem;
-                  letter-spacing: 0.02em;
-                  font-weight: 600;
-                }
-                .email-verify-chip.verified {
-                  color: #34d399;
-                  border-color: rgba(52,211,153,0.4);
-                  background: rgba(16,185,129,0.14);
-                }
-                .email-verify-chip.pending {
-                  color: #fbbf24;
-                  border-color: rgba(251,191,36,0.4);
-                  background: rgba(245,158,11,0.14);
                 }
 
                 /* Dynamic SVG Background */
@@ -89,7 +64,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="StudentDashboard.css">
   <link rel="stylesheet" href="page-transition.css">
-  <link rel="stylesheet" href="responsive-shared.css">
         <style>
             /* XP Bar glow override */
             .progress-fill {
@@ -104,111 +78,115 @@
                 box-shadow: 0 0 30px rgba(255,215,0,0.55), 0 8px 28px rgba(244,114,182,0.4);
             }
         </style>
-<script>
-  // Auth guard + subscription check
-  (function(){
-    const uid = localStorage.getItem('sp_user_uid');
-    if(!uid){
-      window.location.replace('login.html');
-      return;
-    }
-    
-    // Check student subscription status
-    const subJson = localStorage.getItem('sp_student_subscription');
-    let sub = null;
-    try {
-      sub = subJson ? JSON.parse(subJson) : null;
-    } catch(_) {}
-    
-    // If subscription is locked or missing, redirect to payment
-    if (!sub || sub.status === 'locked') {
-      window.location.replace('onboarding-payment.html?role=student&returnTo=' + encodeURIComponent('Studentdashboard.html'));
-      return;
-    }
-  })();
-</script>
 </head>
-<body class="dark-mode" data-role="student">
+<body class="dark-mode">
                 <!-- Animated SVG Background -->
                 <svg id="svg-bg"></svg>
 
                 <!-- Motivational Quote Ticker -->
-                <div class="quote-ticker" id="quoteTicker" data-i18n="Loading motivation...">Loading motivation...</div>
+                <div class="quote-ticker" id="quoteTicker">Loading motivation...</div>
 
     <!-- ══ Premium Gate Modal ══════════════════════════════ -->
-    <div id="premiumGateModal" class="pg-backdrop pg-hidden" aria-modal="true" role="dialog">
+    <div id="premiumGateModal" class="pg-backdrop" aria-modal="true" role="dialog" style="display:none;">
       <div class="pg-panel">
-        <button class="pg-close" id="pgClose" aria-label="Close" data-i18n-aria-label="Close" title="Close" data-i18n-title="Close"><i class="fa-solid fa-xmark"></i></button>
+        <button class="pg-close" id="pgClose"><i class="fa-solid fa-xmark"></i></button>
         <div class="pg-icon"><i class="fa-solid fa-lock"></i></div>
-        <span class="pg-badge" id="pgBadge" data-i18n="ELITE FEATURE">ELITE FEATURE</span>
-        <h2 class="pg-title" id="pgTitle" data-i18n="Unlock This Feature">Unlock This Feature</h2>
-        <p class="pg-desc" id="pgDesc" data-i18n="This feature is available on a paid plan.">This feature is available on a paid plan.</p>
+        <span class="pg-badge" id="pgBadge">ELITE FEATURE</span>
+        <h2 class="pg-title" id="pgTitle">Unlock This Feature</h2>
+        <p class="pg-desc" id="pgDesc">This feature is available on a paid plan.</p>
 
         <div class="pg-plans">
           <div class="pg-plan" id="pgPlanElite" data-plan="student_elite">
-            <div class="pg-plan-name"><i class="fa-solid fa-bolt"></i> <span data-i18n="Student Elite">Student Elite</span></div>
+            <div class="pg-plan-name"><i class="fa-solid fa-bolt"></i> Student Elite</div>
             <div class="pg-plan-price">R90<span>/mo</span></div>
             <ul class="pg-plan-perks">
-              <li><i class="fa-solid fa-check"></i> <span data-i18n="Daily Quests & Challenges">Daily Quests &amp; Challenges</span></li>
-              <li><i class="fa-solid fa-check"></i> <span data-i18n="Custom Themes & Effects">Custom Themes &amp; Effects</span></li>
-              <li><i class="fa-solid fa-check"></i> <span data-i18n="Achievement Showcase">Achievement Showcase</span></li>
-              <li><i class="fa-solid fa-check"></i> <span data-i18n="XP Boosts & Streak Shields">XP Boosts &amp; Streak Shields</span></li>
-              <li><i class="fa-solid fa-check"></i> <span data-i18n="Unlimited Weekly Uploads">Unlimited Weekly Uploads</span></li>
+              <li><i class="fa-solid fa-check"></i> Daily Quests &amp; Challenges</li>
+              <li><i class="fa-solid fa-check"></i> Custom Themes &amp; Effects</li>
+              <li><i class="fa-solid fa-check"></i> Achievement Showcase</li>
+              <li><i class="fa-solid fa-check"></i> XP Boosts &amp; Streak Shields</li>
+              <li><i class="fa-solid fa-check"></i> Unlimited Weekly Uploads</li>
             </ul>
           </div>
           <div class="pg-plan pg-plan-premium" id="pgPlanPremium" data-plan="student_premium">
-            <div class="pg-plan-badge" data-i18n="BEST VALUE">BEST VALUE</div>
-            <div class="pg-plan-name"><i class="fa-solid fa-crown"></i> <span data-i18n="Student Premium">Student Premium</span></div>
+            <div class="pg-plan-badge">BEST VALUE</div>
+            <div class="pg-plan-name"><i class="fa-solid fa-crown"></i> Student Premium</div>
             <div class="pg-plan-price">R150<span>/mo</span></div>
             <ul class="pg-plan-perks">
-              <li><i class="fa-solid fa-check"></i> <span data-i18n="Everything in Elite">Everything in Elite</span></li>
-              <li><i class="fa-solid fa-check"></i> <span data-i18n="Advanced Analytics">Advanced Analytics</span></li>
-              <li><i class="fa-solid fa-check"></i> <span data-i18n="Elite Leaderboard Access">Elite Leaderboard Access</span></li>
-              <li><i class="fa-solid fa-check"></i> <span data-i18n="Priority Coaching Support">Priority Coaching Support</span></li>
-              <li><i class="fa-solid fa-check"></i> <span data-i18n="Exclusive Avatars & Badges">Exclusive Avatars &amp; Badges</span></li>
+              <li><i class="fa-solid fa-check"></i> Everything in Elite</li>
+              <li><i class="fa-solid fa-check"></i> Advanced Analytics</li>
+              <li><i class="fa-solid fa-check"></i> Elite Leaderboard Access</li>
+              <li><i class="fa-solid fa-check"></i> Priority Coaching Support</li>
+              <li><i class="fa-solid fa-check"></i> Exclusive Avatars &amp; Badges</li>
             </ul>
           </div>
         </div>
 
-        <p class="pg-or" data-i18n="Choose a payment method">Choose a payment method</p>
+        <p class="pg-or">Choose a payment method</p>
         <div class="pg-pay-btns">
-          <button class="pg-pay-btn pg-payfast" id="pgPayFast" data-i18n="Pay with PayFast">
+          <button class="pg-pay-btn pg-payfast" id="pgPayFast">
             <i class="fa-solid fa-bolt"></i> Pay with PayFast
           </button>
-          <button class="pg-pay-btn pg-stripe" id="pgStripe" data-i18n="Pay with Stripe">
+          <button class="pg-pay-btn pg-stripe" id="pgStripe">
             <i class="fa-brands fa-stripe-s"></i> Pay with Stripe
           </button>
         </div>
-        <p class="pg-note" data-i18n="Payment handled securely. Your features unlock immediately after payment.">Payment handled securely. Your features unlock immediately after payment.</p>
+        <p class="pg-note">Payment handled securely. Your features unlock immediately after payment.</p>
       </div>
     </div>
 
     <!-- ══ Quests Modal ════════════════════════════════════ -->
             <div id="quests-modal" class="modal modal-hidden" tabindex="-1" aria-modal="true" role="dialog">
-                <div class="modal-content modal-content-compact">
-                <h2 data-i18n="Story Mode Quests Started">Story Mode Quests Started</h2>
-                  <ul id="quests-list" class="quests-list"></ul>
-                    <button onclick="closeQuestsModal()" data-i18n="Close">Close</button>
+                <div class="modal-content" style="max-width: 480px;">
+                    <h2>Story Mode Quests Started</h2>
+                    <ul id="quests-list" style="list-style:none; padding:0; margin:0 0 18px 0;"></ul>
+                    <button onclick="closeQuestsModal()">Close</button>
                 </div>
             </div>
     <header class="top-search-bar">
         <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" placeholder="SEARCH QUESTS..." data-i18n-placeholder="SEARCH QUESTS...">
+            <input type="text" placeholder="SEARCH QUESTS...">
         </div>
 
         <div class="right-items">
             <div class="notification-wrapper">
-                <button class="icon-btn notification-toggle" id="notificationButton" aria-expanded="false" aria-label="Notifications" data-i18n-aria-label="Notifications">
+                <button class="icon-btn notification-toggle" id="notificationButton" aria-expanded="false">
                     <i class="fa-solid fa-bell"></i>
                     <span class="notification-dot"></span>
                 </button>
                 <div class="notification-dropdown hidden" id="notificationDropdown">
-                  <div id="notificationFeed"></div>
+                    <div class="notification-item">
+                        <div class="notification-icon"><i class="fa-solid fa-user-plus"></i></div>
+                        <div>
+                            <span class="notification-title">Class Update</span>
+                            <span class="notification-text">Alex joined Development Software</span>
+                        </div>
+                    </div>
+                    <div class="notification-item notification-unread">
+                        <div class="notification-icon"><i class="fa-solid fa-signal"></i></div>
+                        <div>
+                            <span class="notification-title">Current Mode</span>
+                            <span class="notification-text">Medium Mode</span>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+                        <div>
+                            <span class="notification-title">Class Reminder</span>
+                            <span class="notification-text">Development Software starts in 30 minutes</span>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon"><i class="fa-solid fa-star"></i></div>
+                        <div>
+                            <span class="notification-title">Practice Tip</span>
+                            <span class="notification-text">Use Medium Mode for balanced progress</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <a href="settings.html" class="icon-btn" aria-label="Settings" data-i18n-aria-label="Settings">
+            <a href="settings.html" class="icon-btn">
                 <i class="fa-solid fa-gear"></i>
             </a>
 
@@ -216,11 +194,10 @@
 
             <div class="top-user">
                 <div class="user-info">
-                    <span class="u-name" id="topNavName">PLAYER</span>
+                    <span class="u-name">KAELEN VANCE</span>
                     <span class="u-status">NOVICE HACKER</span>
-                <span class="email-verify-chip pending" id="topEmailVerifyBadge"><i class="fa-solid fa-envelope-circle-check"></i> Email Pending</span>
                 </div>
-                <img src="https://picsum.photos/40/40?random=1" class="top-avatar" alt="Student avatar" data-i18n-alt="Student avatar">
+                <img src="https://picsum.photos/40/40?random=1" class="top-avatar">
             </div>
         </div>
     </header>
@@ -239,15 +216,15 @@
             </div>
 
             <ul class="nav-links">
-                      <li class="active"><a href="#"><i class="fa-solid fa-gauge"></i> <span data-i18n="DASHBOARD">DASHBOARD</span></a></li>
-                      <li><a href="loading.html?target=library.html"><i class="fa-solid fa-layer-group"></i> <span data-i18n="LIBRARY">LIBRARY</span></a></li>
-                      <li><a href="quests.html"><i class="fa-solid fa-bolt"></i> <span data-i18n="QUESTS">QUESTS</span></a></li>
-                      <li><a href="../../slide_upload/games.html"><i class="fa-solid fa-gamepad"></i> <span data-i18n="GAME MODE">GAME MODE</span></a></li>
-                      <li><a href="loading.html?target=AnalyticsPage.html"><i class="fa-solid fa-chart-pie"></i> <span data-i18n="ANALYTICS">ANALYTICS</span></a></li>
-                      <li><a href="studentpayment.html"><i class="fa-solid fa-credit-card"></i> <span data-i18n="BILLINGS">BILLINGS</span></a></li>
-                                <li id="startLearningNav" class="start-learning-nav-item">
-                              <a href="StudentUploadPage.html" id="startLearningBtn" class="start-btn start-learning-btn" data-i18n="Start Learning">
-                          <i class="fa-solid fa-upload"></i> Start Learning
+                                <li class="active"><a href="#"><i class="fa-solid fa-gauge"></i> DASHBOARD</a></li>
+                                <li><a href="loading.html?target=library.html"><i class="fa-solid fa-layer-group"></i> LIBRARY</a></li>
+                                <li><a href="quests.html"><i class="fa-solid fa-bolt"></i> QUESTS</a></li>
+                                <li><a href="../../slide_upload/games.html"><i class="fa-solid fa-gamepad"></i> GAME MODE</a></li>
+                                <li><a href="loading.html?target=AnalyticsPage.html"><i class="fa-solid fa-chart-pie"></i> ANALYTICS</a></li>
+                                <li><a href="studentpayment.html"><i class="fa-solid fa-credit-card"></i> BILLINGS</a></li>
+                                <li id="startLearningNav" style="margin-top:10px;">
+                                    <a href="StudentUploadPage.html" id="startLearningBtn" class="start-btn" style="width:100%;font-size:1.08rem;padding:13px 0;background:linear-gradient(90deg,#06b6d4,#8b5cf6);color:#fff;border:none;border-radius:12px;box-shadow:0 2px 12px #8b5cf655;display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;">
+                                        <i class="fa-solid fa-upload"></i> Start Learning
                                     </a>
                                 </li>
             </ul>
@@ -255,7 +232,7 @@
             <div class="nav-footer">
                 <div class="user-pill">
                     <div class="user-meta">
-                        <span class="user-display-name" id="sideNavName">Player</span>
+                        <span class="user-display-name">Kaelen Vance</span>
                         <span class="user-status">Novice Hacker</span>
                     </div>
                     <div class="user-icon">
@@ -274,13 +251,13 @@
                   <div class="jsc-left">
                     <div class="jsc-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
                     <div>
-                      <h3 data-i18n="Join a Class Session">Join a Class Session</h3>
-                      <p data-i18n="Enter the code your teacher shared to jump into a live session">Enter the code your teacher shared to jump into a live session</p>
+                      <h3>Join a Class Session</h3>
+                      <p>Enter the code your teacher shared to jump into a live session</p>
                     </div>
                   </div>
                   <div class="jsc-input-row">
-                    <input type="text" id="joinCodeInput" placeholder="Enter code (e.g. ABC123)" data-i18n-placeholder="Enter code (e.g. ABC123)" maxlength="6" autocomplete="off" spellcheck="false" />
-                    <button class="jsc-join-btn" id="joinCodeBtn" data-i18n="Join"><i class="fa-solid fa-arrow-right"></i> Join</button>
+                    <input type="text" id="joinCodeInput" placeholder="Enter code (e.g. ABC123)" maxlength="6" autocomplete="off" spellcheck="false" />
+                    <button class="jsc-join-btn" id="joinCodeBtn"><i class="fa-solid fa-arrow-right"></i> Join</button>
                   </div>
                 </div>
 
@@ -289,32 +266,32 @@
                         <div class="welcome-section">
                                                                                     <!-- Premium Locked Features Card -->
                                                                                     <div class="locked-features-card glass-card">
-                                                                                      <div class="locked-header"><i class="fa-solid fa-lock"></i> <span data-i18n="Unlock Elite Features">Unlock Elite Features</span></div>
+                                                                                        <div class="locked-header"><i class="fa-solid fa-lock"></i> Unlock Elite Features</div>
                                                                                         <ul class="locked-list">
-                                                                                        <li><i class="fa-solid fa-bolt"></i> <span data-i18n="Elite Quests & Daily Challenges">Elite Quests & Daily Challenges</span> <span class="lock-icon" title="Premium" data-i18n-title="Premium"><i class="fa-solid fa-lock"></i></span></li>
-                                                                                        <li><i class="fa-solid fa-coins"></i> <span data-i18n="Double XP & XP Boosts">Double XP & XP Boosts</span> <span class="lock-icon" title="Premium" data-i18n-title="Premium"><i class="fa-solid fa-lock"></i></span></li>
-                                                                                        <li><i class="fa-solid fa-user-astronaut"></i> <span data-i18n="Exclusive Avatars & Badges">Exclusive Avatars & Badges</span> <span class="lock-icon" title="Premium" data-i18n-title="Premium"><i class="fa-solid fa-lock"></i></span></li>
-                                                                                          <li><i class="fa-solid fa-chart-line"></i> <span data-i18n="Advanced Analytics">Advanced Analytics</span> <span class="lock-icon" title="Premium" data-i18n-title="Premium"><i class="fa-solid fa-lock"></i></span></li>
-                                                                                          <li><i class="fa-solid fa-trophy"></i> <span data-i18n="Elite Leaderboard">Elite Leaderboard</span> <span class="lock-icon" title="Premium" data-i18n-title="Premium"><i class="fa-solid fa-lock"></i></span></li>
-                                                                                          <li><i class="fa-solid fa-star"></i> <span data-i18n="Achievement Showcase">Achievement Showcase</span> <span class="lock-icon" title="Premium" data-i18n-title="Premium"><i class="fa-solid fa-lock"></i></span></li>
-                                                                                          <li><i class="fa-solid fa-palette"></i> <span data-i18n="Custom Themes & Effects">Custom Themes & Effects</span> <span class="lock-icon" title="Premium" data-i18n-title="Premium"><i class="fa-solid fa-lock"></i></span></li>
-                                                                                        <li><i class="fa-solid fa-headset"></i> <span data-i18n="Priority Support or Coaching">Priority Support or Coaching</span> <span class="lock-icon" title="Premium" data-i18n-title="Premium"><i class="fa-solid fa-lock"></i></span></li>
+                                                                                            <li><i class="fa-solid fa-bolt"></i> Elite Quests & Daily Challenges <span class="lock-icon" title="Premium"><i class="fa-solid fa-lock"></i></span></li>
+                                                                                            <li><i class="fa-solid fa-coins"></i> Double XP & XP Boosts <span class="lock-icon" title="Premium"><i class="fa-solid fa-lock"></i></span></li>
+                                                                                            <li><i class="fa-solid fa-user-astronaut"></i> Exclusive Avatars & Badges <span class="lock-icon" title="Premium"><i class="fa-solid fa-lock"></i></span></li>
+                                                                                            <li><i class="fa-solid fa-chart-line"></i> Advanced Analytics <span class="lock-icon" title="Premium"><i class="fa-solid fa-lock"></i></span></li>
+                                                                                            <li><i class="fa-solid fa-trophy"></i> Elite Leaderboard <span class="lock-icon" title="Premium"><i class="fa-solid fa-lock"></i></span></li>
+                                                                                            <li><i class="fa-solid fa-star"></i> Achievement Showcase <span class="lock-icon" title="Premium"><i class="fa-solid fa-lock"></i></span></li>
+                                                                                            <li><i class="fa-solid fa-palette"></i> Custom Themes & Effects <span class="lock-icon" title="Premium"><i class="fa-solid fa-lock"></i></span></li>
+                                                                                            <li><i class="fa-solid fa-headset"></i> Priority Support or Coaching <span class="lock-icon" title="Premium"><i class="fa-solid fa-lock"></i></span></li>
                                                                                         </ul>
-                                                                                      <button class="upgrade-btn-glass" data-i18n="Upgrade to Elite">Upgrade to Elite</button>
+                                                                                        <button class="upgrade-btn-glass">Upgrade to Elite</button>
                                                                                     </div>
                             <div class="welcome-header">
-                                                          <h1><span data-i18n="Welcome back,">Welcome back,</span> <span class="user-name" id="welcomeName">Player</span>!</h1>
-                                                          <p class="welcome-subtitle" data-i18n="Ready to unlock your next level?">Ready to unlock your next level?</p>
+                                <h1>Welcome back, <span class="user-name">Kaelen</span>!</h1>
+                                <p class="welcome-subtitle">Ready to unlock your next level?</p>
                             </div>
 
                             <div class="level-card">
                                 <div class="level-header">
                                     <div class="level-info">
-                                        <span class="level-label" data-i18n="CURRENT LEVEL">CURRENT LEVEL</span>
+                                        <span class="level-label">CURRENT LEVEL</span>
                                         <span class="level-number">12</span>
                                     </div>
                                     <div class="xp-display">
-                                        <span class="xp-label" data-i18n="NEXT LEVEL">NEXT LEVEL</span>
+                                        <span class="xp-label">NEXT LEVEL</span>
                                         <span class="xp-number">13</span>
                                     </div>
                                 </div>
@@ -322,7 +299,7 @@
                                 <div class="progress-section">
                                     <div class="progress-bar-container">
                                         <div class="progress-bar">
-                                            <div class="progress-fill xp-progress-default" id="xpProgressFill"></div>
+                                            <div class="progress-fill" id="xpProgressFill" style="width: 72%"></div>
                                             <svg class="progress-burst" id="xpBurst" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#ffd700" opacity="0.7"/><circle cx="18" cy="18" r="10" fill="#8b5cf6" opacity="0.5"/></svg>
                                         </div>
                                     </div>
@@ -335,15 +312,15 @@
                                 <div class="level-stats">
                                     <div class="stat-box animated-badge">
                                         <i class="fa-solid fa-fire"></i>
-                                        <span data-i18n="12 Day Streak">12 Day Streak</span>
+                                        <span>12 Day Streak</span>
                                     </div>
                                     <div class="stat-box animated-badge">
                                         <i class="fa-solid fa-medal"></i>
-                                        <span data-i18n="8 Achievements">8 Achievements</span>
+                                        <span>8 Achievements</span>
                                     </div>
                                     <div class="stat-box animated-badge">
                                         <i class="fa-solid fa-crown"></i>
-                                        <span data-i18n="Elite Rank">Elite Rank</span>
+                                        <span>Elite Rank</span>
                                     </div>
                                 </div>
                             </div>
@@ -351,13 +328,13 @@
                             <!-- Gamified: Daily Quest Card — ELITE LOCKED -->
                               <div class="daily-quest-card glass-card">
                                 <div class="quest-header">
-                                  <i class="fa-solid fa-bolt"></i> <span data-i18n="Daily Quest">Daily Quest</span>
+                                  <i class="fa-solid fa-bolt"></i> Daily Quest
                                 </div>
                                 <div class="quest-body">
-                                  <span class="quest-title" data-i18n="Complete 2 Quests Today">Complete 2 Quests Today</span>
+                                  <span class="quest-title">Complete 2 Quests Today</span>
                                   <span class="quest-reward"><i class="fa-solid fa-coins"></i> +100 XP</span>
                                 </div>
-                                <button class="quest-btn" data-i18n="Start Quest">Start Quest</button>
+                                <button class="quest-btn">Start Quest</button>
                               </div>
 
                             <!-- Gamified: Floating XP Counter -->
@@ -371,7 +348,7 @@
                             <!-- Analytics Charts -->
                             <div class="charts-section">
                                 <div class="chart-container">
-                                  <h3 data-i18n="Hours Studied by Game">Hours Studied by Game</h3>
+                                    <h3>Hours Studied by Game</h3>
                                     <div class="doughnut-chart">
                                         <svg viewBox="0 0 120 120" class="chart-svg animated" id="studyChart">
                                             <defs>
@@ -388,12 +365,12 @@
                                         </div>
                                     </div>
                                     <div class="chart-legend">
-                                        <div class="legend-item"><span class="legend-color legend-hours-gradient"></span> <span data-i18n="Study Hours Breakdown">Study Hours Breakdown</span></div>
+                                        <div class="legend-item"><span class="legend-color" style="background: linear-gradient(45deg, #ff7ed1, #5ce8ff, #ffd700);"></span> Study Hours Breakdown</div>
                                     </div>
                                 </div>
 
                                 <div class="chart-container">
-                                      <h3 data-i18n="Time by Mode">Time by Mode</h3>
+                                    <h3>Time by Mode</h3>
                                     <div class="doughnut-chart">
                                         <svg viewBox="0 0 120 120" class="chart-svg animated" id="modeChart">
                                             <defs>
@@ -403,22 +380,23 @@
                                               </linearGradient>
                                             </defs>
                                             <circle cx="60" cy="60" r="48"></circle>
-                                            <circle cx="60" cy="60" r="48" class="progress mode-progress-gradient" id="modeProgress"></circle>
+                                            <circle cx="60" cy="60" r="48" class="progress" id="modeProgress" style="stroke:url(#xpGrad2);"></circle>
                                         </svg>
                                         <div class="chart-center">
                                             <strong>120h</strong>
                                         </div>
                                     </div>
                                     <div class="chart-legend">
-                                        <div class="legend-item"><span class="legend-color legend-mode-gradient"></span> <span data-i18n="Time by Mode Breakdown">Time by Mode Breakdown</span></div>
+                                        <div class="legend-item"><span class="legend-color" style="background: linear-gradient(45deg, #ff7ed1, #5ce8ff, #ffd700, #ff6b6b);"></span> Time by Mode Breakdown</div>
                                     </div>
                                 </div>
                                                             <!-- Theme Switcher — Light & Cyberpunk are Elite -->
                                                             <div class="theme-switcher">
-                                                              <button class="theme-btn" id="themeDark" data-i18n="Dark">Dark</button>
-                                                              <button class="theme-btn" id="themeLight" data-i18n="Light">Light</button>
-                                                              <button class="theme-btn" id="themeCyber" data-i18n="Cyberpunk">Cyberpunk</button>
+                                                                <button class="theme-btn" id="themeDark">Dark</button>
+                                                                <button class="theme-btn" id="themeLight">Light</button>
+                                                                <button class="theme-btn" id="themeCyber">Cyberpunk</button>
                                                             </div>
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -426,25 +404,25 @@
 
                 <section class="invite-section">
                     <div class="invite-header">
-                    <h2><i class="fa-solid fa-share-nodes"></i> <span data-i18n="Invite Friends">Invite Friends</span></h2>
-                    <p data-i18n="Share SlidePlayer with your classmates">Share SlidePlayer with your classmates</p>
+                        <h2><i class="fa-solid fa-share-nodes"></i> Invite Friends</h2>
+                        <p>Share SlidePlayer with your classmates</p>
                     </div>
                     <div class="invite-content">
                         <div class="invite-box">
                             <div class="invite-icon"><i class="fa-solid fa-envelope"></i></div>
                             <div class="invite-text">
-                        <span class="invite-title" data-i18n="Send Invite">Send Invite</span>
-                        <span class="invite-desc" data-i18n="Invite classmates via email">Invite classmates via email</span>
+                                <span class="invite-title">Send Invite</span>
+                                <span class="invite-desc">Invite classmates via email</span>
                             </div>
-                      <button class="invite-btn" data-i18n="Invite">Invite</button>
+                            <button class="invite-btn">Invite</button>
                         </div>
                         <div class="invite-box">
                             <div class="invite-icon"><i class="fa-solid fa-link"></i></div>
                             <div class="invite-text">
-                        <span class="invite-title" data-i18n="Share Link">Share Link</span>
-                        <span class="invite-desc" data-i18n="Copy your unique referral link">Copy your unique referral link</span>
+                                <span class="invite-title">Share Link</span>
+                                <span class="invite-desc">Copy your unique referral link</span>
                             </div>
-                      <button class="invite-btn" data-i18n="Copy Link">Copy Link</button>
+                            <button class="invite-btn">Copy Link</button>
                         </div>
                     </div>
                 </section>
@@ -453,7 +431,7 @@
                     <div class="time-card">
                         <div class="time-content">
                             <div class="date-display">
-                              <span class="time-label" data-i18n="Today">Today</span>
+                                <span class="time-label">Today</span>
                                 <span class="current-date" id="currentDate">May 8, 2026</span>
                             </div>
                             <div class="time-display-large">
@@ -470,15 +448,15 @@
                 <div class="feature-gate" data-requires="premium" data-feature="Elite Leaderboard" data-desc="See the full Elite Leaderboard and compete with top students globally. Unlock with Premium.">
                 <section class="leaderboard">
                     <div class="leaderboard-header">
-                    <h2><span data-i18n="ELITE PLAYERS">ELITE PLAYERS</span> <span class="paid-tag premium-tag premium-tag-spaced"><i class="fa-solid fa-crown"></i> <span data-i18n="PREMIUM">PREMIUM</span></span></h2>
-                    <span class="elite-badge" data-i18n="★ ELITE">★ ELITE</span>
+                        <h2>ELITE PLAYERS <span class="paid-tag premium-tag" style="margin-left:8px;"><i class="fa-solid fa-crown"></i> PREMIUM</span></h2>
+                        <span class="elite-badge">★ ELITE</span>
                     </div>
                     <div class="leaderboard-list">
                         <div class="leaderboard-item">
                             <img src="https://picsum.photos/48/48?random=2" alt="Player" class="player-avatar">
                             <div class="player-info">
                                 <span class="player-name">ShadowNinja</span>
-                              <span class="player-rank" data-i18n="Elite Player">Elite Player</span>
+                                <span class="player-rank">Elite Player</span>
                             </div>
                             <span class="player-points">8,547 PTS</span>
                         </div>
@@ -486,7 +464,7 @@
                             <img src="https://picsum.photos/48/48?random=3" alt="Player" class="player-avatar">
                             <div class="player-info">
                                 <span class="player-name">PhoenixRising</span>
-                              <span class="player-rank" data-i18n="Elite Player">Elite Player</span>
+                                <span class="player-rank">Elite Player</span>
                             </div>
                             <span class="player-points">7,923 PTS</span>
                         </div>
@@ -494,7 +472,7 @@
                             <img src="https://picsum.photos/48/48?random=4" alt="Player" class="player-avatar">
                             <div class="player-info">
                                 <span class="player-name">VortexKing</span>
-                              <span class="player-rank" data-i18n="Elite Player">Elite Player</span>
+                                <span class="player-rank">Elite Player</span>
                             </div>
                             <span class="player-points">7,654 PTS</span>
                         </div>
@@ -502,7 +480,7 @@
                             <img src="https://picsum.photos/48/48?random=5" alt="Player" class="player-avatar">
                             <div class="player-info">
                                 <span class="player-name">CyberVenom</span>
-                              <span class="player-rank" data-i18n="Elite Player">Elite Player</span>
+                                <span class="player-rank">Elite Player</span>
                             </div>
                             <span class="player-points">7,421 PTS</span>
                         </div>
@@ -510,7 +488,7 @@
                             <img src="https://picsum.photos/48/48?random=6" alt="Player" class="player-avatar">
                             <div class="player-info">
                                 <span class="player-name">LunaEclipse</span>
-                              <span class="player-rank" data-i18n="Elite Player">Elite Player</span>
+                                <span class="player-rank">Elite Player</span>
                             </div>
                             <span class="player-points">7,189 PTS</span>
                         </div>
@@ -518,28 +496,68 @@
                             <img src="https://picsum.photos/48/48?random=7" alt="Player" class="player-avatar">
                             <div class="player-info">
                                 <span class="player-name">IronStorm</span>
-                              <span class="player-rank" data-i18n="Elite Player">Elite Player</span>
+                                <span class="player-rank">Elite Player</span>
                             </div>
                             <span class="player-points">6,982 PTS</span>
                         </div>
                     </div>
                 </section>
-                <div class="gate-overlay gate-overlay-sm"><div class="gate-overlay-inner"><i class="fa-solid fa-lock"></i><span data-i18n="Premium — Leaderboard">Premium — Leaderboard</span><button class="gate-unlock-btn" data-i18n="Unlock">Unlock</button></div></div>
+                <div class="gate-overlay gate-overlay-sm"><div class="gate-overlay-inner"><i class="fa-solid fa-lock"></i><span>Premium — Leaderboard</span><button class="gate-unlock-btn">Unlock</button></div></div>
                 </div><!-- /feature-gate leaderboard -->
 
                 <section class="system-comms">
                     <div class="comms-header">
-                    <h2 data-i18n="SYSTEM COMMS">SYSTEM COMMS</h2>
+                        <h2>SYSTEM COMMS</h2>
                         <i class="fa-solid fa-bell"></i>
                     </div>
-                  <div class="comms-list" id="liveCommsFeed"></div>
+                    <div class="comms-list">
+                        <div class="comms-item achievement">
+                            <div class="comms-icon">
+                                <i class="fa-solid fa-star"></i>
+                            </div>
+                            <div class="comms-content">
+                                <span class="comms-title">Achievement Unlocked!</span>
+                                <span class="comms-message">"First Victory" - Complete your first quest</span>
+                                <span class="comms-time">2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="comms-item update">
+                            <div class="comms-icon">
+                                <i class="fa-solid fa-download"></i>
+                            </div>
+                            <div class="comms-content">
+                                <span class="comms-title">Update Available</span>
+                                <span class="comms-message">v2.1.0 - New features and bug fixes</span>
+                                <span class="comms-time">4 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="comms-item achievement">
+                            <div class="comms-icon">
+                                <i class="fa-solid fa-trophy"></i>
+                            </div>
+                            <div class="comms-content">
+                                <span class="comms-title">Rank Up!</span>
+                                <span class="comms-message">You've been promoted to "Novice Hacker"</span>
+                                <span class="comms-time">1 day ago</span>
+                            </div>
+                        </div>
+                        <div class="comms-item maintenance">
+                            <div class="comms-icon">
+                                <i class="fa-solid fa-wrench"></i>
+                            </div>
+                            <div class="comms-content">
+                                <span class="comms-title">Maintenance Notice</span>
+                                <span class="comms-message">Scheduled maintenance: Apr 20, 2:00 AM UTC</span>
+                                <span class="comms-time">2 days ago</span>
+                            </div>
+                        </div>
+                    </div>
                 </section>
-            </div><!-- /right-sidebar -->
-        </div><!-- /content-area -->
+
     </main>
 
     <footer>
-      <p data-i18n="© 2026 SlidePlay. All Rights Reserved.">© 2026 SlidePlay. All Rights Reserved.</p>
+      <p>© 2026 SlidePlay. All Rights Reserved.</p>
     </footer>
 
     <script>
@@ -561,37 +579,6 @@
                                                 const savedTheme = localStorage.getItem('slideplayTheme');
                                                 if(savedTheme) setTheme(savedTheme.replace('-mode',''));
                                                 else setTheme('dark');
-                                            });
-
-                                            // ── Populate user name from localStorage ──────────────
-                                            document.addEventListener('DOMContentLoaded', () => {
-                                                const email = localStorage.getItem('sp_user_email') || '';
-                                                const raw = localStorage.getItem('sp_user_displayName')
-                                                    || email.split('@')[0]
-                                                    || 'Player';
-                                                // Title-case the name
-                                                const display = raw.replace(/\b\w/g, c => c.toUpperCase());
-                                                const first = display.split(/[\s._]/)[0];
-                                                const el1 = document.getElementById('topNavName');
-                                                const el2 = document.getElementById('sideNavName');
-                                                const el3 = document.getElementById('welcomeName');
-                                                if (el1) el1.textContent = display.toUpperCase();
-                                                if (el2) el2.textContent = display;
-                                                if (el3) el3.textContent = first;
-
-                                                const badge = document.getElementById('topEmailVerifyBadge');
-                                                if (badge) {
-                                                  const verified = String(localStorage.getItem('sp_user_email_verified') || '').toLowerCase() === 'true';
-                                                  if (verified) {
-                                                    badge.classList.remove('pending');
-                                                    badge.classList.add('verified');
-                                                    badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Email Verified';
-                                                  } else {
-                                                    badge.classList.remove('verified');
-                                                    badge.classList.add('pending');
-                                                    badge.innerHTML = '<i class="fa-solid fa-envelope-circle-check"></i> Email Pending';
-                                                  }
-                                                }
                                             });
 
                                             // Animated XP Bar Burst
@@ -850,155 +837,6 @@
                     item.addEventListener('click', launchConfetti);
                 });
             });
-
-          function safeReadJson(key, fallback) {
-            try {
-              return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback;
-            } catch (_) {
-              return fallback;
-            }
-          }
-
-          function formatLiveAge(timestamp) {
-            if (!timestamp) return 'Live now';
-            const elapsed = Math.max(0, Date.now() - timestamp);
-            const minutes = Math.floor(elapsed / 60000);
-            if (minutes < 1) return 'Just now';
-            if (minutes === 1) return '1 min ago';
-            return `${minutes} mins ago`;
-          }
-
-          function buildStudentNotificationData() {
-            const displayName = localStorage.getItem('sp_user_displayName') || localStorage.getItem('sp_user_name') || (localStorage.getItem('sp_user_email') || 'Student').split('@')[0] || 'Student';
-            const email = localStorage.getItem('sp_user_email') || '';
-            const notifications = [];
-
-            notifications.push({
-              kind: 'update',
-              icon: 'fa-user-check',
-              title: 'Account',
-              text: email ? `Signed in as ${displayName} (${email})` : `Signed in as ${displayName}`,
-              time: 'Live now',
-              unread: false
-            });
-
-            const sub = safeReadJson('sp_student_subscription', null);
-            if (sub && (sub.plan || sub.status)) {
-              notifications.push({
-                kind: 'achievement',
-                icon: 'fa-crown',
-                title: 'Plan Status',
-                text: `${String(sub.plan || sub.status).replace(/_/g, ' ')}${sub.status && sub.plan ? ` • ${sub.status}` : ''}`,
-                time: 'Live now',
-                unread: true
-              });
-            }
-
-            const activeSession = safeReadJson('sp_active_session', null);
-            if (activeSession && activeSession.code) {
-              notifications.push({
-                kind: 'update',
-                icon: 'fa-signal',
-                title: 'Live Session',
-                text: `Code ${activeSession.code} • ${activeSession.status || 'waiting'}`,
-                time: formatLiveAge(activeSession.joinedAt),
-                unread: true
-              });
-            }
-
-            const progress = safeReadJson('sp_class_progress', []);
-            if (Array.isArray(progress) && progress.length) {
-              const latest = progress[progress.length - 1];
-              const label = typeof latest === 'string' ? latest : (latest?.title || latest?.name || 'Progress update');
-              notifications.push({
-                kind: 'achievement',
-                icon: 'fa-chart-line',
-                title: 'Progress',
-                text: label,
-                time: 'Live now',
-                unread: false
-              });
-            }
-
-            const uploads = safeReadJson('sp_upload_tries', null);
-            if (uploads) {
-              const count = typeof uploads === 'number' ? uploads : Number(uploads.used || uploads.count || 0);
-              notifications.push({
-                kind: 'maintenance',
-                icon: 'fa-folder-open',
-                title: 'Upload Activity',
-                text: `${count} real upload attempt${count === 1 ? '' : 's'} recorded`,
-                time: 'Live now',
-                unread: false
-              });
-            }
-
-            if (notifications.length === 1) {
-              notifications.push({
-                kind: 'update',
-                icon: 'fa-wifi',
-                title: 'No live activity yet',
-                text: 'Join a class or start a live session to see real notifications here.',
-                time: 'Live now',
-                unread: false
-              });
-            }
-
-            return notifications;
-          }
-
-          function renderLiveNotifications() {
-            const feed = document.getElementById('notificationFeed');
-            const commsFeed = document.getElementById('liveCommsFeed');
-            const items = buildStudentNotificationData();
-
-            if (feed) {
-              feed.innerHTML = items.map((item) => `
-                <div class="notification-item${item.unread ? ' notification-unread' : ''}">
-                  <div class="notification-icon"><i class="fa-solid ${item.icon}"></i></div>
-                  <div>
-                    <span class="notification-title">${item.title}</span>
-                    <span class="notification-text">${item.text}</span>
-                  </div>
-                </div>
-              `).join('');
-            }
-
-            if (commsFeed) {
-              commsFeed.innerHTML = items.map((item) => `
-                <div class="comms-item ${item.kind}">
-                  <div class="comms-icon"><i class="fa-solid ${item.icon}"></i></div>
-                  <div class="comms-content">
-                    <span class="comms-title">${item.title}</span>
-                    <span class="comms-message">${item.text}</span>
-                    <span class="comms-time">${item.time}</span>
-                  </div>
-                </div>
-              `).join('');
-            }
-
-            const dot = document.querySelector('#notificationButton .notification-dot');
-            if (dot) {
-              dot.style.display = items.some((item) => item.unread) ? '' : 'none';
-            }
-          }
-
-          function subscribeToLiveSessionNotifications() {
-            const activeSession = safeReadJson('sp_active_session', null);
-            if (!window.SessionDB || !activeSession || !activeSession.code) return;
-
-            try {
-              SessionDB.listenSession(activeSession.code, (session) => {
-                localStorage.setItem('sp_active_session', JSON.stringify({
-                  code: activeSession.code,
-                  name: session?.name || session?.host || activeSession.name || 'Live Session',
-                  status: session?.status || activeSession.status || 'waiting',
-                  joinedAt: activeSession.joinedAt || Date.now()
-                }));
-                renderLiveNotifications();
-              });
-            } catch (_) {}
-          }
       const notificationButton = document.getElementById('notificationButton');
       const notificationDropdown = document.getElementById('notificationDropdown');
 
@@ -1030,10 +868,6 @@
       
       updateTime();
       setInterval(updateTime, 60000);
-      renderLiveNotifications();
-      subscribeToLiveSessionNotifications();
-
-      window.addEventListener('storage', renderLiveNotifications);
 
       // Invite button functionality
       const inviteButtons = document.querySelectorAll('.invite-btn');
@@ -1430,14 +1264,6 @@
 
           const { playerKey, session } = await SessionDB.joinSession(code, studentName);
 
-          localStorage.setItem("sp_active_session", JSON.stringify({
-            code,
-            name: session?.name || session?.host || "Live Session",
-            status: session?.status || "waiting",
-            playerKey,
-            joinedAt: Date.now()
-          }));
-
           const name = encodeURIComponent(studentName);
           const key  = encodeURIComponent(playerKey);
           window.location.href =
@@ -1469,7 +1295,6 @@
     })();
   </script>
 
-  <script src="i18n-sa.js"></script>
 </body>
 </html>
 

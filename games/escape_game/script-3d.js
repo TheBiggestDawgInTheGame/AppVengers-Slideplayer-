@@ -22,22 +22,19 @@ const G = {
 
 const PLAY_STYLE_KEY = 'slidePlayPlayStyle';
 const PLAY_PLAYERS_KEY = 'slidePlayPlayers';
-let selectedPlayMode = 'solo'; // modes: solo | multiplayer | tournament
+let selectedPlayMode = 'solo'; // only: solo | multiplayer
 const MP_SERVER_KEY = 'escape3dMpServer';
 const MP_ROOM_KEY = 'escape3dMpRoom';
 const MP_NAME_KEY = 'escape3dMpName';
-const MP_CODE_PREFIX = 'room-';
-const MP_PEER_STALE_MS = 18000;
 const multiplayerState = {
   ws: null,
   connected: false,
   playerId: null,
   roomId: null,
   name: null,
-  remotePlayers: {}, // id -> {group, model, targetX, targetY, targetZ, targetRotY, lastUpdateAt}
+  remotePlayers: {}, // id -> {group, model, targetX, targetY, targetZ, targetRotY}
   lastSendAt: 0,
 };
-let premiumEscapeReportSubmitted = false;
 
 /* ═══════════════════════════════════════════════════════════
    ROOM DEFINITIONS - Progressive Difficulty
@@ -462,7 +459,7 @@ const CHARACTER_MODELS = [
   'models/linen-suited-professional/source/model.glb',       // 3
   'models/student-with-backpack-and-notebook/source/model.glb', // 4
   'models/two-tone-raglan-portrait/source/model.glb',        // 5
-  'models/casual-confidence-in-denim/source/model.glb'       // 6 - temporary stable fallback for local preview
+  'models/2pac/source/2PAC.fbx'                              // 6 - FBX format
 ];
 const cachedModels = {};    // modelIndex -> { scene, minY } (raw, unpositioned)
 let modelsLoaded = 0;
@@ -2260,17 +2257,6 @@ function updateHUDTitle() {
 function endGame(won) {
   G.over = true;
   clearInterval(G.tick);
-  const canResumeFromCheckpoint = (
-    !won &&
-    G.checkpoint &&
-    G.checkpoint.level === G.level &&
-    G.checkpoint.lockCount > 0
-  );
-
-  if (won || !canResumeFromCheckpoint) {
-    void submitPremiumEscapeReport(won);
-  }
-
   if (won) {
     const elapsed = Math.round((Date.now() - G.startTime) / 1000);
     const rank = saveToLeaderboard(elapsed);
@@ -2291,60 +2277,6 @@ function endGame(won) {
     SFX.stopAmbient();
     SFX.failure();
     playFailureSequence();
-  }
-}
-
-function buildEscapeQuestionAttempts() {
-  return Array.from(G.solved || []).map(function (puzzleId, index) {
-    return {
-      questionNumber: index + 1,
-      questionText: 'Puzzle ' + String(puzzleId),
-      userAnswer: 'solved',
-      correctAnswer: 'solved',
-      correct: true,
-      responseSeconds: 0,
-      outcome: 'solved'
-    };
-  });
-}
-
-async function submitPremiumEscapeReport(won) {
-  if (premiumEscapeReportSubmitted) {
-    return;
-  }
-
-  if (!window.PremiumGameReporter || typeof window.PremiumGameReporter.submitReport !== 'function') {
-    return;
-  }
-
-  var room = ROOMS[G.level] || null;
-  var roomLimit = room && Number.isFinite(room.timeLimit) ? room.timeLimit : 0;
-  var roomElapsed = Math.max(0, roomLimit - Number(G.secs || 0));
-  var durationSec = Math.max(0, Number(G.totalElapsedTime || 0) + roomElapsed);
-  var questionAttempts = buildEscapeQuestionAttempts();
-  var correctCount = questionAttempts.filter(function (attempt) { return !!attempt.correct; }).length;
-
-  var payload = {
-    gameType: 'escape-3d',
-    score: correctCount,
-    totalQuestions: questionAttempts.length,
-    correctCount: correctCount,
-    durationSec: durationSec,
-    questionAttempts: questionAttempts,
-    meta: {
-      source: 'escape_game_3d',
-      result: won ? 'win' : 'loss',
-      level: G.level,
-      maxLevels: G.maxLevels,
-      completedLevels: Array.isArray(G.completedLevels) ? G.completedLevels.slice() : [],
-      playMode: selectedPlayMode || 'solo',
-      secsRemaining: Number(G.secs || 0)
-    }
-  };
-
-  var result = await window.PremiumGameReporter.submitReport(payload);
-  if (result && result.ok) {
-    premiumEscapeReportSubmitted = true;
   }
 }
 
@@ -2415,7 +2347,7 @@ function nextLevel() {
   
   // Recreate scene for new level
   createClassroom();
-  if (selectedPlayMode !== 'solo') ensureMultiplayerTeammate();
+  if (selectedPlayMode === 'multiplayer') ensureMultiplayerTeammate();
   updateInventoryDisplay();
   updateObjective();
   updateDoorLockDisplay();
@@ -4302,11 +4234,9 @@ function checkKeyUnlock() {
 ═══════════════════════════════════════════════════════════ */
 
 let _lastHoveredObj = null;
-let _lastHintText = '';
 
 function updateInteractionHint() {
   var hint = _domHint || document.getElementById('interaction-hint');
-  if (!hint) return;
   mouse.x = 0;
   mouse.y = 0;
   raycaster.setFromCamera(mouse, camera);
@@ -4321,17 +4251,6 @@ function updateInteractionHint() {
   var crosshair = _domCrosshair || document.getElementById('crosshair');
   if (intersects.length > 0) {
     var obj = intersects[0].object;
-    var itemKey = obj && obj.userData ? obj.userData.itemKey : null;
-    var itemDef = itemKey ? ITEMS[itemKey] : null;
-    var itemTitle = itemDef ? itemDef.title : null;
-    var nextHintText = itemTitle ? ('CLICK to examine: ' + itemTitle) : 'CLICK to examine';
-    if (nextHintText !== _lastHintText) {
-      hint.textContent = nextHintText;
-      hint.classList.remove('hint-text-swap');
-      void hint.offsetWidth;
-      hint.classList.add('hint-text-swap');
-      _lastHintText = nextHintText;
-    }
     if (obj.material && obj.userData.originalEmissive !== undefined) {
       obj.material.emissive.setHex(0x665500);
       _lastHoveredObj = obj;
@@ -4339,10 +4258,6 @@ function updateInteractionHint() {
     hint.classList.add('show');
     if (crosshair) crosshair.classList.add('hover');
   } else {
-    if (_lastHintText !== 'CLICK to examine') {
-      hint.textContent = 'CLICK to examine';
-      _lastHintText = 'CLICK to examine';
-    }
     hint.classList.remove('show');
     if (crosshair) crosshair.classList.remove('hover');
   }
@@ -4512,7 +4427,7 @@ function setupStartupBindings() {
   function normalizePlayMode(raw) {
     const v = String(raw || '').toLowerCase();
     if (v === 'multiplayer' || v === '2p' || v === '2-player' || v === 'two-player') return 'multiplayer';
-    if (v === 'tournament') return 'tournament';
+    if (v === 'tournament') return 'multiplayer';
     return 'solo';
   }
 
@@ -4526,21 +4441,15 @@ function setupStartupBindings() {
   function applyModeUi(mode) {
     const soloBtn = document.getElementById('mode-solo-btn');
     const multiBtn = document.getElementById('mode-multi-btn');
-    const tournamentBtn = document.getElementById('mode-tournament-btn');
     const note = document.getElementById('mode-note');
     const mpSettings = document.getElementById('multiplayer-settings');
     if (soloBtn) soloBtn.classList.toggle('active', mode === 'solo');
     if (multiBtn) multiBtn.classList.toggle('active', mode === 'multiplayer');
-    if (tournamentBtn) tournamentBtn.classList.toggle('active', mode === 'tournament');
-    if (mpSettings) mpSettings.hidden = mode === 'solo';
+    if (mpSettings) mpSettings.hidden = mode !== 'multiplayer';
     if (note) {
-      if (mode === 'multiplayer') {
-        note.textContent = 'Multiplayer selected: live cross-device session.';
-      } else if (mode === 'tournament') {
-        note.textContent = 'Tournament selected: live bracket-style session (managed by host).';
-      } else {
-        note.textContent = 'Solo selected.';
-      }
+      note.textContent = mode === 'multiplayer'
+        ? 'Multiplayer selected: live cross-device session (no tournament mode).'
+        : 'Solo selected.';
     }
   }
 
@@ -4549,7 +4458,7 @@ function setupStartupBindings() {
     applyModeUi(selectedPlayMode);
     if (persist !== false) {
       localStorage.setItem(PLAY_STYLE_KEY, selectedPlayMode);
-      localStorage.setItem(PLAY_PLAYERS_KEY, selectedPlayMode === 'solo' ? '1' : '2');
+      localStorage.setItem(PLAY_PLAYERS_KEY, selectedPlayMode === 'multiplayer' ? '2' : '1');
     }
   }
 
@@ -4557,78 +4466,19 @@ function setupStartupBindings() {
     const mpServer = document.getElementById('mp-server');
     const mpRoom = document.getElementById('mp-room');
     const mpName = document.getElementById('mp-name');
-    const mpCode = document.getElementById('mp-code');
     const defaultServer = localStorage.getItem(MP_SERVER_KEY) || 'ws://localhost:8081';
     const defaultRoom = localStorage.getItem(MP_ROOM_KEY) || 'room-14b';
     const defaultName = localStorage.getItem(MP_NAME_KEY) || ('Player-' + Math.floor(100 + Math.random() * 900));
-
-    function toCode(roomVal) {
-      var raw = String(roomVal || '').trim();
-      if (!raw) return '';
-      var lowered = raw.toLowerCase();
-      if (lowered.indexOf(MP_CODE_PREFIX) === 0) raw = raw.slice(MP_CODE_PREFIX.length);
-      return raw.toUpperCase();
-    }
-
     if (mpServer) mpServer.value = defaultServer;
     if (mpRoom) mpRoom.value = defaultRoom;
     if (mpName) mpName.value = defaultName;
-    if (mpCode) mpCode.value = toCode(defaultRoom);
-  }
-
-  function codeToRoomId(codeVal) {
-    var code = String(codeVal || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
-    if (!code) return '';
-    return MP_CODE_PREFIX + code.toLowerCase();
-  }
-
-  function bindCodeActions() {
-    const codeInput = document.getElementById('mp-code');
-    const roomInput = document.getElementById('mp-room');
-    const createBtn = document.getElementById('mp-generate-code');
-    const joinBtn = document.getElementById('mp-apply-code');
-    const note = document.getElementById('mp-code-note');
-
-    if (createBtn && !createBtn.dataset.bound) {
-      createBtn.dataset.bound = '1';
-      createBtn.addEventListener('click', function () {
-        var rand = Math.random().toString(36).slice(2, 8).toUpperCase();
-        if (codeInput) codeInput.value = rand;
-        if (roomInput) roomInput.value = codeToRoomId(rand);
-        if (note) note.textContent = 'Session code ready: ' + rand + ' (share this with your teammate).';
-      });
-    }
-
-    if (joinBtn && !joinBtn.dataset.bound) {
-      joinBtn.dataset.bound = '1';
-      joinBtn.addEventListener('click', function () {
-        var roomId = codeToRoomId(codeInput ? codeInput.value : '');
-        if (!roomId) {
-          if (note) note.textContent = 'Enter a valid code first (letters/numbers).';
-          return;
-        }
-        if (roomInput) roomInput.value = roomId;
-        if (note) note.textContent = 'Joined code room: ' + (codeInput ? codeInput.value.toUpperCase() : '') + '.';
-      });
-    }
-
-    if (roomInput && codeInput && !roomInput.dataset.codeSyncBound) {
-      roomInput.dataset.codeSyncBound = '1';
-      roomInput.addEventListener('input', function () {
-        var raw = String(roomInput.value || '').trim();
-        var code = raw.toLowerCase().indexOf(MP_CODE_PREFIX) === 0 ? raw.slice(MP_CODE_PREFIX.length) : '';
-        if (code) codeInput.value = code.toUpperCase().slice(0, 10);
-      });
-    }
   }
 
   if (!window.__escape3dModeInit) {
     window.__escape3dModeInit = true;
     hydrateMultiplayerInputs();
-    bindCodeActions();
     setPlayMode(getInitialPlayMode(), true);
   } else {
-    bindCodeActions();
     applyModeUi(selectedPlayMode);
   }
 
@@ -4642,12 +4492,6 @@ function setupStartupBindings() {
   if (multiBtn && !multiBtn.dataset.bound) {
     multiBtn.dataset.bound = '1';
     multiBtn.addEventListener('click', function () { setPlayMode('multiplayer', true); });
-  }
-
-  const tournamentBtn = document.getElementById('mode-tournament-btn');
-  if (tournamentBtn && !tournamentBtn.dataset.bound) {
-    tournamentBtn.dataset.bound = '1';
-    tournamentBtn.addEventListener('click', function () { setPlayMode('tournament', true); });
   }
 
   const startBtn = document.getElementById('start-game');
@@ -4685,16 +4529,13 @@ window.addEventListener('load', setupStartupBindings, { once: true });
 window.addEventListener('beforeunload', disconnectLiveMultiplayer);
 
 function startTheGame() {
-  if (selectedPlayMode !== 'solo') {
+  if (selectedPlayMode === 'multiplayer') {
     const mpServer = document.getElementById('mp-server');
-    const mpCode = document.getElementById('mp-code');
     const mpRoom = document.getElementById('mp-room');
     const mpName = document.getElementById('mp-name');
     const serverVal = (mpServer && mpServer.value ? mpServer.value : 'ws://localhost:8081').trim();
-    const codeRoomVal = codeToRoomId(mpCode && mpCode.value ? mpCode.value : '');
-    const roomVal = (codeRoomVal || (mpRoom && mpRoom.value ? mpRoom.value : 'room-14b')).trim();
+    const roomVal = (mpRoom && mpRoom.value ? mpRoom.value : 'room-14b').trim();
     const nameVal = (mpName && mpName.value ? mpName.value : 'Player').trim();
-    if (mpRoom) mpRoom.value = roomVal;
     localStorage.setItem(MP_SERVER_KEY, serverVal || 'ws://localhost:8081');
     localStorage.setItem(MP_ROOM_KEY, roomVal || 'room-14b');
     localStorage.setItem(MP_NAME_KEY, nameVal || 'Player');
@@ -4782,7 +4623,6 @@ function createRemotePeerAvatar(peerId, displayName) {
     name: displayName || 'Peer',
     group: group,
     model: model,
-    lastUpdateAt: Date.now(),
     targetX: group.position.x,
     targetY: group.position.y,
     targetZ: group.position.z,
@@ -4791,7 +4631,7 @@ function createRemotePeerAvatar(peerId, displayName) {
 }
 
 function ensureMultiplayerTeammate() {
-  if (selectedPlayMode !== 'multiplayer' && selectedPlayMode !== 'tournament') return;
+  if (selectedPlayMode !== 'multiplayer') return;
   if (multiplayerState.connected || multiplayerState.ws) return;
 
   var serverUrl = (localStorage.getItem(MP_SERVER_KEY) || 'ws://localhost:8081').trim();
@@ -4836,7 +4676,6 @@ function ensureMultiplayerTeammate() {
     }
 
     if (msg.type === 'state' && msg.id && msg.id !== multiplayerState.playerId) {
-      var nowTs = Date.now();
       var peer = multiplayerState.remotePlayers[msg.id];
       if (!peer) {
         peer = createRemotePeerAvatar(msg.id, msg.name || 'Player 2');
@@ -4849,7 +4688,6 @@ function ensureMultiplayerTeammate() {
       peer.targetY = Number(msg.y || 0);
       peer.targetZ = Number(msg.z || 0);
       peer.targetRotY = Number(msg.rotY || 0);
-      peer.lastUpdateAt = nowTs;
     }
   });
 
@@ -4867,7 +4705,7 @@ function ensureMultiplayerTeammate() {
 }
 
 function updateMultiplayerTeammate(dt) {
-  if (selectedPlayMode !== 'multiplayer' && selectedPlayMode !== 'tournament') return;
+  if (selectedPlayMode !== 'multiplayer') return;
 
   if (multiplayerState.connected && multiplayerState.ws && multiplayerState.ws.readyState === 1 && player) {
     multiplayerState.lastSendAt += dt;
@@ -4889,15 +4727,6 @@ function updateMultiplayerTeammate(dt) {
   Object.keys(multiplayerState.remotePlayers).forEach(function (id) {
     var peer = multiplayerState.remotePlayers[id];
     if (!peer || !peer.group) return;
-
-    var lastUpdateAt = typeof peer.lastUpdateAt === 'number' ? peer.lastUpdateAt : 0;
-    if (lastUpdateAt > 0 && (Date.now() - lastUpdateAt) > MP_PEER_STALE_MS) {
-      if (peer.group.parent) peer.group.parent.remove(peer.group);
-      delete multiplayerState.remotePlayers[id];
-      addLog((peer.name || 'Peer') + ' connection timed out.', 'warn');
-      return;
-    }
-
     peer.group.position.lerp(
       new THREE.Vector3(peer.targetX, peer.targetY, peer.targetZ),
       Math.min(1, dt * 8)
@@ -4912,7 +4741,6 @@ function updateMultiplayerTeammate(dt) {
 
 function startGamePlay() {
   try {
-    premiumEscapeReportSubmitted = false;
     // Show loading bar during model load
     var loadBar = document.getElementById('loading-bar-container');
     if (loadBar) loadBar.style.display = 'block';
@@ -4921,7 +4749,7 @@ function startGamePlay() {
     G.secs = ROOMS[G.level].timeLimit;
     
     initScene();
-    if (selectedPlayMode !== 'solo') ensureMultiplayerTeammate();
+    if (selectedPlayMode === 'multiplayer') ensureMultiplayerTeammate();
     else disconnectLiveMultiplayer();
     // Cache DOM references for per-frame use (avoids getElementById every frame)
     _domHint = document.getElementById('interaction-hint');

@@ -84,6 +84,7 @@ const COUPON_CATALOG = {
 const DEFAULT_ADMIN_CONTACT_EMAILS = [
   "bossmk2209@gmail.com",
   "mutevherichard@gmail.com",
+  "kingsleydasilva0@gmail.com",
 ];
 
 function parseBooleanEnv(value, fallback = false) {

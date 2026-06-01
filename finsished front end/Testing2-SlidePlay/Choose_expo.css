@@ -431,26 +431,3 @@ h1 {
 .pm-enter-btn:hover {
   opacity: 0.88;
 }
-
-/* -- Global Theme Sync: Light Mode -- */
-body.light-mode {
-  --bg: #f6f8ff;
-  --panel: rgba(255, 255, 255, 0.92);
-  --line: rgba(99, 102, 241, 0.22);
-  --text: #0f172a;
-  --muted: #475569;
-  --cyan: #0891b2;
-  --pink: #db2777;
-  --violet: #4f46e5;
-  background:
-    radial-gradient(circle at 14% 12%, rgba(14, 165, 233, 0.18), transparent 32%),
-    radial-gradient(circle at 84% 10%, rgba(236, 72, 153, 0.2), transparent 36%),
-    linear-gradient(180deg, #eef2ff, #f8fafc 58%);
-}
-
-body.light-mode .frame-wrap,
-body.light-mode .mode-card,
-body.light-mode .pm-modal {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(99, 102, 241, 0.2);
-}

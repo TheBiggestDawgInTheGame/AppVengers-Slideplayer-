@@ -209,9 +209,11 @@
     animatePulse();
   }
 
-  const AI_ENDPOINT = 'http://localhost:4100/api/npc-message';
+  const AI_ENDPOINT = '/api/npc-message';
   const AI_TIMEOUT_MS = 3500;
-  let aiApiEnabled = true;
+  // Keep fallback coaching on by default.
+  // Enable remote NPC API only when explicitly opted in.
+  let aiApiEnabled = localStorage.getItem('slidePlayEnableNpcApi') === '1';
 
   async function fetchProfessorMessage(eventType, context, extraStats) {
     if (!aiApiEnabled) {

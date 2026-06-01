@@ -31,7 +31,8 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        overflow: hidden;
+        overflow: auto;
+        padding: 24px 14px;
       }
 
       h1,
@@ -88,7 +89,8 @@
 
       /* LOGIN BOX */
       .login-box {
-        width: 420px;
+        width: 100%;
+        max-width: 420px;
         padding: 40px 32px;
         border-radius: 22px;
         background: rgba(255, 255, 255, 0.05);
@@ -287,6 +289,24 @@
       .google-btn img {
         width: 18px;
         height: 18px;
+      }
+
+      @media (max-width: 560px) {
+        body {
+          align-items: flex-start;
+          padding: 18px 12px 24px;
+        }
+
+        .login-box {
+          max-width: 100%;
+          padding: 24px 16px;
+          border-radius: 16px;
+          margin-top: 8px;
+        }
+
+        .login-header h2 {
+          font-size: 1.45rem;
+        }
       }
     </style>
   </head>

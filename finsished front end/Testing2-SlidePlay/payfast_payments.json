@@ -1,1 +1,12 @@
-{}
+[
+  {
+    "PaymentID": 1780256944906,
+    "Email": "ksavage7123@gmail.com",
+    "Plan": "student_elite",
+    "AmountZAR": 99,
+    "Provider": "card",
+    "BillingCycle": "monthly",
+    "Status": "succeeded",
+    "CreatedAt": "2026-05-31T19:49:04.906Z"
+  }
+]

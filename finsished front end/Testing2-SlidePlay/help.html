@@ -417,7 +417,7 @@
 
     <section class="contact">
       <h2>Still Need Help?</h2>
-      <p>Reach out and our team will assist you.</p>
+      <p>Reach out and our team will assist you. You can also email us directly at <strong>slideplay.notify@gamil.com</strong>.</p>
 
       <form id="contactForm" class="contact-form">
         <div class="input-box">
@@ -452,7 +452,7 @@
       const form = document.getElementById("contactForm");
       const formMessage = document.getElementById("formMessage");
 
-      form.addEventListener("submit", function (e) {
+      form.addEventListener("submit", async function (e) {
         e.preventDefault();
 
         const name = document.getElementById("name").value.trim();
@@ -482,11 +482,43 @@
           return;
         }
 
-        formMessage.textContent =
-          "Message sent successfully! We'll get back to you soon.";
-        formMessage.style.color = "#06d6a0";
+        const submitBtn = form.querySelector("button[type='submit']");
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Sending...";
+        }
 
-        form.reset();
+        try {
+          const resp = await fetch("/api/support/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name,
+              email,
+              message,
+              subject: "Help Center Request",
+              sourcePage: "help.html"
+            })
+          });
+
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            throw new Error(data.error || "Could not send your message right now.");
+          }
+
+          formMessage.textContent =
+            "Message sent successfully! Our team will review it in the admin inbox.";
+          formMessage.style.color = "#06d6a0";
+          form.reset();
+        } catch (err) {
+          formMessage.textContent = "Send failed: " + (err.message || "Try again in a moment.");
+          formMessage.style.color = "#ff6b6b";
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Message';
+          }
+        }
       });
 
       // FAQ TOGGLE

@@ -3,10 +3,14 @@
   const UPLOADED_FILES_KEY = 'slidePlayUploadedFiles';
   const ESCAPE_CLUES_KEY = 'slidePlayEscapeCluesV1';
   const useUploadedSource = new URLSearchParams(window.location.search).get('source') === 'upload';
-  const AI_ENDPOINTS = [
-    'http://localhost:4100/api/generate-escape-clues',
-    'http://127.0.0.1:4100/api/generate-escape-clues'
-  ];
+  const isLocalHost = /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+  const AI_ENDPOINTS = isLocalHost
+    ? [
+        '/api/generate-escape-clues',
+        'http://localhost:4100/api/generate-escape-clues',
+        'http://127.0.0.1:4100/api/generate-escape-clues'
+      ]
+    : [];
 
   function readJsonStorage(key, fallback) {
     try {

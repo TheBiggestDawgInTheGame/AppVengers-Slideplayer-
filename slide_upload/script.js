@@ -272,18 +272,17 @@ async function uploadFiles() {
 
     // --- Attach Firebase UID if logged in ---
     let uid = null;
-    // Primary: read from localStorage (set by authentication.js on login)
-    uid = localStorage.getItem('sp_user_uid') || null;
-    // Fallback: read from live Firebase auth state if available
-    if (!uid) {
-      try {
-        if (window.saveLeaderboardScore) {
-          const auth = window.saveLeaderboardScore.auth || window.auth;
-          if (auth && auth.currentUser) uid = auth.currentUser.uid;
-        }
-      } catch (_e) {}
-    }
+    try {
+      if (window.saveLeaderboardScore) {
+        // shared/firebase-leaderboard.js exposes auth
+        const auth = window.saveLeaderboardScore.auth || window.auth;
+        if (auth && auth.currentUser) uid = auth.currentUser.uid;
+      }
+    } catch (_e) {}
     if (uid) formData.append('uid', uid);
+
+    try {
+      const result = await uploadViaBackend(formData, uid);
 
   try {
     const result = await uploadViaBackend(formData);
@@ -377,6 +376,38 @@ async function uploadViaBackend(formData) {
   }
 
   throw lastError || new Error('Upload failed.');
+    for (const endpoint of UPLOAD_ENDPOINTS) {
+      try {
+        // If uploading with UID, use /api/user-upload endpoint
+        let url = endpoint;
+        if (formData.has && formData.has('uid') && endpoint.endsWith('/api/upload')) {
+          url = endpoint.replace('/api/upload', '/api/user-upload');
+        }
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData
+        });
+
+        const rawBody = await response.text();
+        let result = {};
+        if (rawBody) {
+          try {
+            result = JSON.parse(rawBody);
+          } catch (_error) {
+            result = { message: rawBody };
+          }
+        }
+
+        if (!response.ok) {
+          throw new Error(result.message || `Upload failed with status ${response.status}.`);
+        }
+
+        return result;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error('Upload failed');
 }
 
 function fileNameTerms(name) {

@@ -8,68 +8,133 @@
 <link rel="stylesheet" href="style-3d.css">
 </head>
 <body>
-<div id="player-status-overlay">
-  <div class="player-status-title">Players Online</div>
-  <ul id="player-status-list"></ul>
+<div id="player-status-overlay" style="position:fixed;top:18px;right:18px;z-index:10001;min-width:140px;max-width:220px;background:rgba(30,32,50,0.82);border-radius:12px;padding:12px 18px 10px 16px;box-shadow:0 2px 16px #0005;font-family:'Share Tech Mono',monospace;font-size:1.05rem;color:#fff;display:none;">
+  <div style="font-size:1.08rem;font-weight:600;color:#ffd86b;margin-bottom:4px;">Players Online</div>
+  <ul id="player-status-list" style="list-style:none;padding:0;margin:0;"></ul>
 </div>
 <script>
+// Multiplayer player status overlay
 let playerStatusTimestamps = {};
 function updatePlayerStatusOverlay() {
   const overlay = document.getElementById('player-status-overlay');
   const list = document.getElementById('player-status-list');
-  if (!overlay || !list) return;
-  if (!window.selectedPlayMode || (window.selectedPlayMode !== 'multiplayer' && window.selectedPlayMode !== 'tournament')) {
+  if (!window.selectedPlayMode || window.selectedPlayMode !== 'multiplayer') {
     overlay.style.display = 'none';
     return;
   }
   overlay.style.display = 'block';
+  // Gather all players (self + remotes)
   let players = [];
   if (window.multiplayerState) {
+    // Self
     players.push({
       id: window.multiplayerState.playerId || 'me',
       name: window.multiplayerState.name || 'You',
       isSelf: true,
       lastSeen: Date.now(),
     });
+    // Remotes
     for (const id in window.multiplayerState.remotePlayers) {
       const peer = window.multiplayerState.remotePlayers[id];
-      const fallbackSeen = Date.now();
-      const derivedSeen =
-        (peer && typeof peer.lastSeen === 'number' ? peer.lastSeen : 0) ||
-        (peer && typeof peer.lastUpdateAt === 'number' ? peer.lastUpdateAt : 0) ||
-        playerStatusTimestamps[id] ||
-        fallbackSeen;
-      playerStatusTimestamps[id] = derivedSeen;
       players.push({
         id,
         name: peer && peer.name ? peer.name : 'Player',
         isSelf: false,
-        lastSeen: derivedSeen,
+        lastSeen: playerStatusTimestamps[id] || 0,
       });
     }
   }
-  list.innerHTML = players.map(function (player) {
-    const ageMs = Date.now() - player.lastSeen;
-    const active = ageMs < 12000;
-    const ageSec = Math.max(0, Math.floor(ageMs / 1000));
-    const statusText = player.isSelf ? 'You' : (active ? 'Active now' : ('Idle ' + ageSec + 's'));
-    const dot = `<span class="player-status-dot${active ? ' active' : ''}"></span>`;
-    const itemClass = 'player-status-item' + (active ? '' : ' idle') + (player.isSelf ? ' self' : '');
-    const playerName = player.isSelf ? (player.name + ' (You)') : player.name;
-    return `<li class="${itemClass}">${dot}<span class="player-status-name">${playerName}</span><span class="player-status-meta">${statusText}</span></li>`;
+  // Render list
+  list.innerHTML = players.map(p => {
+    const active = (Date.now() - p.lastSeen) < 12000;
+    const dot = `<span style='display:inline-block;width:11px;height:11px;border-radius:50%;background:${active ? "#6be06b" : "#888"};margin-right:7px;vertical-align:middle;'></span>`;
+    return `<li style='margin-bottom:2px;'>${dot}${p.isSelf ? '<b>' + p.name + ' (You)</b>' : p.name}</li>`;
   }).join('');
 }
 setInterval(updatePlayerStatusOverlay, 2000);
+// Listen for multiplayer state updates to track last seen
+if (window.multiplayerState) {
+  const origHandler = window.multiplayerState.ws && window.multiplayerState.ws.onmessage;
+  function customHandler(event) {
+    let msg;
+    try { msg = JSON.parse(event.data); } catch (e) { return; }
+    if (msg && msg.type === 'state' && msg.id) {
+      playerStatusTimestamps[msg.id] = Date.now();
+    }
+    if (origHandler) origHandler.call(this, event);
+  }
+  if (window.multiplayerState.ws) window.multiplayerState.ws.onmessage = customHandler;
+}
 </script>
+<style>
+  #paid-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: radial-gradient(ellipse at center, rgba(35,36,58,0.78) 60%, rgba(16,16,26,0.68) 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', 'Space Grotesk', monospace, sans-serif;
+    color: #fff; animation: fadeInScale 0.7s cubic-bezier(.23,1.12,.32,1) 1;
+    overflow: hidden;
+    backdrop-filter: blur(2.5px);
+  }
+  @keyframes fadeInScale {
+    0% { opacity: 0; transform: scale(0.92); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  #paid-objects {
+    position: absolute; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1;
+  }
+  .edu-obj {
+    position: absolute; opacity: 0.7; filter: drop-shadow(0 2px 8px #0006);
+    will-change: transform;
+    transition: opacity 0.3s;
+  }
+  /* Example object styles */
+  .book { font-size: 2.2rem; color: #ffd86b; }
+  .cube { font-size: 2.1rem; color: #6be0ff; }
+  .atom { font-size: 2.3rem; color: #ff6bcb; }
+  .math { font-size: 2.1rem; color: #baff6b; }
+  .pencil { font-size: 2.1rem; color: #ffb36b; }
+  #paid-modal {
+    background: linear-gradient(135deg, #23243a 92%, #2e2e4d 100%);
+    border-radius: 22px; padding: 48px 38px 36px;
+    box-shadow: 0 10px 48px #000b, 0 0 0 2px #ffd86b44;
+    text-align: center; max-width: 92vw; border: 1.5px solid #ffd86b33;
+    position: relative; z-index: 2;
+    opacity: 0.98;
+  }
+  #paid-modal .lock {
+    font-size: 3.2rem; margin-bottom: 10px; display: block;
+    color: #ffd86b; text-shadow: 0 2px 8px #0006;
+  }
+  #paid-modal .title {
+    font-size: 2.3rem; font-weight: 700; letter-spacing: 1.5px; margin-bottom: 8px;
+    color: #ffd86b; text-shadow: 0 2px 8px #0006;
+  }
+  #paid-modal .desc {
+    font-size: 1.13rem; margin-bottom: 22px; max-width: 370px; color: #eaeaea;
+  }
+  #paid-modal .highlight {
+    color: #ffd86b; font-weight: 600; letter-spacing: 0.5px;
+  }
+  #paid-modal button {
+    margin-top: 10px; padding: 12px 38px; font-size: 1.13rem;
+    background: linear-gradient(90deg, #ffd86b 60%, #ffe9a7 100%);
+    color: #23243a; border: none; border-radius: 9px; opacity: 0.85;
+    font-weight: 700; box-shadow: 0 2px 12px #0003;
+    cursor: not-allowed; transition: opacity 0.2s;
+  }
+  #paid-modal button:active { opacity: 0.7; }
+</style>
 
 <div id="paid-overlay">
-  <audio id="paid-bgm" src="bg-music.mp3" loop autoplay></audio>
-  <audio id="paid-sfx" src="pickup.mp3"></audio>
-  <button id="paid-mute">🔈</button>
+  <audio id="paid-bgm" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b8b6b7.mp3" loop autoplay></audio>
+  <audio id="paid-sfx" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b7b7b.mp3"></audio>
+  <button id="paid-mute" style="position:absolute;top:18px;right:22px;z-index:10;background:rgba(30,30,60,0.7);color:#ffd86b;border:none;border-radius:50%;width:38px;height:38px;font-size:1.3rem;cursor:pointer;box-shadow:0 2px 8px #0004;">🔈</button>
   <div id="paid-objects"></div>
   <div id="paid-modal">
-    <div class="paid-avatar">
-      <div id="prof-byte">
+    <div style="display:flex;align-items:center;justify-content:center;flex-direction:column;">
+      <div id="prof-byte" style="margin-bottom:8px;animation:bounceByte 2.2s infinite cubic-bezier(.6,0,1,.8);">
+        <!-- Prof Byte SVG mascot -->
         <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
           <ellipse cx="32" cy="40" rx="22" ry="18" fill="#23243a"/>
           <ellipse cx="32" cy="28" rx="18" ry="18" fill="#ffd86b"/>
@@ -81,133 +146,169 @@ setInterval(updatePlayerStatusOverlay, 2000);
           <rect x="22" y="8" width="20" height="6" rx="3" fill="#6be0ff"/>
         </svg>
       </div>
-      <div class="paid-avatar-name">Prof Byte</div>
+      <div style="font-size:1.1rem;color:#6be0ff;font-weight:600;margin-bottom:8px;">Prof Byte</div>
     </div>
     <span class="lock">🔒</span>
     <div class="title">Paid Feature</div>
     <div class="desc">The 3D Escape Room is a premium experience.<br><br><span class="highlight">Upgrade to unlock full access.</span></div>
-    <div id="progress-bar-wrap">
-      <div class="progress-label">Your Progress</div>
-      <div class="progress-track">
-        <div id="progress-bar"></div>
+    <div id="progress-bar-wrap" style="margin:18px 0 10px 0;width:100%;display:flex;flex-direction:column;align-items:center;">
+      <div style="font-size:0.98rem;color:#ffd86b;margin-bottom:2px;">Your Progress</div>
+      <div style="background:#23243a;border-radius:8px;width:80%;height:16px;box-shadow:0 2px 8px #0002;overflow:hidden;">
+        <div id="progress-bar" style="background:linear-gradient(90deg,#6be0ff,#ffd86b);height:100%;width:60%;transition:width 0.7s;"></div>
       </div>
-      <div class="progress-value">60% Complete</div>
+      <div style="font-size:0.9rem;color:#eaeaea;margin-top:2px;">60% Complete</div>
     </div>
-    <button id="upgrade-3d-btn" type="button">Upgrade to Premium</button>
-    <div class="paid-free-note">
-      Want the free version instead? Open the 2D classroom escape room from the selector page.
+    <button disabled>Upgrade Required</button>
+    <div id="slide-quiz-wrap" style="margin-top:18px;display:none;">
+      <div style="font-size:1.05rem;color:#6be0ff;font-weight:600;margin-bottom:6px;">Prof Byte's Slide Challenge</div>
+      <div id="slide-quiz-q" style="color:#fff;font-size:1.01rem;margin-bottom:8px;"></div>
+      <input id="slide-quiz-a" type="text" placeholder="Your answer..." style="padding:6px 12px;border-radius:6px;border:none;width:70%;max-width:220px;font-size:1rem;" />
+      <button id="slide-quiz-btn" style="margin-left:8px;padding:6px 18px;font-size:1rem;background:#ffd86b;color:#23243a;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Check</button>
+      <div id="slide-quiz-feedback" style="margin-top:6px;font-size:0.98rem;"></div>
     </div>
-    <div id="slide-quiz-wrap">
-      <div class="slide-quiz-title">Prof Byte's Slide Challenge</div>
-      <div id="slide-quiz-q"></div>
-      <input id="slide-quiz-a" type="text" placeholder="Your answer..." />
-      <button id="slide-quiz-btn">Check</button>
-      <div id="slide-quiz-feedback"></div>
-    </div>
-  </div>
-</div>
-<script>
+  <script>
+  // Slide-related mini-quiz logic (only if slide context exists)
   function hasSlideContext() {
+    // Example: check for a global or a DOM element that signals slide study mode
     return window.SLIDE_STUDY_FEED || document.querySelector('.slide-study-feed') || false;
   }
-
-  (function () {
+  if (hasSlideContext()) {
     const quizWrap = document.getElementById('slide-quiz-wrap');
-    if (quizWrap && hasSlideContext()) {
-      const question = 'What is the main topic of the current slide?';
-      const answer = 'Sport Finance';
-      quizWrap.style.display = 'block';
-      document.getElementById('slide-quiz-q').textContent = question;
-      document.getElementById('slide-quiz-btn').onclick = function () {
-        const userA = document.getElementById('slide-quiz-a').value.trim().toLowerCase();
-        const feedback = document.getElementById('slide-quiz-feedback');
-        if (!userA) {
-          feedback.textContent = 'Type your answer above.';
-          feedback.style.color = '#ffd86b';
-          return;
-        }
-        if (userA.includes(answer.toLowerCase())) {
-          feedback.textContent = 'Correct! Well done.';
-          feedback.style.color = '#baff6b';
-        } else {
-          feedback.textContent = 'Not quite. Try again or check your slide.';
-          feedback.style.color = '#ff6b6b';
-        }
-      };
-    }
-
-    const upgradeBtn = document.getElementById('upgrade-3d-btn');
-    if (upgradeBtn) {
-      upgradeBtn.addEventListener('click', function () {
-        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = '../../finsished front end/Testing2-SlidePlay/studentpayment.html?plan=student_premium&provider=payfast&return=' + returnUrl;
-      });
-    }
-
-    const icons = [
-      { html: '📚', class: 'book' },
-      { html: '🧊', class: 'cube' },
-      { html: '⚛️', class: 'atom' },
-      { html: '➗', class: 'math' },
-      { html: '✏️', class: 'pencil' }
-    ];
-    const paidObjects = document.getElementById('paid-objects');
-    function random(min, max) { return Math.random() * (max - min) + min; }
-    function animateObj(el, idx) {
-      let t = random(0, 1000);
-      function frame() {
-        t += 0.016 + idx * 0.001;
-        el.style.transform = `translateY(${Math.sin(t + idx) * 18}px) scale(${1 + 0.08 * Math.sin(t + idx * 2)})`;
-        requestAnimationFrame(frame);
+    quizWrap.style.display = 'block';
+    // Example slide-related question (replace with dynamic if available)
+    const question = "What is the main topic of the current slide?";
+    const answer = "Sport Finance";
+    document.getElementById('slide-quiz-q').textContent = question;
+    document.getElementById('slide-quiz-btn').onclick = function() {
+      const userA = document.getElementById('slide-quiz-a').value.trim().toLowerCase();
+      const feedback = document.getElementById('slide-quiz-feedback');
+      if (!userA) { feedback.textContent = "Type your answer above."; feedback.style.color = '#ffd86b'; return; }
+      if (userA.includes(answer.toLowerCase())) {
+        feedback.textContent = "Correct! Well done.";
+        feedback.style.color = '#baff6b';
+      } else {
+        feedback.textContent = "Not quite. Try again or check your slide.";
+        feedback.style.color = '#ff6b6b';
       }
-      frame();
-    }
-    if (paidObjects) {
-      for (let i = 0; i < 7; i++) {
-        const icon = icons[i % icons.length];
-        const el = document.createElement('span');
-        el.className = `edu-obj ${icon.class}`;
-        el.innerHTML = icon.html;
-        el.style.left = random(5, 85) + 'vw';
-        el.style.top = random(5, 80) + 'vh';
-        el.style.fontSize = random(2, 3.2) + 'rem';
-        paidObjects.appendChild(el);
-        animateObj(el, i);
-      }
-    }
-
-    const bgm = document.getElementById('paid-bgm');
-    const muteBtn = document.getElementById('paid-mute');
-    let muted = false;
-    if (muteBtn && bgm) {
-      muteBtn.onclick = function () {
-        muted = !muted;
-        bgm.muted = muted;
-        muteBtn.textContent = muted ? '🔇' : '🔈';
-      };
-    }
-
-    const BYPASS_PREMIUM_GATE = true;
-    function getStudentPlan() {
-      try {
-        const sub = JSON.parse(localStorage.getItem('sp_student_subscription') || 'null');
-        if (sub && sub.status !== 'cancelled' && sub.plan) return sub.plan;
-      } catch (_) {}
-      return 'free';
-    }
-    function isPaidPlan() {
-      const plan = getStudentPlan();
-      return plan === 'student_elite' || plan === 'student_premium';
-    }
-    window.addEventListener('DOMContentLoaded', function () {
-      if (BYPASS_PREMIUM_GATE || isPaidPlan()) {
-        document.querySelectorAll('#paid-overlay').forEach(function (overlay) {
-          overlay.remove();
-        });
-      }
-    });
-  })();
+    };
+  }
+  </script>
+  </div>
+<style>
+@keyframes bounceByte {
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-12px);}
+}
+</style>
+</div>
+<script>
+// Play overlay SFX on show
+setTimeout(()=>{
+  try{document.getElementById('paid-sfx').play();}catch(e){}
+}, 350);
+// Mute/unmute music
+const bgm = document.getElementById('paid-bgm');
+const muteBtn = document.getElementById('paid-mute');
+let muted = false;
+muteBtn.onclick = function() {
+  muted = !muted;
+  bgm.muted = muted;
+  muteBtn.textContent = muted ? '🔇' : '🔈';
+};
 </script>
+<script>
+// Animated, gamified, educational objects
+const icons = [
+  { html: '📚', class: 'book' },
+  { html: '🧊', class: 'cube' },
+  { html: '⚛️', class: 'atom' },
+  { html: '➗', class: 'math' },
+  { html: '✏️', class: 'pencil' }
+];
+const objCount = 7;
+const paidObjects = document.getElementById('paid-objects');
+function random(min, max) { return Math.random() * (max - min) + min; }
+for (let i = 0; i < objCount; i++) {
+  const icon = icons[i % icons.length];
+  const el = document.createElement('span');
+  el.className = `edu-obj ${icon.class}`;
+  el.innerHTML = icon.html;
+  el.style.left = random(5, 85) + 'vw';
+  el.style.top = random(5, 80) + 'vh';
+  el.style.fontSize = random(2, 3.2) + 'rem';
+  paidObjects.appendChild(el);
+  animateObj(el, i);
+}
+function animateObj(el, idx) {
+  let t = random(0, 1000);
+  function frame() {
+    t += 0.016 + idx * 0.001;
+    const x = parseFloat(el.style.left);
+    const y = parseFloat(el.style.top);
+    el.style.transform = `translateY(${Math.sin(t + idx) * 18}px) scale(${1 + 0.08 * Math.sin(t + idx * 2)})`;
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+</script>
+<style>
+  #paid-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: radial-gradient(ellipse at center, #23243a 60%, #10101a 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', 'Space Grotesk', monospace, sans-serif;
+    color: #fff; animation: fadeInScale 0.7s cubic-bezier(.23,1.12,.32,1) 1;
+  }
+  @keyframes fadeInScale {
+    0% { opacity: 0; transform: scale(0.92); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  #paid-modal {
+    background: linear-gradient(135deg, #23243a 80%, #2e2e4d 100%);
+    border-radius: 22px; padding: 48px 38px 36px;
+    box-shadow: 0 10px 48px #000b, 0 0 0 2px #ffd86b44;
+    text-align: center; max-width: 92vw; border: 1.5px solid #ffd86b33;
+    position: relative;
+  }
+  #paid-modal .lock {
+    font-size: 3.2rem; margin-bottom: 10px; display: block;
+    color: #ffd86b; text-shadow: 0 2px 8px #0006;
+  }
+  #paid-modal .title {
+    font-size: 2.3rem; font-weight: 700; letter-spacing: 1.5px; margin-bottom: 8px;
+    color: #ffd86b; text-shadow: 0 2px 8px #0006;
+  }
+  #paid-modal .desc {
+    font-size: 1.13rem; margin-bottom: 22px; max-width: 370px; color: #eaeaea;
+  }
+  #paid-modal .highlight {
+    color: #ffd86b; font-weight: 600; letter-spacing: 0.5px;
+  }
+  #paid-modal button {
+    margin-top: 10px; padding: 12px 38px; font-size: 1.13rem;
+    background: linear-gradient(90deg, #ffd86b 60%, #ffe9a7 100%);
+    color: #23243a; border: none; border-radius: 9px; opacity: 0.85;
+    font-weight: 700; box-shadow: 0 2px 12px #0003;
+    cursor: not-allowed; transition: opacity 0.2s;
+  }
+  #paid-modal button:active { opacity: 0.7; }
+</style>
+
+<div id="paid-overlay">
+  <div id="paid-modal">
+    <span class="lock">🔒</span>
+    <div class="title">Paid Feature</div>
+    <div class="desc">The 3D Escape Room is a premium experience.<br><br><span class="highlight">Upgrade to unlock full access.</span></div>
+    <button disabled>Upgrade Required</button>
+  </div>
+</div>
+<div id="paid-overlay" style="position:fixed;inset:0;z-index:9999;background:rgba(10,10,20,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;color:#fff;">
+  <div style="background:rgba(30,30,60,0.98);border-radius:18px;padding:38px 32px 30px;box-shadow:0 8px 40px #000a;text-align:center;max-width:90vw;">
+    <div style="font-size:2.2rem;margin-bottom:10px;">🔒 Paid Feature</div>
+    <div style="font-size:1.1rem;margin-bottom:18px;max-width:340px;">The 3D Escape Room is a premium experience.<br><br><span style='color:#ffd86b;'>Upgrade to unlock full access.</span></div>
+    <button style="margin-top:10px;padding:10px 32px;font-size:1.1rem;background:#222a44;color:#ffd86b;border:none;border-radius:8px;opacity:0.7;cursor:not-allowed;" disabled>Upgrade Required</button>
+  </div>
+</div>
 <div id="hud">
   <div id="hud-title">🇿🇦 Mzansi Escape [3D] — Level 1: Klas 14B</div>
   <div id="progress">
@@ -237,7 +338,7 @@ setInterval(updatePlayerStatusOverlay, 2000);
 <div id="crosshair"><div class="crosshair-line crosshair-h"></div><div class="crosshair-line crosshair-v"></div><div class="crosshair-dot"></div></div>
 <div id="interaction-hint">CLICK to examine</div>
 <div id="hint-btn">💡 Need a hint? (-30s)</div>
-<button id="ai-hint-btn">🤖 Ask AI Hint</button>
+<button id="ai-hint-btn" style="position:fixed;bottom:70px;left:20px;background:rgba(26,14,4,.95);border:2px solid #6be0ff;color:#6be0ff;padding:8px 14px;border-radius:6px;font-family:'Share Tech Mono',monospace;cursor:pointer;z-index:102;font-size:.8rem;display:none;animation:hintPulse 2s infinite">🤖 Ask AI Hint</button>
 <!-- GM speech bubble -->
 <div id="gm-bubble"><div id="gm-name">MR. NKOSI</div><span id="gm-text"></span></div>
 <!-- Door lock status indicators -->
@@ -268,9 +369,9 @@ setInterval(updatePlayerStatusOverlay, 2000);
 <div id="pause-overlay">
   <div id="pause-panel">
     <h2>⏸ PAUSED</h2>
-    <div class="settings-row"><label for="vol-music">🔊 Music Volume</label><input type="range" id="vol-music" min="0" max="100" value="50" title="Music volume"><span id="vol-music-val">50</span></div>
-    <div class="settings-row"><label for="vol-sfx">🔊 SFX Volume</label><input type="range" id="vol-sfx" min="0" max="100" value="70" title="SFX volume"><span id="vol-sfx-val">70</span></div>
-    <div class="settings-row"><label for="sens-slider">🖱️ Mouse Sensitivity</label><input type="range" id="sens-slider" min="10" max="100" value="50" title="Mouse sensitivity"><span id="sens-val">50</span></div>
+    <div class="settings-row"><label>🔊 Music Volume</label><input type="range" id="vol-music" min="0" max="100" value="50"><span id="vol-music-val">50</span></div>
+    <div class="settings-row"><label>🔊 SFX Volume</label><input type="range" id="vol-sfx" min="0" max="100" value="70"><span id="vol-sfx-val">70</span></div>
+    <div class="settings-row"><label>🖱️ Mouse Sensitivity</label><input type="range" id="sens-slider" min="10" max="100" value="50"><span id="sens-val">50</span></div>
     <div class="pause-btn-row">
       <button class="btn-resume" id="resume-btn">▶ Resume</button>
       <button class="btn-leaderboard" id="show-lb-btn">🏆 Leaderboard</button>
@@ -323,67 +424,12 @@ setInterval(updatePlayerStatusOverlay, 2000);
   </div>
 </div>
 <div id="startup-screen">
-  <div class="panel">
-    <h1>🇿🇦 VASGEVANG!</h1>
-    <h2>Mzansi High — Room 14B — Free Movement &amp; Exploration</h2>
-
-    <div class="section">
-      <strong>Beweging (Movement)</strong><br>
-      <strong>CLICK anywhere</strong> to lock cursor and enable mouse look<br>
-      Then use WASD or Arrow Keys to move through the classroom<br>
-      Move mouse to rotate the player and camera<br>
-      ESC to unlock cursor
-    </div>
-
-    <div class="section">
-      <strong>Missie (Mission)</strong><br>
-      Los 6 legkarte op (Solve 6 puzzles)<br>
-      Praat met studente vir leidrade (Talk to students for clues)<br>
-      Versamel aanwysings (Collect clues)<br>
-      Vind die deurkode (Find the door code)<br>
-      Ontsnap! (Escape!)
-    </div>
-
-    <div class="section mode-pick">
-      <strong>Play Mode</strong>
-      <div class="mode-row">
-        <button id="mode-solo-btn" type="button" class="mode-btn active">Solo</button>
-        <button id="mode-multi-btn" type="button" class="mode-btn">Multiplayer</button>
-        <button id="mode-tournament-btn" type="button" class="mode-btn">Tournament</button>
-      </div>
-
-      <div id="multiplayer-settings" class="multiplayer-settings" hidden>
-        <label for="mp-server">Live Server</label>
-        <input id="mp-server" type="text" value="ws://localhost:8081" placeholder="ws://localhost:8081">
-
-        <label for="mp-code">Session Code</label>
-        <div class="mp-code-row">
-          <input id="mp-code" type="text" value="" placeholder="e.g. Q7K9M2" maxlength="10" autocomplete="off">
-          <button id="mp-generate-code" type="button" class="mp-code-btn">Create Code</button>
-          <button id="mp-apply-code" type="button" class="mp-code-btn secondary">Join by Code</button>
-        </div>
-        <div id="mp-code-note" class="mp-code-note">Host: click Create Code and share it. Guest: paste code and click Join by Code.</div>
-
-        <label for="mp-room">Room ID (advanced)</label>
-        <input id="mp-room" type="text" value="room-14b" placeholder="room-14b">
-
-        <label for="mp-name">Player Name</label>
-        <input id="mp-name" type="text" value="Player" placeholder="Player">
-      </div>
-
-      <div id="mode-note" class="mode-note">Solo selected.</div>
-    </div>
-
-    <button id="start-game" type="button">BEGIN SPEL (START GAME)</button>
-    <div class="note">Multiplayer and Tournament are live across different devices via WebSocket.</div>
-  </div>
-</div>
+<div class="panel"><h1>🇿🇦 VASGEVANG!</h1><h2>Mzansi High — Room 14B — Free Movement &amp; Exploration</h2><div class="section"><strong>Beweging (Movement)</strong><br><strong>CLICK anywhere</strong> to lock cursor and enable mouse look<br>Then use WASD or Arrow Keys to move through the classroom<br>Move mouse to rotate the player and camera<br>ESC to unlock cursor</div><div class="section"><strong>Missie (Mission)</strong><br>Los 6 legkarte op (Solve 6 puzzles)<br>Praat met studente vir leidrade (Talk to students for clues)<br>Versamel aanwysings (Collect clues)<br>Vind die deurkode (Find the door code)<br>Ontsnap! (Escape!)</div><div class="section mode-pick"><strong>Play Mode</strong><div class="mode-row"><button id="mode-solo-btn" type="button" class="mode-btn active">Solo</button><button id="mode-multi-btn" type="button" class="mode-btn">Multiplayer</button></div><div id="multiplayer-settings" class="multiplayer-settings" hidden><label for="mp-server">Live Server</label><input id="mp-server" type="text" value="ws://localhost:8081" placeholder="ws://localhost:8081"><label for="mp-room">Room ID</label><input id="mp-room" type="text" value="room-14b" placeholder="room-14b"><label for="mp-name">Player Name</label><input id="mp-name" type="text" value="Player" placeholder="Player"></div><div id="mode-note" class="mode-note">Solo selected.</div></div><button id="start-game" type="button">BEGIN SPEL (START GAME)</button><div class="note">Tournament mode is disabled. Multiplayer is live only across different devices via WebSocket.</div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.6.10/umd/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="../../shared/premium-game-reporter.js"></script>
 <audio id="pickup-sound" src="pickup.mp3" preload="auto"></audio>
 <audio id="bg-music" src="bg-music.mp3" loop preload="auto"></audio>
 <script src="script-3d.js"></script>
@@ -408,13 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
           secs: window.G && G.secs ? G.secs : 0,
           level: window.G && G.level ? G.level : 1
         };
-        if (window.location.protocol === 'file:') {
-          showToast('🤖 AI hints need the app server. Local preview uses the normal hint system.', 'ai-hint');
-          aiBtn.disabled = false;
-          aiBtn.textContent = '🤖 Ask AI Hint';
-          return;
-        }
-
+        // Call AI backend (replace URL with your endpoint)
         const res = await fetch('/api/ai-hint', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

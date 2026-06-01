@@ -55,7 +55,7 @@
   }
 
   function looksTrivialStem(s) {
-    return /^(what is|who is|when is|when did|where is|define|name|identify)\b/i.test(String(s || "").trim());
+    return /^(what is|who is|when is|when did|where is|define|name|identify|which of the following|choose the correct|select the correct)\b/i.test(String(s || "").trim());
   }
 
   function hasAnswerLeak(question, answerText) {
@@ -81,8 +81,13 @@
     if (explanation.length < 18) return false;
 
     // Medium/Hard should avoid short trivial recall stems.
-    if ((expectedDifficulty === "medium" || expectedDifficulty === "hard") && looksTrivialStem(question) && question.length < 70) {
+    if ((expectedDifficulty === "medium" || expectedDifficulty === "hard") && looksTrivialStem(question) && question.length < 80) {
       return false;
+    }
+
+    if (questionType === "true_false") {
+      if (!/\b(true|false)\b/i.test(question) && question.length < 20) return false;
+      return true;
     }
 
     if (questionType !== "true_false") {
@@ -90,6 +95,7 @@
         const accepted = Array.isArray(rawQ?.acceptedAnswers) ? rawQ.acceptedAnswers : [];
         if (accepted.length < 1) return false;
         if (accepted.some((a) => String(a || "").trim().length < 2)) return false;
+        if (hasAnswerLeak(question, rawQ?.sampleAnswer || accepted[0])) return false;
         return true;
       }
 
@@ -101,6 +107,13 @@
       const correctIdx = { A:0, B:1, C:2, D:3 }[rawQ?.correctAnswer];
       if (typeof correctIdx !== "number") return false;
       if (hasAnswerLeak(question, options[correctIdx])) return false;
+
+      const stemTokens = tokenize(question);
+      const distractorOverlap = options
+        .filter((_, idx) => idx !== correctIdx)
+        .map((option) => clamp01(jaccard(question, option)));
+      if (distractorOverlap.some((value) => value > 0.8)) return false;
+      if (stemTokens.length < 4) return false;
     }
 
     return true;
@@ -531,16 +544,22 @@ REQUIREMENTS:
 - Prefer specific, slide-based questions over broad textbook trivia.
 - Use the focus concepts above when choosing what to ask about.
 - Mix question stems when appropriate: explain why, compare, apply, infer, evaluate, identify relationships.
+- Aim for variety across the set: no repeated opening pattern, no repeated wording, and no near-duplicate concepts.
+- At medium and hard difficulty, at least half of the questions should require application, comparison, inference, or reasoning rather than direct recall.
 - ${difficulty === "hard" ? "Include nuanced reasoning, common misconceptions as distractors, and multi-step thinking." : ""}
 - ${difficulty === "easy" ? "Use clear, direct language. Test recall and basic understanding." : ""}
 - ${difficulty === "medium" ? "Test application and analysis of the content, not just recall." : ""}
 ${typeInstructions}
 - Avoid repetitive openings like "What is..." unless the slide is clearly a definition slide.
-- Favor stems such as "Which statement best explains...", "What would happen if...", "Which example best fits...", and "How does...".
+- Favor stems such as "Which statement best explains...", "What would happen if...", "Which example best fits...", "How does...", and "Why does...".
+- For MCQ: keep all four options plausible, similar in style and length, and based on likely misconceptions from the lesson.
+- Do not make the correct answer obvious through length, wording, or grammar.
 - Include a concise "explanation" (1–2 sentences) for each correct answer — this is used for coaching.
+- Explanations should briefly justify the correct answer using the lesson content and should not simply restate the answer.
 - Do NOT include questions about formatting, page numbers, or metadata.
 - Avoid trivial stems (e.g., "What is...") unless pedagogically justified.
 - Avoid answer leakage (the correct option phrase appearing inside the question text).
+- If the content is sparse, return fewer high-quality questions instead of forcing weak ones.
 - If a draft question is weak, regenerate it before final output.
 
 RESPONSE FORMAT: Return ONLY a single valid JSON object. No markdown, no extra text.
@@ -592,10 +611,43 @@ ${qType === "true_false" ? `{
 QUALITY REGENERATION PASS:
 - The previous draft produced only ${previousCount} acceptable questions.
 - Regenerate to return exactly ${count} strong questions that pass strict quality.
-- Focus on scenario-based, application, comparison, and reasoning prompts.
-- Make the questions more specific to the slide concepts rather than broad trivia.
+- Replace any weak, repetitive, or overly generic question with a more specific one.
+- Prefer scenario-based, application, comparison, and reasoning prompts.
+- Make the distractors more plausible and closer in wording to the correct answer.
 - Keep explanations concise and evidence-based from the lesson content.
+- Do not reuse the same question stem patterns from the previous draft.
 `.trim();
+  }
+
+  async function generateWithQualityRetry(sourceText, opts, questionType, sourceKind, buildFn) {
+    const targetCount = Math.max(1, Number(opts.count || 10));
+    const minAcceptable = Math.max(3, Math.ceil(targetCount * 0.75));
+    const initialRaw = await buildFn(false, targetCount);
+    let result = parseAndFilter(initialRaw, targetCount, questionType, {
+      difficulty: opts.difficulty,
+      sourceText,
+    });
+
+    if (result.questions.length >= minAcceptable) {
+      return result;
+    }
+
+    const retryTarget = Math.max(targetCount, Math.ceil(targetCount * 1.5));
+    const retryRaw = await buildFn(true, retryTarget, result.questions.length);
+    const retried = parseAndFilter(retryRaw, targetCount, questionType, {
+      difficulty: opts.difficulty,
+      sourceText,
+    });
+
+    if (retried.questions.length > result.questions.length) {
+      return retried;
+    }
+
+    if (sourceKind && result.questions.length > 0) {
+      result.source = sourceKind;
+    }
+
+    return result;
   }
 
   function extractFocusTerms(text, limit = 10) {
@@ -811,11 +863,13 @@ QUALITY REGENERATION PASS:
 Generate ${count} ${type} questions about: "${topic}"
 Difficulty: ${difficulty.toUpperCase()} — Bloom's levels: ${bloom.levels.join(", ")} (${bloom.verbs})
 ${qType === "mcq" || qType === "mixed"
-  ? `Each question: 4 options (A-D), correctAnswer as letter, plausible distractors.`
+  ? `Each question: 4 options (A-D), correctAnswer as letter, plausible distractors, and no answer leakage.`
   : qType === "true_false"
   ? `Each question: a clear statement, correctAnswer as true/false boolean.`
   : `Each question: include acceptedAnswers array and sampleAnswer for typed response.`}
-Include a 1-sentence explanation per question.
+Include a 1-2 sentence explanation per question that uses the topic in context.
+Vary stems across the set so the questions do not all start the same way.
+Prefer reasoning, application, and comparison questions over generic recall when difficulty is medium or hard.
 Return ONLY valid JSON:
 { "topic": "${topic}", "questions": [{ "question":"...", ${qType==="true_false"?'"correctAnswer":true,':qType==="short_answer"?'"acceptedAnswers":["...","..."], "sampleAnswer":"...",':'"options":["...","...","...","..."], "correctAnswer":"A",'} "difficulty":"${difficulty}", "explanation":"..." }] }`;
 
@@ -847,13 +901,14 @@ Return ONLY valid JSON:
     if (isImageFile(file)) {
       onProgress("Analysing image with AI vision…", 30);
       try {
-        const raw = await callGeminiVision(file, { difficulty: effectiveDifficulty, count, questionType: normalizedQuestionType });
+        const result = await generateWithQualityRetry(
+          "",
+          { difficulty: effectiveDifficulty, count },
+          normalizedQuestionType,
+          "vision",
+          async (strict, retryCount) => callGeminiVision(file, { difficulty: effectiveDifficulty, count: retryCount, questionType: normalizedQuestionType, strict }),
+        );
         onProgress("Reviewing question quality…", 80);
-        let result = parseAndFilter(raw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: "" });
-        if (result.questions.length < Math.ceil(count * 0.75)) {
-          const retryRaw = await callGeminiVision(file, { difficulty: effectiveDifficulty, count: Math.ceil(count * 1.5), questionType: normalizedQuestionType, strict: true });
-          result = parseAndFilter(retryRaw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: "" });
-        }
         if (result.questions.length > 0) {
           onProgress("Done!", 100);
           return { questions: result.questions, count: result.questions.length, topic: result.topic, rawText: "", source: "vision" };
@@ -867,15 +922,19 @@ Return ONLY valid JSON:
         const ocrText = await extractImageTextOCR(file);
         if (ocrText.length > 80) {
           onProgress("Generating questions from OCR text…", 65);
-          const prompt = buildPrompt(ocrText, { difficulty: effectiveDifficulty, count: Math.ceil(count * 1.5), questionType: normalizedQuestionType });
-          const raw = await callGemini(prompt);
+        const result = await generateWithQualityRetry(
+          rawText,
+          { difficulty: effectiveDifficulty, count },
+          normalizedQuestionType,
+          "text",
+          async (strict, retryCount, previousCount) => {
+            const prompt = strict
+              ? buildRegenerationPrompt(rawText, { difficulty: effectiveDifficulty, count: retryCount, questionType: normalizedQuestionType }, previousCount || 0)
+              : buildPrompt(rawText, { difficulty: effectiveDifficulty, count: retryCount, questionType: normalizedQuestionType });
+            return callGemini(prompt);
+          },
+        );
           onProgress("Reviewing question quality…", 85);
-          let result = parseAndFilter(raw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: ocrText });
-          if (result.questions.length < Math.ceil(count * 0.75)) {
-            const retryPrompt = buildRegenerationPrompt(ocrText, { difficulty: effectiveDifficulty, count: Math.ceil(count * 1.5), questionType: normalizedQuestionType }, result.questions.length);
-            const retryRaw = await callGemini(retryPrompt);
-            result = parseAndFilter(retryRaw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: ocrText });
-          }
           if (result.questions.length > 0) {
             onProgress("Done!", 100);
             return {

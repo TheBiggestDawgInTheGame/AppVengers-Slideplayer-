@@ -6,7 +6,6 @@
       rel="stylesheet"
     />
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>SlidePlay | Upgrade Plan</title>
     <link
@@ -15,7 +14,6 @@
     />
     <link rel="stylesheet" href="payment.css?v=2.1" />
     <link rel="stylesheet" href="page-transition.css" />
-    <link rel="stylesheet" href="responsive-shared.css" />
     <style>
       /* GLOBAL FONT SYSTEM */
       body {
@@ -48,10 +46,6 @@
         font-family: "Poppins", sans-serif;
       }
     </style>
-    <script>
-      // Auth guard
-      if (!localStorage.getItem('sp_user_uid')) { window.location.replace('login.html'); }
-    </script>
   </head>
   <body>
     <div class="hud-grid"></div>
@@ -75,22 +69,14 @@
           <i class="fa-solid fa-gear"></i>
         </a>
         <div class="teacher-pill">
-          <img src="https://i.pravatar.cc/80?img=47" alt="avatar" />
+          <img src="https://i.pravatar.cc/80?img=47" alt="Teacher avatar" />
           <div>
-            <strong id="payHeaderName">User</strong>
-            <span id="payHeaderRole">SlidePlay</span>
+            <strong>Dr. M. Stark</strong>
+            <span>Physics Department</span>
           </div>
         </div>
       </div>
     </header>
-    <script>
-      (function(){
-        var n = localStorage.getItem('sp_user_displayName') || localStorage.getItem('sp_user_name') || (localStorage.getItem('sp_user_email')||'').split('@')[0] || 'User';
-        var r = localStorage.getItem('sp_user_role') || 'member';
-        document.getElementById('payHeaderName').textContent = n;
-        document.getElementById('payHeaderRole').textContent = r.charAt(0).toUpperCase() + r.slice(1);
-      })();
-    </script>
 
     <main class="dashboard-layout">
       <aside class="side-nav">
@@ -115,7 +101,7 @@
           <a href="UploadPage.html"
             ><i class="fa-solid fa-cloud-arrow-up"></i> Resource Upload</a
           >
-          <a href="AcessControl.html"
+          <a href="AccessControl.html"
             ><i class="fa-solid fa-user-shield"></i> Student Access Grid</a
           >
           <a href="payment.html" class="active"
@@ -137,7 +123,7 @@
       <section class="main-zone">
         <div class="hero-card card">
           <div class="hero-copy">
-            <p class="chip">SYSTEM â€º BILLING</p>
+            <p class="chip">SYSTEM › BILLING</p>
             <h1>Upgrade Plan</h1>
             <p>
               Choose the best plan for your classroom command center and manage
@@ -163,7 +149,7 @@
         <article class="card">
           <div class="page-context-header">
             <div class="page-id">
-              <span class="page-tag">SYSTEM â€º BILLING</span>
+              <span class="page-tag">SYSTEM › BILLING</span>
               <h1 class="page-title">Upgrade Plan</h1>
             </div>
             <div class="top-controls">
@@ -325,8 +311,8 @@
           <div class="sub-info-panel sp-hidden" id="subInfoPanel">
             <div class="sub-info-inner">
               <div>
-                <h3 id="subPlanTitle">Tactical Pro â€” Active</h3>
-                <p id="subRenewalDate">Renews on â€”</p>
+                <h3 id="subPlanTitle">Tactical Pro — Active</h3>
+                <p id="subRenewalDate">Renews on —</p>
               </div>
               <div class="sub-actions">
                 <button class="cancel-sub-btn" id="cancelSubBtn">
@@ -430,16 +416,19 @@
           <button type="button" class="method-tab" data-method="payfast">
             <img src="https://www.payfast.io/wp-content/uploads/2022/11/Payfast-logo-2022.svg" alt="PayFast" style="height:1em;vertical-align:middle;margin-right:4px;filter:brightness(0) invert(1);"> PayFast
           </button>
-          <button type="button" class="method-tab" data-method="crypto">
-            <i class="fa-brands fa-bitcoin"></i> Crypto
-          </button>
-          <button type="button" class="method-tab" data-method="stripe">
-            <i class="fa-brands fa-stripe-s"></i> Stripe
-          </button>
         </div>
 
         <form class="payment-form" id="paymentForm" novalidate>
           <div class="pay-method-panel active" id="panel-card">
+                      <div class="pay-method-panel" id="panel-payfast">
+                        <div class="payfast-info-box">
+                          <h4><img src="https://www.payfast.io/wp-content/uploads/2022/11/Payfast-logo-2022.svg" alt="PayFast" style="height:1.2em;vertical-align:middle;margin-right:6px;filter:brightness(0) invert(1);"> PayFast Payment</h4>
+                          <p>Pay securely using South Africa's leading payment gateway. You will be redirected to PayFast to complete your payment.</p>
+                        </div>
+                        <button type="button" class="pay-btn" id="payfastBtn">
+                          <span><i class="fa-solid fa-lock"></i> Pay with PayFast</span>
+                        </button>
+                      </div>
             <div class="form-group">
               <label for="cardName">Cardholder Name</label>
               <input
@@ -456,7 +445,7 @@
                 <input
                   type="text"
                   id="cardNumber"
-                  placeholder="â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢"
+                  placeholder="•••• •••• •••• ••••"
                   maxlength="19"
                   autocomplete="cc-number"
                   required
@@ -483,7 +472,7 @@
                 <input
                   type="text"
                   id="cardCvc"
-                  placeholder="â€¢â€¢â€¢"
+                  placeholder="•••"
                   maxlength="4"
                   autocomplete="cc-csc"
                   required
@@ -519,16 +508,6 @@
             </p>
           </div>
 
-          <div class="pay-method-panel" id="panel-payfast">
-            <div class="payfast-info-box">
-              <h4><img src="https://www.payfast.io/wp-content/uploads/2022/11/Payfast-logo-2022.svg" alt="PayFast" style="height:1.2em;vertical-align:middle;margin-right:6px;filter:brightness(0) invert(1);"> PayFast Payment</h4>
-              <p>Pay securely using South Africa's leading payment gateway. You will be redirected to PayFast to complete your payment.</p>
-            </div>
-            <button type="button" class="pay-btn" id="payfastBtn">
-              <span><i class="fa-solid fa-lock"></i> Pay with PayFast</span>
-            </button>
-          </div>
-
           <div class="pay-method-panel" id="panel-bank">
             <div class="bank-details-box">
               <h4><i class="fa-solid fa-building-columns"></i> Transfer to</h4>
@@ -552,35 +531,9 @@
               <input type="file" id="transferProof" accept="image/*,.pdf" />
             </div>
             <p class="method-note">
-              <i class="fa-solid fa-circle-info"></i> Activation within 1â€“2
+              <i class="fa-solid fa-circle-info"></i> Activation within 1–2
               business days after transfer confirmation.
             </p>
-          </div>
-
-          <div class="pay-method-panel" id="panel-crypto">
-            <div class="bank-details-box">
-              <h4><i class="fa-brands fa-bitcoin"></i> Pay with Crypto</h4>
-              <div class="bank-row"><span>Provider</span><strong>Coinbase Commerce</strong></div>
-              <div class="bank-row"><span>Supported</span><strong>BTC, ETH, USDC and more</strong></div>
-              <div class="bank-row"><span>Settlement</span><strong>Real-time blockchain confirmation</strong></div>
-            </div>
-            <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will be redirected to a secure Coinbase-hosted checkout page.</p>
-            <button type="button" class="pay-btn" id="cryptoBtn">
-              <span><i class="fa-brands fa-bitcoin"></i> Pay with Crypto</span>
-            </button>
-          </div>
-
-          <div class="pay-method-panel" id="panel-stripe">
-            <div class="bank-details-box">
-              <h4><i class="fa-brands fa-stripe-s"></i> Pay with Stripe</h4>
-              <div class="bank-row"><span>Accepted</span><strong>Visa, Mastercard, Amex</strong></div>
-              <div class="bank-row"><span>Security</span><strong>256-bit SSL encryption</strong></div>
-              <div class="bank-row"><span>Mode</span><strong id="stripeModeLabel">Demo (test)</strong></div>
-            </div>
-            <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will be redirected to a secure Stripe-hosted checkout page.</p>
-            <button type="button" class="pay-btn" id="stripeBtn">
-              <span><i class="fa-brands fa-stripe-s"></i> Pay with Stripe</span>
-            </button>
           </div>
 
           <div class="coupon-row">
@@ -593,16 +546,16 @@
 
           <div class="order-summary">
             <div class="order-row">
-              <span>Plan</span><span id="orderPlanName">â€”</span>
+              <span>Plan</span><span id="orderPlanName">—</span>
             </div>
             <div class="order-row">
-              <span>Billing</span><span id="orderBilling">â€”</span>
+              <span>Billing</span><span id="orderBilling">—</span>
             </div>
             <div class="order-row discount-row sp-hidden" id="discountRow">
-              <span>Discount</span><span id="orderDiscount">â€”</span>
+              <span>Discount</span><span id="orderDiscount">—</span>
             </div>
             <div class="order-row total-row">
-              <span>Total</span><span id="orderTotal">â€”</span>
+              <span>Total</span><span id="orderTotal">—</span>
             </div>
           </div>
 
@@ -620,7 +573,7 @@
               ><i class="fa-solid fa-lock"></i> Pay Now</span
             >
             <span id="payBtnLoading" class="sp-hidden"
-              ><i class="fa-solid fa-spinner fa-spin"></i> Processingâ€¦</span
+              ><i class="fa-solid fa-spinner fa-spin"></i> Processing…</span
             >
           </button>
         </form>
@@ -654,6 +607,5 @@
 
     <script src="payment.js"></script>
     <script src="page-transition.js"></script>
-    <script src="i18n-sa.js"></script>
-</body>
+  </body>
 </html>

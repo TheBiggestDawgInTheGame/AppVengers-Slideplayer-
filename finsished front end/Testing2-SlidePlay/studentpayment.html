@@ -7,13 +7,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Rajdhani:wght@500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="studentpayment.css" />
-  <link rel="stylesheet" href="responsive-shared.css" />
-  <script src="theme-sync.js"></script>
-  <script>
-    if (!localStorage.getItem('sp_user_uid')) {
-      window.location.replace('login.html');
-    }
-  </script>
 </head>
 <body data-role="student">
   <div class="hud-grid"></div>
@@ -30,7 +23,7 @@
       <a href="Studentdashboard.html" class="nav-item"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
       <a href="library.html" class="nav-item"><i class="fa-solid fa-book"></i><span>Library</span></a>
       <a href="quests.html" class="nav-item"><i class="fa-solid fa-bolt"></i><span>Quests</span></a>
-      <a href="choose_exp.html" class="nav-item"><i class="fa-solid fa-gamepad"></i><span>Game Mode</span></a>
+      <a href="game.html" class="nav-item"><i class="fa-solid fa-gamepad"></i><span>Game Mode</span></a>
       <a href="billing.html" class="nav-item"><i class="fa-solid fa-credit-card"></i><span>Billing</span></a>
       <a href="studentpayment.html" class="nav-item active"><i class="fa-solid fa-wallet"></i><span>Student Payment</span></a>
       <a href="settings.html" class="nav-item"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
@@ -40,7 +33,7 @@
   <div class="main-zone">
     <div class="top-bar">
       <div class="page-id">
-        <span class="page-tag">PORTAL â€º STUDENT PAYMENT</span>
+        <span class="page-tag">PORTAL › STUDENT PAYMENT</span>
         <h1 class="page-title">Upgrade Plan</h1>
       </div>
       <div class="top-controls">
@@ -117,8 +110,8 @@
     <div class="sub-info-panel sp-hidden" id="subInfoPanel">
       <div class="sub-info-inner">
         <div>
-          <h3 id="subPlanTitle">Student Elite â€” Active</h3>
-          <p id="subRenewalDate">Renews on â€”</p>
+          <h3 id="subPlanTitle">Student Elite — Active</h3>
+          <p id="subRenewalDate">Renews on —</p>
         </div>
         <div class="sub-actions">
           <button class="cancel-sub-btn" id="cancelSubBtn"><i class="fa-solid fa-ban"></i> Cancel Subscription</button>
@@ -149,8 +142,6 @@
         <button class="method-tab" data-method="mobile"><i class="fa-solid fa-mobile-screen-button"></i> Mobile Money</button>
         <button class="method-tab" data-method="bank"><i class="fa-solid fa-building-columns"></i> Bank Transfer</button>
         <button class="method-tab" data-method="crypto"><i class="fa-brands fa-bitcoin"></i> Crypto</button>
-        <button class="method-tab" data-method="payfast"><img src="https://www.payfast.io/wp-content/uploads/2022/11/Payfast-logo-2022.svg" alt="PayFast" style="height:1em;vertical-align:middle;margin-right:4px;filter:brightness(0) invert(1);"> PayFast</button>
-        <button class="method-tab" data-method="stripe"><i class="fa-brands fa-stripe-s"></i> Stripe</button>
       </div>
       <!-- Card Form -->
       <form class="payment-form" id="paymentForm" novalidate>
@@ -162,7 +153,7 @@
           <div class="form-group">
             <label for="cardNumber">Card Number</label>
             <div class="card-input-wrap">
-              <input type="text" id="cardNumber" placeholder="â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢" maxlength="19" autocomplete="cc-number" required />
+              <input type="text" id="cardNumber" placeholder="•••• •••• •••• ••••" maxlength="19" autocomplete="cc-number" required />
               <span class="card-brand-icon" id="cardBrandIcon"><i class="fa-regular fa-credit-card"></i></span>
             </div>
           </div>
@@ -173,7 +164,7 @@
             </div>
             <div class="form-group">
               <label for="cardCvc">CVC</label>
-              <input type="text" id="cardCvc" placeholder="â€¢â€¢â€¢" maxlength="4" autocomplete="cc-csc" required />
+              <input type="text" id="cardCvc" placeholder="•••" maxlength="4" autocomplete="cc-csc" required />
             </div>
           </div>
         </div>
@@ -208,47 +199,85 @@
             <label for="transferProof">Upload Transfer Proof (optional)</label>
             <input type="file" id="transferProof" accept="image/*,.pdf" />
           </div>
-          <p class="method-note"><i class="fa-solid fa-circle-info"></i> Activation within 1â€“2 business days after transfer confirmation.</p>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> Activation within 1–2 business days after transfer confirmation.</p>
         </div>
         <!-- Crypto -->
         <div class="pay-method-panel" id="panel-crypto">
-          <div class="bank-details-box">
-            <h4><i class="fa-brands fa-bitcoin"></i> Pay with Crypto</h4>
+          <div class="form-group">
+            <label>Select Cryptocurrency</label>
+            <div class="crypto-coin-grid" id="cryptoCoinSelector">
+              <button type="button" class="coin-btn active" data-coin="USDC">
+                <i class="fa-solid fa-circle-dollar-to-slot"></i>
+                <span>USDC</span>
+                <small>Stablecoin</small>
+              </button>
+              <button type="button" class="coin-btn" data-coin="BTC">
+                <i class="fa-brands fa-bitcoin"></i>
+                <span>Bitcoin</span>
+                <small>BTC</small>
+              </button>
+              <button type="button" class="coin-btn" data-coin="ETH">
+                <i class="fa-brands fa-ethereum"></i>
+                <span>Ethereum</span>
+                <small>ETH</small>
+              </button>
+              <button type="button" class="coin-btn" data-coin="DOGE">
+                <i class="fa-solid fa-dog"></i>
+                <span>Dogecoin</span>
+                <small>DOGE</small>
+              </button>
+              <button type="button" class="coin-btn" data-coin="LTC">
+                <i class="fa-solid fa-coins"></i>
+                <span>Litecoin</span>
+                <small>LTC</small>
+              </button>
+              <button type="button" class="coin-btn" data-coin="SOL">
+                <i class="fa-solid fa-sun"></i>
+                <span>Solana</span>
+                <small>SOL</small>
+              </button>
+            </div>
+          </div>
+          <div class="bank-details-box" style="margin-top:0.8rem;">
             <div class="bank-row"><span>Provider</span><strong>Coinbase Commerce</strong></div>
-            <div class="bank-row"><span>Supported</span><strong>BTC, ETH, USDC and more</strong></div>
             <div class="bank-row"><span>Settlement</span><strong>Real-time blockchain confirmation</strong></div>
+            <div class="bank-row" id="selectedCoinRow"><span>Selected</span><strong id="selectedCoinLabel">USDC</strong></div>
           </div>
-          <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will be redirected to a secure Coinbase-hosted checkout page.</p>
-          <button type="button" class="pay-btn" id="cryptoBtn">
-            <span><i class="fa-brands fa-bitcoin"></i> Pay with Crypto</span>
-          </button>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will be redirected to a secure Coinbase-hosted checkout. All major coins accepted.</p>
         </div>
-        <!-- PayFast -->
-        <div class="pay-method-panel" id="panel-payfast">
-          <div class="bank-details-box">
-            <h4><img src="https://www.payfast.io/wp-content/uploads/2022/11/Payfast-logo-2022.svg" alt="PayFast" style="height:1.2em;vertical-align:middle;margin-right:6px;filter:brightness(0) invert(1);"> PayFast Payment</h4>
-            <div class="bank-row"><span>Provider</span><strong>PayFast</strong></div>
-            <div class="bank-row"><span>Supported</span><strong>Card, EFT, Instant EFT, SnapScan</strong></div>
-            <div class="bank-row"><span>Region</span><strong>South Africa</strong></div>
-          </div>
-          <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will be redirected to PayFast to complete your payment securely.</p>
-          <button type="button" class="pay-btn" id="payfastBtn">
-            <span><i class="fa-solid fa-lock"></i> Pay with PayFast</span>
-          </button>
-        </div>
-        <!-- Stripe -->
-        <div class="pay-method-panel" id="panel-stripe">
-          <div class="bank-details-box">
-            <h4><i class="fa-brands fa-stripe-s"></i> Pay with Stripe</h4>
-            <div class="bank-row"><span>Accepted</span><strong>Visa, Mastercard, Amex</strong></div>
-            <div class="bank-row"><span>Security</span><strong>256-bit SSL encryption</strong></div>
-            <div class="bank-row"><span>Mode</span><strong id="stripeModeLabel">Demo (test)</strong></div>
-          </div>
-          <p class="method-note"><i class="fa-solid fa-circle-info"></i> You will be redirected to a secure Stripe-hosted checkout page.</p>
-          <button type="button" class="pay-btn" id="stripeBtn">
-            <span><i class="fa-brands fa-stripe-s"></i> Pay with Stripe</span>
-          </button>
-        </div>
+        <style>
+          .crypto-coin-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.55rem;
+            margin-top: 0.4rem;
+          }
+          .coin-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.7rem 0.4rem;
+            border-radius: 0.7rem;
+            border: 1.5px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: #a0aec0;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            font-family: 'Poppins', sans-serif;
+          }
+          .coin-btn i { font-size: 1.4rem; }
+          .coin-btn span { font-size: 0.78rem; font-weight: 600; color: #e2e8f0; }
+          .coin-btn small { font-size: 0.65rem; color: #64748b; }
+          .coin-btn:hover { border-color: rgba(139,92,246,0.5); background: rgba(139,92,246,0.08); color: #c4b5fd; }
+          .coin-btn.active {
+            border-color: #8b5cf6;
+            background: rgba(139,92,246,0.15);
+            color: #c4b5fd;
+            box-shadow: 0 0 12px rgba(139,92,246,0.3);
+          }
+          .coin-btn.active span { color: #c4b5fd; }
+        </style>
         <!-- Coupon -->
         <div class="coupon-row">
           <input type="text" id="couponCode" placeholder="Coupon code" />
@@ -257,10 +286,10 @@
         <p class="coupon-msg" id="couponMsg"></p>
         <!-- Totals -->
         <div class="order-summary">
-          <div class="order-row"><span>Plan</span><span id="orderPlanName">â€”</span></div>
-          <div class="order-row"><span>Billing</span><span id="orderBilling">â€”</span></div>
-          <div class="order-row discount-row sp-hidden" id="discountRow"><span>Discount</span><span id="orderDiscount">â€”</span></div>
-          <div class="order-row total-row"><span>Total</span><span id="orderTotal">â€”</span></div>
+          <div class="order-row"><span>Plan</span><span id="orderPlanName">—</span></div>
+          <div class="order-row"><span>Billing</span><span id="orderBilling">—</span></div>
+          <div class="order-row discount-row sp-hidden" id="discountRow"><span>Discount</span><span id="orderDiscount">—</span></div>
+          <div class="order-row total-row"><span>Total</span><span id="orderTotal">—</span></div>
         </div>
         <!-- Terms -->
         <label class="terms-check">
@@ -269,7 +298,7 @@
         </label>
         <button type="submit" class="pay-btn" id="payBtn">
           <span id="payBtnText"><i class="fa-solid fa-lock"></i> Pay Now</span>
-          <span id="payBtnLoading" class="sp-hidden"><i class="fa-solid fa-spinner fa-spin"></i> Processingâ€¦</span>
+          <span id="payBtnLoading" class="sp-hidden"><i class="fa-solid fa-spinner fa-spin"></i> Processing…</span>
         </button>
       </form>
     </div>
@@ -292,6 +321,5 @@
     </div>
   </div>
   <script src="payment.js"></script>
-  <script src="i18n-sa.js"></script>
 </body>
 </html>
