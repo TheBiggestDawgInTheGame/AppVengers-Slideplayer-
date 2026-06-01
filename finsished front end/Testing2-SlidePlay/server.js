@@ -32,6 +32,9 @@ const EMAIL_APP_URL = process.env.APP_URL || "https://appvengers-slideplayer-1.o
 const SESSION_HISTORY_MAX_ROWS = Math.max(50, Number(process.env.SESSION_HISTORY_MAX_ROWS || 1000));
 const SESSION_HISTORY_RETENTION_DAYS = Math.max(7, Number(process.env.SESSION_HISTORY_RETENTION_DAYS || 120));
 const SESSION_HISTORY_RETENTION_MS = SESSION_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || EMAIL_APP_URL || "https://appvengers-slideplayer-1.onrender.com")
+  .trim()
+  .replace(/\/+$/, "");
 const ADMIN_EMAIL_ALLOWLIST = new Set([
   "bossmk2209@gmail.com",
   "mutevherichard@gmail.com",
@@ -62,6 +65,26 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+const NOINDEX_PATHS = new Set([
+  "/login.html",
+  "/signup.html",
+  "/reset.html",
+  "/admin-dashboard.html",
+  "/teacher-manager.html",
+  "/AcessControl.html",
+]);
+
+app.use((req, res, next) => {
+  const reqPath = String(req.path || "");
+  if (reqPath.startsWith("/api/")) {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  } else if (NOINDEX_PATHS.has(reqPath)) {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+  }
+  next();
+});
+
 app.use(express.static(__dirname));
 const slideUploadDir = path.resolve(__dirname, "../../slide_upload");
 if (fs.existsSync(slideUploadDir)) {
@@ -118,6 +141,85 @@ function escapeHtml(value) {
 function normalizeTextToHtml(value) {
   const safe = escapeHtml(value || "");
   return safe.replace(/\n/g, "<br>");
+}
+
+function normalizeBaseUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const parsed = new URL(withProtocol);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch (_) {
+    return "";
+  }
+}
+
+function getPublicBaseUrl(req) {
+  const envBase = normalizeBaseUrl(PUBLIC_SITE_URL);
+  if (envBase) return envBase;
+  const proto = String(req.headers["x-forwarded-proto"] || req.protocol || "https").split(",")[0].trim() || "https";
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
+  if (!host) return "";
+  return normalizeBaseUrl(`${proto}://${host}`);
+}
+
+function toAbsoluteUrl(req, routePath) {
+  const base = getPublicBaseUrl(req);
+  const suffix = String(routePath || "/").startsWith("/") ? routePath : `/${routePath}`;
+  return `${base}${suffix}`;
+}
+
+function escapeXml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buildSitemapEntries(req) {
+  const fixedPages = [
+    "/",
+    "/main.html",
+    "/about.html",
+    "/features.html",
+    "/help.html",
+    "/library.html",
+    "/choose_exp.html",
+  ];
+
+  const dynamicPages = [];
+  const gamesRoot = path.resolve(__dirname, "../../games");
+  if (fs.existsSync(gamesRoot)) {
+    try {
+      const gameDirs = fs.readdirSync(gamesRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory());
+      for (const entry of gameDirs) {
+        const indexPath = path.join(gamesRoot, entry.name, "index.html");
+        if (fs.existsSync(indexPath)) {
+          dynamicPages.push(`/games/${entry.name}/index.html`);
+        }
+      }
+    } catch (_) {
+      // Ignore filesystem failures; fixed pages still provide crawl entry points.
+    }
+  }
+
+  const allPages = [...fixedPages, ...dynamicPages].filter((routePath) => {
+    if (routePath === "/") return true;
+    if (routePath.startsWith("/games/")) return true;
+    return fs.existsSync(path.join(__dirname, routePath.slice(1)));
+  });
+
+  const deduped = Array.from(new Set(allPages));
+  const now = new Date().toISOString();
+  return deduped.map((routePath) => ({
+    loc: toAbsoluteUrl(req, routePath),
+    lastmod: now,
+    changefreq: routePath === "/" ? "daily" : "weekly",
+    priority: routePath === "/" ? "1.0" : routePath.includes("/games/") ? "0.7" : "0.8",
+  }));
 }
 
 function getSendgridFrom() {
@@ -1515,6 +1617,43 @@ app.post("/api/admin/security-alerts/ack-all", ensureAdmin, (_req, res) => {
     }
   }
   res.json({ ok: true, updated });
+});
+
+app.get("/robots.txt", (req, res) => {
+  res.type("text/plain");
+  res.send([
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /api/",
+    "Disallow: /admin-dashboard.html",
+    "Disallow: /teacher-manager.html",
+    "Disallow: /AcessControl.html",
+    `Sitemap: ${toAbsoluteUrl(req, "/sitemap.xml")}`,
+    "",
+  ].join("\n"));
+});
+
+app.get("/sitemap.xml", (req, res) => {
+  const urls = buildSitemapEntries(req)
+    .map((entry) => {
+      return [
+        "  <url>",
+        `    <loc>${escapeXml(entry.loc)}</loc>`,
+        `    <lastmod>${escapeXml(entry.lastmod)}</lastmod>`,
+        `    <changefreq>${escapeXml(entry.changefreq)}</changefreq>`,
+        `    <priority>${escapeXml(entry.priority)}</priority>`,
+        "  </url>",
+      ].join("\n");
+    })
+    .join("\n");
+
+  res.type("application/xml");
+  res.send([
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    urls,
+    '</urlset>',
+  ].join("\n"));
 });
 
 app.get("/health", (_req, res) => {
