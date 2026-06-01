@@ -151,6 +151,28 @@ function renderEmailTemplate({ title, intro, bodyHtml, ctaLabel, ctaUrl }) {
   </div>`;
 }
 
+function getSendgridErrorDetail(error) {
+  const fallback = String(error?.message || "send_failed");
+  const sgErrors = error?.response?.body?.errors;
+  if (!Array.isArray(sgErrors) || !sgErrors.length) {
+    return fallback;
+  }
+
+  const lines = sgErrors
+    .map((item) => {
+      const message = String(item?.message || "").trim();
+      const field = String(item?.field || "").trim();
+      const help = String(item?.help || "").trim();
+      const extras = [field ? `field=${field}` : "", help ? `help=${help}` : ""]
+        .filter(Boolean)
+        .join(" | ");
+      return extras ? `${message} (${extras})` : message;
+    })
+    .filter(Boolean);
+
+  return lines.length ? lines.join("; ") : fallback;
+}
+
 function normalizeServiceAccount(raw) {
   if (!raw || typeof raw !== "object") {
     throw new Error("Service account JSON is missing or invalid");
@@ -1071,7 +1093,7 @@ app.post("/api/payfast/ipn", async (req, res) => {
         try {
           await sgMail.send(msg);
         } catch (e) {
-          console.error("SendGrid error:", e.message);
+          console.error("SendGrid error:", getSendgridErrorDetail(e));
         }
       }
 
@@ -1115,8 +1137,9 @@ app.post("/send-welcome-email", async (req, res) => {
     await sgMail.send(msg);
     res.status(200).send("Email sent");
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error sending email");
+    const detail = getSendgridErrorDetail(error);
+    console.error("Welcome email failed:", detail);
+    res.status(500).json({ error: "Error sending email", detail });
   }
 });
 
@@ -1450,7 +1473,7 @@ app.post("/api/admin/email/send", ensureAdmin, async (req, res) => {
       });
       accepted.push(email);
     } catch (error) {
-      failed.push({ email, reason: error?.message || "send_failed" });
+      failed.push({ email, reason: getSendgridErrorDetail(error) });
     }
   }
 
