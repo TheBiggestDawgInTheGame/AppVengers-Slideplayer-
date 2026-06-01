@@ -192,7 +192,7 @@
     "Start Session",
     "End Session",
     "SMS Game Invite",
-    "Send the game code to a student's phone (E.164 format, e.g. +27831234567).",
+    "Send the game code to a student's phone (E.164 format) or email address.",
     "Game Type (optional)",
     "Send SMS",
     "Elite Player",
@@ -439,7 +439,7 @@
       "Start Session": "Qala iseshini",
       "End Session": "Phetha iseshini",
       "SMS Game Invite": "Isimemo somdlalo se-SMS",
-      "Send the game code to a student's phone (E.164 format, e.g. +27831234567).": "Thumela ikhodi yomdlalo ocingweni lomfundi (ifomethi ye-E.164, isb. +27831234567).",
+      "Send the game code to a student's phone (E.164 format) or email address.": "Thumela ikhodi yomdlalo ocingweni lomfundi (ifomethi ye-E.164, isb. +27831234567) noma ikheli le-imeyili.",
       "Game Type (optional)": "Uhlobo lomdlalo (okungakhethwa)",
       "Send SMS": "Thumela i-SMS",
       "Elite Player": "Umdlali we-Elite",
@@ -1477,64 +1477,316 @@
 
     const label = document.querySelector("#spLangSwitcher label");
     if (label) label.textContent = t("common.language", "Language", active);
-    const select = document.getElementById("spLangSelect");
-    if (select) select.setAttribute("aria-label", t("common.selectLanguage", "Select language", active));
+    syncLanguageSwitcherTabs(active);
 
     applyMachineTranslationFallback(active, token).catch(function () {
       // non-fatal, keep glossary/dictionary translations if MT fails
     });
   }
 
+  function syncLanguageSwitcherTabs(activeLang) {
+    const tabs = document.querySelectorAll("#spLangSwitcher [data-sp-lang]");
+    if (!tabs.length) return;
+
+    tabs.forEach(function (tab) {
+      const isActive = tab.getAttribute("data-sp-lang") === activeLang;
+      tab.classList.toggle("is-active", isActive);
+      tab.setAttribute("aria-pressed", isActive ? "true" : "false");
+      tab.setAttribute("tabindex", isActive ? "0" : "-1");
+    });
+
+    const current = document.getElementById("spLangCurrent");
+    if (current && SUPPORTED[activeLang]) {
+      current.textContent = SUPPORTED[activeLang].name;
+    }
+  }
+
+  function setLangSwitcherOpen(wrap, isOpen) {
+    if (!wrap) return;
+    wrap.classList.toggle("is-open", Boolean(isOpen));
+    const toggle = wrap.querySelector(".lang-toggle");
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      toggle.setAttribute("title", isOpen ? "Collapse languages" : "Expand languages");
+    }
+    try {
+      localStorage.setItem("sp_lang_switcher_open", isOpen ? "1" : "0");
+    } catch (_) {}
+  }
+
   function injectLanguageSwitcher() {
     if (document.getElementById("spLangSwitcher")) return;
 
+    if (!document.getElementById("spLangSwitcherStyles")) {
+      const style = document.createElement("style");
+      style.id = "spLangSwitcherStyles";
+      style.textContent = `
+        #spLangSwitcher {
+          position: fixed;
+          right: 16px;
+          bottom: 16px;
+          z-index: 99999;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          border-radius: 18px;
+          background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(10, 15, 30, 0.92));
+          border: 1px solid rgba(148, 163, 184, 0.24);
+          box-shadow:
+            0 18px 40px rgba(2, 6, 23, 0.45),
+            0 0 0 1px rgba(139, 92, 246, 0.08) inset,
+            0 0 28px rgba(6, 182, 212, 0.08);
+          backdrop-filter: blur(14px) saturate(1.15);
+          -webkit-backdrop-filter: blur(14px) saturate(1.15);
+        }
+
+        #spLangSwitcher:not(.is-open) .lang-tabs {
+          display: none;
+        }
+
+        #spLangSwitcher label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #cbd5e1;
+          white-space: nowrap;
+          padding-right: 4px;
+        }
+
+        #spLangSwitcher .lang-header {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          flex: 0 0 auto;
+        }
+
+        #spLangSwitcher .lang-current {
+          font: 700 11px/1 "Orbitron", sans-serif;
+          letter-spacing: 0.08em;
+          color: #e2e8f0;
+          text-transform: uppercase;
+          background: rgba(255, 255, 255, 0.07);
+          border: 1px solid rgba(148, 163, 184, 0.2);
+          border-radius: 999px;
+          padding: 6px 10px;
+          max-width: 130px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        #spLangSwitcher .lang-toggle {
+          appearance: none;
+          border: 1px solid rgba(148, 163, 184, 0.22);
+          background: rgba(255, 255, 255, 0.06);
+          color: #dbeafe;
+          border-radius: 999px;
+          width: 30px;
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 12px;
+          transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+
+        #spLangSwitcher .lang-toggle:hover {
+          border-color: rgba(34, 211, 238, 0.5);
+          background: rgba(34, 211, 238, 0.12);
+        }
+
+        #spLangSwitcher.is-open .lang-toggle {
+          transform: rotate(180deg);
+        }
+
+        #spLangSwitcher label::before {
+          content: "◉";
+          color: #22d3ee;
+          font-size: 10px;
+          line-height: 1;
+          text-shadow: 0 0 10px rgba(34, 211, 238, 0.45);
+        }
+
+        #spLangSwitcher .lang-tabs {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px;
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(148, 163, 184, 0.16);
+          overflow-x: auto;
+          max-width: min(70vw, 620px);
+          scrollbar-width: none;
+        }
+
+        #spLangSwitcher .lang-tabs::-webkit-scrollbar {
+          display: none;
+        }
+
+        #spLangSwitcher .lang-tab {
+          appearance: none;
+          border: 1px solid transparent;
+          background: transparent;
+          color: #cbd5e1;
+          border-radius: 11px;
+          padding: 8px 12px;
+          min-height: 34px;
+          font: 700 11px/1 "Orbitron", sans-serif;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          white-space: nowrap;
+          cursor: pointer;
+          transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+          flex: 0 0 auto;
+        }
+
+        #spLangSwitcher .lang-tab:hover {
+          color: #ffffff;
+          border-color: rgba(34, 211, 238, 0.28);
+          background: rgba(34, 211, 238, 0.08);
+          transform: translateY(-1px);
+        }
+
+        #spLangSwitcher .lang-tab.is-active {
+          color: #06121f;
+          background: linear-gradient(135deg, #22d3ee, #8b5cf6);
+          border-color: rgba(255, 255, 255, 0.12);
+          box-shadow: 0 8px 18px rgba(34, 211, 238, 0.18);
+        }
+
+        #spLangSwitcher .lang-tab:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22);
+        }
+
+        #spLangSwitcher .lang-tab.is-active:hover {
+          background: linear-gradient(135deg, #22d3ee, #8b5cf6);
+          color: #06121f;
+        }
+
+        @media (max-width: 780px) {
+          #spLangSwitcher {
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+          }
+
+          #spLangSwitcher label {
+            width: 100%;
+          }
+
+          #spLangSwitcher .lang-tabs {
+            width: 100%;
+            max-width: none;
+          }
+
+          #spLangSwitcher .lang-header {
+            width: 100%;
+            justify-content: space-between;
+          }
+
+          #spLangSwitcher .lang-current {
+            max-width: none;
+            flex: 1;
+            text-align: center;
+          }
+        }
+
+        @media (max-width: 480px) {
+          #spLangSwitcher {
+            padding: 10px;
+            gap: 10px;
+          }
+
+          #spLangSwitcher .lang-tab {
+            padding: 8px 10px;
+            font-size: 10px;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     const wrap = document.createElement("div");
     wrap.id = "spLangSwitcher";
-    wrap.style.position = "fixed";
-    wrap.style.right = "16px";
-    wrap.style.bottom = "16px";
-    wrap.style.zIndex = "99999";
-    wrap.style.background = "rgba(15, 23, 42, 0.92)";
-    wrap.style.border = "1px solid rgba(148, 163, 184, 0.35)";
-    wrap.style.borderRadius = "12px";
-    wrap.style.padding = "8px 10px";
-    wrap.style.backdropFilter = "blur(8px)";
-    wrap.style.display = "flex";
-    wrap.style.alignItems = "center";
-    wrap.style.gap = "8px";
+
+    const header = document.createElement("div");
+    header.className = "lang-header";
 
     const label = document.createElement("label");
-    label.setAttribute("for", "spLangSelect");
-    label.style.fontSize = "12px";
-    label.style.fontWeight = "600";
-    label.style.color = "#e2e8f0";
     label.textContent = "Language";
 
-    const select = document.createElement("select");
-    select.id = "spLangSelect";
-    select.setAttribute("aria-label", "Select language");
-    select.style.background = "#0f172a";
-    select.style.color = "#e2e8f0";
-    select.style.border = "1px solid rgba(148, 163, 184, 0.35)";
-    select.style.borderRadius = "8px";
-    select.style.padding = "6px 8px";
-    select.style.fontSize = "12px";
+    const current = document.createElement("span");
+    current.id = "spLangCurrent";
+    current.className = "lang-current";
+    current.textContent = "English";
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "lang-toggle";
+    toggle.setAttribute("aria-label", "Toggle language tabs");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.textContent = "▾";
+
+    const tabs = document.createElement("div");
+    tabs.className = "lang-tabs";
+    tabs.setAttribute("role", "tablist");
 
     Object.keys(SUPPORTED).forEach(function (code) {
-      const option = document.createElement("option");
-      option.value = code;
-      option.textContent = SUPPORTED[code].name;
-      select.appendChild(option);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "lang-tab";
+      button.textContent = SUPPORTED[code].name;
+      button.setAttribute("data-sp-lang", code);
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-pressed", "false");
+      button.setAttribute("tabindex", "-1");
+      button.addEventListener("click", function () {
+        setCurrentLanguage(code);
+        syncLanguageSwitcherTabs(code);
+        setLangSwitcherOpen(wrap, false);
+      });
+      tabs.appendChild(button);
     });
 
-    select.value = getCurrentLanguage();
-    select.addEventListener("change", function () {
-      setCurrentLanguage(select.value);
-    });
+    header.appendChild(label);
+    header.appendChild(current);
+    header.appendChild(toggle);
 
-    wrap.appendChild(label);
-    wrap.appendChild(select);
+    wrap.appendChild(header);
+    wrap.appendChild(tabs);
     document.body.appendChild(wrap);
+
+    toggle.addEventListener("click", function () {
+      const willOpen = !wrap.classList.contains("is-open");
+      setLangSwitcherOpen(wrap, willOpen);
+    });
+
+    document.addEventListener("click", function (event) {
+      if (!wrap.classList.contains("is-open")) return;
+      if (wrap.contains(event.target)) return;
+      setLangSwitcherOpen(wrap, false);
+    });
+
+    const shouldOpen = (function () {
+      try {
+        return localStorage.getItem("sp_lang_switcher_open") === "1";
+      } catch (_) {
+        return false;
+      }
+    })();
+
+    setLangSwitcherOpen(wrap, shouldOpen);
+    syncLanguageSwitcherTabs(getCurrentLanguage());
   }
 
   window.SP_I18N = {
