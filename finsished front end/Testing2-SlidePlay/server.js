@@ -65,6 +65,10 @@ const slideUploadDir = path.resolve(__dirname, "../../slide_upload");
 if (fs.existsSync(slideUploadDir)) {
   app.use("/slide_upload", express.static(slideUploadDir));
 }
+const sharedGamesDir = path.resolve(__dirname, "../../games");
+if (fs.existsSync(sharedGamesDir)) {
+  app.use("/games", express.static(sharedGamesDir));
+}
 
 function safeReadJson(filePath, fallbackValue) {
   try {
