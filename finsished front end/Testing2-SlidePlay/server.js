@@ -187,7 +187,12 @@ function getPublicBaseUrl(req) {
     return envBase;
   }
 
-  return normalizeBaseUrl(EMAIL_APP_URL) || "https://appvengers-slideplayer-1.onrender.com";
+  const appBase = normalizeBaseUrl(EMAIL_APP_URL);
+  if (appBase && !isLocalLikeBaseUrl(appBase)) {
+    return appBase;
+  }
+
+  return "https://appvengers-slideplayer-1.onrender.com";
 }
 
 function toAbsoluteUrl(req, routePath) {
