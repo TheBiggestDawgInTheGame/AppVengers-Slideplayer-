@@ -26,6 +26,8 @@ const PAYMENTS_FILE = path.join(__dirname, "payfast_payments.json");
 const USERS_FILE = path.join(__dirname, "users-local.json");
 const SUPPORT_FILE = path.join(__dirname, "support-messages.json");
 const SESSION_HISTORY_FILE = path.join(__dirname, "session-history.json");
+const GAMEPLAY_EVENTS_FILE = path.join(__dirname, "gameplay-events.json");
+const MISSIONS_FILE = path.join(__dirname, "learning-missions.json");
 const DEFAULT_DB_URL = "https://slideplay-38d3f-default-rtdb.firebaseio.com";
 const EMAIL_BRAND_NAME = process.env.EMAIL_BRAND_NAME || "SlidePlay";
 const EMAIL_APP_URL = process.env.APP_URL || "https://appvengers-slideplayer-1.onrender.com";
@@ -959,6 +961,132 @@ function upsertSessionHistory(entry) {
   safeWriteJson(SESSION_HISTORY_FILE, pruneSessionHistory(history));
 }
 
+function readGameplayEvents() {
+  const raw = safeReadJson(GAMEPLAY_EVENTS_FILE, []);
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => ({
+      eventId: String(item?.eventId || ""),
+      uid: String(item?.uid || "").trim(),
+      email: normalizeEmail(item?.email || ""),
+      displayName: String(item?.displayName || "").trim(),
+      gameType: String(item?.gameType || "quiz").toLowerCase(),
+      gameMode: String(item?.gameMode || "solo").toLowerCase(),
+      score: Number(item?.score || 0),
+      totalQuestions: Number(item?.totalQuestions || 0),
+      correctCount: Number(item?.correctCount || 0),
+      durationSec: Number(item?.durationSec || 0),
+      createdAt: normalizeIsoDate(item?.createdAt) || new Date().toISOString(),
+      meta: item?.meta && typeof item.meta === "object" ? item.meta : {},
+    }))
+    .filter((item) => item.uid || item.email);
+}
+
+function writeGameplayEvents(rows) {
+  const payload = Array.isArray(rows) ? rows.slice(0, 10000) : [];
+  return safeWriteJson(GAMEPLAY_EVENTS_FILE, payload);
+}
+
+function appendGameplayEvent(eventRow) {
+  const rows = readGameplayEvents();
+  rows.unshift({
+    eventId: String(eventRow?.eventId || `EVT-${Date.now().toString(36).toUpperCase()}`),
+    uid: String(eventRow?.uid || "").trim(),
+    email: normalizeEmail(eventRow?.email || ""),
+    displayName: String(eventRow?.displayName || ""),
+    gameType: String(eventRow?.gameType || "quiz").toLowerCase(),
+    gameMode: String(eventRow?.gameMode || "solo").toLowerCase(),
+    score: Number(eventRow?.score || 0),
+    totalQuestions: Number(eventRow?.totalQuestions || 0),
+    correctCount: Number(eventRow?.correctCount || 0),
+    durationSec: Number(eventRow?.durationSec || 0),
+    createdAt: normalizeIsoDate(eventRow?.createdAt) || new Date().toISOString(),
+    meta: eventRow?.meta && typeof eventRow.meta === "object" ? eventRow.meta : {},
+  });
+  return writeGameplayEvents(rows);
+}
+
+function getRecentPlayerEvents(uid, email, limit = 8) {
+  const normalizedUid = String(uid || "").trim();
+  const normalizedEmail = normalizeEmail(email || "");
+  if (!normalizedUid && !normalizedEmail) return [];
+
+  return readGameplayEvents()
+    .filter((row) =>
+      (normalizedUid && row.uid === normalizedUid) ||
+      (normalizedEmail && normalizeEmail(row.email) === normalizedEmail)
+    )
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, limit);
+}
+
+function computeAdaptiveDifficulty(events) {
+  if (!Array.isArray(events) || events.length === 0) {
+    return { recommendedDifficulty: "medium", reason: "No previous attempts yet." };
+  }
+
+  let weighted = 0;
+  for (const row of events) {
+    const total = Number(row.totalQuestions || 0);
+    const correct = Number(row.correctCount || 0);
+    if (total > 0) {
+      weighted += Math.max(0, Math.min(1, correct / total));
+      continue;
+    }
+    const score = Number(row.score || 0);
+    const normalizedScore = Math.max(0, Math.min(1, score / 100));
+    weighted += normalizedScore;
+  }
+
+  const avg = weighted / Math.max(1, events.length);
+  if (avg >= 0.78) {
+    return { recommendedDifficulty: "hard", reason: "Strong recent performance. Increase challenge." };
+  }
+  if (avg <= 0.45) {
+    return { recommendedDifficulty: "easy", reason: "Recent accuracy dropped. Ease difficulty to rebuild momentum." };
+  }
+  return { recommendedDifficulty: "medium", reason: "Balanced performance. Keep current challenge level." };
+}
+
+function readMissions() {
+  const raw = safeReadJson(MISSIONS_FILE, []);
+  return Array.isArray(raw) ? raw : [];
+}
+
+function writeMissions(rows) {
+  return safeWriteJson(MISSIONS_FILE, Array.isArray(rows) ? rows : []);
+}
+
+function buildReplaySummary(events) {
+  const byGame = new Map();
+  for (const evt of events || []) {
+    const key = String(evt.gameType || "quiz");
+    if (!byGame.has(key)) {
+      byGame.set(key, { gameType: key, plays: 0, totalScore: 0, avgScore: 0 });
+    }
+    const bucket = byGame.get(key);
+    bucket.plays += 1;
+    bucket.totalScore += Number(evt.score || 0);
+    bucket.avgScore = Math.round(bucket.totalScore / Math.max(1, bucket.plays));
+  }
+
+  const games = Array.from(byGame.values()).sort((a, b) => b.avgScore - a.avgScore);
+  const strengths = games.slice(0, 3).map((g) => `${g.gameType} (${g.avgScore})`);
+  const weakAreas = games.slice(-3).reverse().map((g) => `${g.gameType} (${g.avgScore})`);
+  const totalSessions = events.length;
+  const totalMinutes = Math.round(
+    events.reduce((sum, evt) => sum + Number(evt.durationSec || 0), 0) / 60
+  );
+
+  return {
+    totalSessions,
+    totalMinutes,
+    strengths,
+    weakAreas,
+    perGame: games,
+  };
+}
+
 function mergeSessionHistory(currentSessions, archivedSessions) {
   const byCode = new Map();
   const pushBest = (row) => {
@@ -1379,7 +1507,147 @@ app.post("/api/gameplay/record", (req, res) => {
     })
   );
 
-  res.json({ ok: true, sessionCode });
+  const gameplayEvent = {
+    uid,
+    email,
+    displayName: hostName,
+    gameType: String(body.gameType || "quiz"),
+    gameMode: String(body.gameMode || "solo"),
+    score: Number(body.totalScore || body.winnerScore || 0),
+    totalQuestions: Number(body.totalQuestions || 0),
+    correctCount: Number(body.correctCount || 0),
+    durationSec: Number(body.durationSec || 0),
+    createdAt: new Date().toISOString(),
+    meta: body.meta && typeof body.meta === "object" ? body.meta : {},
+  };
+  appendGameplayEvent(gameplayEvent);
+
+  const recentEvents = getRecentPlayerEvents(uid, email, 8);
+  const adaptive = computeAdaptiveDifficulty(recentEvents);
+
+  res.json({
+    ok: true,
+    sessionCode,
+    adaptive,
+    replayPath: uid ? `/learning-replay.html?uid=${encodeURIComponent(uid)}` : "/learning-replay.html",
+  });
+});
+
+app.post("/api/missions/create", (req, res) => {
+  const body = req.body || {};
+  const title = String(body.title || "SlidePlay Mission").trim();
+  const topic = String(body.topic || "General Skills").trim();
+  const createdBy = String(body.createdBy || "teacher").trim();
+  const missionId = `MIS-${Date.now().toString(36).toUpperCase()}`;
+
+  const chapters = Array.isArray(body.chapters) && body.chapters.length
+    ? body.chapters.map((name, idx) => ({
+        chapterId: `CH-${idx + 1}`,
+        title: String(name || `Checkpoint ${idx + 1}`),
+      }))
+    : [
+        { chapterId: "CH-1", title: `${topic} Primer` },
+        { chapterId: "CH-2", title: `${topic} Challenge Run` },
+        { chapterId: "CH-3", title: `${topic} Mastery Finale` },
+      ];
+
+  const mission = {
+    missionId,
+    title,
+    topic,
+    createdBy,
+    status: "active",
+    chapters,
+    progress: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const missions = readMissions();
+  missions.unshift(mission);
+  writeMissions(missions.slice(0, 300));
+  res.json({ ok: true, mission });
+});
+
+app.get("/api/missions/:missionId", (req, res) => {
+  const missionId = String(req.params.missionId || "").trim();
+  const mission = readMissions().find((item) => item && item.missionId === missionId);
+  if (!mission) {
+    res.status(404).json({ error: "Mission not found" });
+    return;
+  }
+  res.json({ mission });
+});
+
+app.post("/api/missions/:missionId/progress", (req, res) => {
+  const missionId = String(req.params.missionId || "").trim();
+  const body = req.body || {};
+  const uid = String(body.uid || "").trim();
+  const email = normalizeEmail(body.email || "");
+
+  if (!uid && !email) {
+    res.status(400).json({ error: "Missing uid or email" });
+    return;
+  }
+
+  const missions = readMissions();
+  const idx = missions.findIndex((item) => item && item.missionId === missionId);
+  if (idx < 0) {
+    res.status(404).json({ error: "Mission not found" });
+    return;
+  }
+
+  const entry = {
+    uid,
+    email,
+    chapterId: String(body.chapterId || "").trim(),
+    status: String(body.status || "completed").toLowerCase(),
+    score: Number(body.score || 0),
+    notes: String(body.notes || ""),
+    createdAt: new Date().toISOString(),
+  };
+
+  const mission = missions[idx] || {};
+  mission.progress = Array.isArray(mission.progress) ? mission.progress : [];
+  mission.progress.unshift(entry);
+  mission.updatedAt = new Date().toISOString();
+  missions[idx] = mission;
+  writeMissions(missions);
+
+  res.json({ ok: true, missionId, progressCount: mission.progress.length });
+});
+
+app.get("/api/replay/:uid", (req, res) => {
+  const uid = String(req.params.uid || "").trim();
+  const email = normalizeEmail(req.query.email || "");
+  if (!uid && !email) {
+    res.status(400).json({ error: "Missing uid or email" });
+    return;
+  }
+
+  const events = getRecentPlayerEvents(uid, email, 80);
+  const replay = buildReplaySummary(events);
+  const adaptive = computeAdaptiveDifficulty(events.slice(0, 8));
+
+  const missionProgress = readMissions()
+    .map((mission) => ({
+      missionId: mission.missionId,
+      title: mission.title,
+      topic: mission.topic,
+      completed: (Array.isArray(mission.progress) ? mission.progress : [])
+        .filter((item) => (uid && item.uid === uid) || (email && normalizeEmail(item.email) === email))
+        .length,
+    }))
+    .filter((item) => item.completed > 0)
+    .slice(0, 8);
+
+  res.json({
+    ok: true,
+    player: { uid, email },
+    adaptive,
+    replay,
+    missionProgress,
+  });
 });
 
 app.post("/api/sms/test", async (req, res) => {

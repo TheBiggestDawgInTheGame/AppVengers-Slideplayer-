@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Learning Replay | SlidePlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #080d1f;
+        --panel: rgba(255, 255, 255, 0.06);
+        --line: rgba(255, 255, 255, 0.12);
+        --text: #e2e8f0;
+        --accent: #22d3ee;
+        --accent2: #8b5cf6;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Poppins", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 10% 20%, rgba(34, 211, 238, 0.18), transparent 32%),
+          radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.2), transparent 38%),
+          linear-gradient(150deg, #060b18, var(--bg));
+        min-height: 100vh;
+      }
+
+      .shell {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 28px 18px 40px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+      }
+
+      .sub {
+        margin: 0 0 22px;
+        color: #aab7d0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel);
+        padding: 16px;
+      }
+
+      .label {
+        font-size: 0.8rem;
+        color: #9fb0cc;
+        margin-bottom: 8px;
+      }
+
+      .value {
+        font-weight: 700;
+        font-size: 1.5rem;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        background: linear-gradient(135deg, rgba(34, 211, 238, 0.25), rgba(139, 92, 246, 0.26));
+        border: 1px solid rgba(34, 211, 238, 0.35);
+      }
+
+      .section-title {
+        margin: 18px 0 10px;
+        font-family: "Orbitron", sans-serif;
+        font-size: 1rem;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th, td {
+        text-align: left;
+        padding: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      th { color: #9fb0cc; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+      .mt14 { margin-top: 14px; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <h1>Learning Replay</h1>
+      <p class="sub">Your mission summary, adaptive recommendation, and performance replay.</p>
+
+      <div class="grid">
+        <div class="card">
+          <div class="label">Total Sessions</div>
+          <div id="totalSessions" class="value">0</div>
+        </div>
+        <div class="card">
+          <div class="label">Total Minutes</div>
+          <div id="totalMinutes" class="value">0</div>
+        </div>
+        <div class="card">
+          <div class="label">Recommended Difficulty</div>
+          <div id="recommendedDifficulty" class="value">medium</div>
+        </div>
+        <div class="card">
+          <div class="label">Adaptive Reason</div>
+          <div id="adaptiveReason" class="pill">No data yet.</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="section-title">Strengths</div>
+          <ul id="strengths"></ul>
+        </div>
+        <div class="card">
+          <div class="section-title">Needs Focus</div>
+          <ul id="weakAreas"></ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Performance By Game</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Game</th>
+              <th>Plays</th>
+              <th>Avg Score</th>
+            </tr>
+          </thead>
+          <tbody id="perGameTable"></tbody>
+        </table>
+      </div>
+
+      <div class="card mt14">
+        <div class="section-title">Mission Progress</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Mission</th>
+              <th>Topic</th>
+              <th>Completed Checkpoints</th>
+            </tr>
+          </thead>
+          <tbody id="missionTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      function getUid() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('uid') || localStorage.getItem('sp_user_uid') || '';
+      }
+
+      function getEmail() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('email') || localStorage.getItem('sp_user_email') || '';
+      }
+
+      function listInto(id, items, empty) {
+        const el = document.getElementById(id);
+        el.innerHTML = '';
+        const arr = Array.isArray(items) ? items : [];
+        if (!arr.length) {
+          const li = document.createElement('li');
+          li.textContent = empty;
+          el.appendChild(li);
+          return;
+        }
+        arr.forEach((item) => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          el.appendChild(li);
+        });
+      }
+
+      async function loadReplay() {
+        const uid = getUid();
+        const email = getEmail();
+        if (!uid && !email) {
+          alert('Missing uid/email. Open this page after login or pass ?uid=...');
+          return;
+        }
+
+        const url = '/api/replay/' + encodeURIComponent(uid || 'anonymous') + '?email=' + encodeURIComponent(email || '');
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Could not load replay');
+          return;
+        }
+
+        document.getElementById('totalSessions').textContent = String(data.replay?.totalSessions || 0);
+        document.getElementById('totalMinutes').textContent = String(data.replay?.totalMinutes || 0);
+        document.getElementById('recommendedDifficulty').textContent = String(data.adaptive?.recommendedDifficulty || 'medium');
+        document.getElementById('adaptiveReason').textContent = String(data.adaptive?.reason || 'No adaptive signal yet.');
+
+        listInto('strengths', data.replay?.strengths, 'Play a few games to reveal your strongest modes.');
+        listInto('weakAreas', data.replay?.weakAreas, 'No weak areas detected yet.');
+
+        const gameTable = document.getElementById('perGameTable');
+        gameTable.innerHTML = '';
+        (data.replay?.perGame || []).forEach((row) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + row.gameType + '</td><td>' + row.plays + '</td><td>' + row.avgScore + '</td>';
+          gameTable.appendChild(tr);
+        });
+
+        const missionTable = document.getElementById('missionTable');
+        missionTable.innerHTML = '';
+        const progressRows = Array.isArray(data.missionProgress) ? data.missionProgress : [];
+        if (!progressRows.length) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td colspan="3">No mission progress yet. Create a mission first via /api/missions/create.</td>';
+          missionTable.appendChild(tr);
+        } else {
+          progressRows.forEach((row) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + row.title + '</td><td>' + row.topic + '</td><td>' + row.completed + '</td>';
+            missionTable.appendChild(tr);
+          });
+        }
+      }
+
+      loadReplay().catch((err) => {
+        console.error(err);
+        alert('Replay failed to load.');
+      });
+    </script>
+  </body>
+</html>
