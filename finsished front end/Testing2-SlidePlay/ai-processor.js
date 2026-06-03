@@ -412,6 +412,34 @@
   }
 
   // ── Gemini vision call (image → questions directly) ──────────
+  function buildQuestionResponseSchema(questionType, difficulty) {
+    const qType = normalizeQuestionType(questionType);
+    const correctAnswerType = qType === "true_false" ? "BOOLEAN" : "STRING";
+    return {
+      type: "OBJECT",
+      properties: {
+        topic: { type: "STRING" },
+        questions: {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            properties: {
+              question: { type: "STRING" },
+              options: { type: "ARRAY", items: { type: "STRING" } },
+              correctAnswer: { type: correctAnswerType },
+              acceptedAnswers: { type: "ARRAY", items: { type: "STRING" } },
+              sampleAnswer: { type: "STRING" },
+              difficulty: { type: "STRING", enum: ["easy", "medium", "hard", difficulty || "medium"] },
+              explanation: { type: "STRING" },
+              bloomLevel: { type: "STRING" },
+              type: { type: "STRING" }
+            }
+          }
+        }
+      }
+    };
+  }
+
   async function callGeminiVision(file, opts) {
     const { difficulty = "medium", count = 10, questionType = "mcq", strict = false } = opts;
     const qType = normalizeQuestionType(questionType);
@@ -480,7 +508,8 @@ ${qType === "true_false" ? `{
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt,
-        image: { data: base64, mimeType }
+        image: { data: base64, mimeType },
+        responseSchema: buildQuestionResponseSchema(qType, difficulty)
       })
     });
 
@@ -738,11 +767,16 @@ QUALITY REGENERATION PASS:
 
   // ── Gemini REST call ─────────────────────────────────────────
 
-  async function callGemini(prompt) {
+  async function callGemini(prompt, options = {}) {
+    const payload = { prompt };
+    if (options.responseSchema && typeof options.responseSchema === "object") {
+      payload.responseSchema = options.responseSchema;
+    }
+
     const resp = await fetch(AI_PROXY, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify(payload)
     });
 
     if (!resp.ok) {
@@ -873,7 +907,9 @@ Prefer reasoning, application, and comparison questions over generic recall when
 Return ONLY valid JSON:
 { "topic": "${topic}", "questions": [{ "question":"...", ${qType==="true_false"?'"correctAnswer":true,':qType==="short_answer"?'"acceptedAnswers":["...","..."], "sampleAnswer":"...",':'"options":["...","...","...","..."], "correctAnswer":"A",'} "difficulty":"${difficulty}", "explanation":"..." }] }`;
 
-    const raw = await callGemini(prompt);
+    const raw = await callGemini(prompt, {
+      responseSchema: buildQuestionResponseSchema(qType, difficulty),
+    });
     return parseAndFilter(raw, count, questionType);
   }
 
@@ -922,16 +958,18 @@ Return ONLY valid JSON:
         const ocrText = await extractImageTextOCR(file);
         if (ocrText.length > 80) {
           onProgress("Generating questions from OCR text…", 65);
-        const result = await generateWithQualityRetry(
-          rawText,
+          const result = await generateWithQualityRetry(
+          ocrText,
           { difficulty: effectiveDifficulty, count },
           normalizedQuestionType,
           "text",
           async (strict, retryCount, previousCount) => {
             const prompt = strict
-              ? buildRegenerationPrompt(rawText, { difficulty: effectiveDifficulty, count: retryCount, questionType: normalizedQuestionType }, previousCount || 0)
-              : buildPrompt(rawText, { difficulty: effectiveDifficulty, count: retryCount, questionType: normalizedQuestionType });
-            return callGemini(prompt);
+              ? buildRegenerationPrompt(ocrText, { difficulty: effectiveDifficulty, count: retryCount, questionType: normalizedQuestionType }, previousCount || 0)
+              : buildPrompt(ocrText, { difficulty: effectiveDifficulty, count: retryCount, questionType: normalizedQuestionType });
+            return callGemini(prompt, {
+              responseSchema: buildQuestionResponseSchema(normalizedQuestionType, effectiveDifficulty),
+            });
           },
         );
           onProgress("Reviewing question quality…", 85);
@@ -980,13 +1018,17 @@ Return ONLY valid JSON:
         if (attempt === 0 && hasText) {
           onProgress("Generating questions from your slides…", 40);
           const prompt = buildPrompt(rawText, { difficulty: effectiveDifficulty, count: Math.ceil(count * 1.5), questionType: normalizedQuestionType });
-          const raw = await callGemini(prompt);
+          const raw = await callGemini(prompt, {
+            responseSchema: buildQuestionResponseSchema(normalizedQuestionType, effectiveDifficulty),
+          });
           onProgress("Reviewing question quality…", 80);
           result = parseAndFilter(raw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: rawText });
         } else if (attempt === 1 && hasText) {
           onProgress("Strengthening weak questions…", 62);
           const prompt = buildRegenerationPrompt(rawText, { difficulty: effectiveDifficulty, count: Math.ceil(count * 1.7), questionType: normalizedQuestionType }, result?.questions?.length || 0);
-          const raw = await callGemini(prompt);
+          const raw = await callGemini(prompt, {
+            responseSchema: buildQuestionResponseSchema(normalizedQuestionType, effectiveDifficulty),
+          });
           onProgress("Applying strict quality checks…", 86);
           result = parseAndFilter(raw, count, normalizedQuestionType, { difficulty: effectiveDifficulty, sourceText: rawText });
         } else {

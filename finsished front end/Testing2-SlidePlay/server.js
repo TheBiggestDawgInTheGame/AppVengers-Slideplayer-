@@ -28,6 +28,8 @@ const SUPPORT_FILE = path.join(__dirname, "support-messages.json");
 const SESSION_HISTORY_FILE = path.join(__dirname, "session-history.json");
 const GAMEPLAY_EVENTS_FILE = path.join(__dirname, "gameplay-events.json");
 const MISSIONS_FILE = path.join(__dirname, "learning-missions.json");
+const DECKS_FILE = path.join(__dirname, "ai-decks.json");
+const DECK_EMBEDDINGS_FILE = path.join(__dirname, "ai-deck-embeddings.json");
 const DEFAULT_DB_URL = "https://slideplay-38d3f-default-rtdb.firebaseio.com";
 const EMAIL_BRAND_NAME = process.env.EMAIL_BRAND_NAME || "SlidePlay";
 const EMAIL_APP_URL = process.env.APP_URL || "https://appvengers-slideplayer-1.onrender.com";
@@ -1118,6 +1120,407 @@ function mergeSessionHistory(currentSessions, archivedSessions) {
     .filter((row) => !activeCodes.has(row.SessionCode))
     .sort((a, b) => sessionSortMs(b) - sessionSortMs(a));
 }
+
+function normalizeDeckRows(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((item) => ({
+      deckId: String(item?.deckId || "").trim(),
+      uid: String(item?.uid || "anonymous").trim() || "anonymous",
+      title: String(item?.title || "Untitled Deck").trim() || "Untitled Deck",
+      rawText: String(item?.rawText || ""),
+      textLength: Number(item?.textLength || 0),
+      createdAt: normalizeIsoDate(item?.createdAt) || new Date().toISOString(),
+      updatedAt: normalizeIsoDate(item?.updatedAt) || normalizeIsoDate(item?.createdAt) || new Date().toISOString(),
+    }))
+    .filter((item) => item.deckId);
+}
+
+function readDecks() {
+  return normalizeDeckRows(safeReadJson(DECKS_FILE, []));
+}
+
+function writeDecks(rows) {
+  return safeWriteJson(DECKS_FILE, normalizeDeckRows(rows));
+}
+
+function readDeckEmbeddings() {
+  const raw = safeReadJson(DECK_EMBEDDINGS_FILE, {});
+  return raw && typeof raw === "object" ? raw : {};
+}
+
+function writeDeckEmbeddings(payload) {
+  const data = payload && typeof payload === "object" ? payload : {};
+  return safeWriteJson(DECK_EMBEDDINGS_FILE, data);
+}
+
+function tokenizeForSearch(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length >= 3);
+}
+
+function chunkDeckText(rawText, maxWords = 180, overlapWords = 35) {
+  const words = String(rawText || "").split(/\s+/).filter(Boolean);
+  const chunks = [];
+  let start = 0;
+
+  while (start < words.length) {
+    const end = Math.min(start + maxWords, words.length);
+    const chunkText = words.slice(start, end).join(" ").trim();
+    if (chunkText) chunks.push(chunkText);
+    if (end >= words.length) break;
+    start += Math.max(1, maxWords - overlapWords);
+  }
+
+  return chunks;
+}
+
+function buildSparseVector(text, maxTerms = 80) {
+  const counts = new Map();
+  const tokens = tokenizeForSearch(text);
+  for (const token of tokens) {
+    counts.set(token, (counts.get(token) || 0) + 1);
+  }
+
+  const entries = Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, maxTerms);
+
+  const vector = {};
+  let normSq = 0;
+  for (const [token, count] of entries) {
+    vector[token] = count;
+    normSq += count * count;
+  }
+
+  return {
+    vector,
+    norm: Math.sqrt(normSq),
+  };
+}
+
+function cosineSparse(a, b) {
+  const vecA = a?.vector || {};
+  const vecB = b?.vector || {};
+  const normA = Number(a?.norm || 0);
+  const normB = Number(b?.norm || 0);
+  if (!normA || !normB) return 0;
+
+  let dot = 0;
+  const keysA = Object.keys(vecA);
+  for (const key of keysA) {
+    if (Object.prototype.hasOwnProperty.call(vecB, key)) {
+      dot += Number(vecA[key] || 0) * Number(vecB[key] || 0);
+    }
+  }
+  return dot / (normA * normB);
+}
+
+function upsertDeck(payload) {
+  const deckId = String(payload?.deckId || `deck-${Date.now().toString(36)}-${crypto.randomBytes(3).toString("hex")}`);
+  const nextDeck = {
+    deckId,
+    uid: String(payload?.uid || "anonymous").trim() || "anonymous",
+    title: String(payload?.title || "Untitled Deck").trim() || "Untitled Deck",
+    rawText: String(payload?.rawText || ""),
+    textLength: Number(String(payload?.rawText || "").length),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const rows = readDecks();
+  const idx = rows.findIndex((row) => row.deckId === deckId);
+  if (idx >= 0) {
+    rows[idx] = {
+      ...rows[idx],
+      ...nextDeck,
+      createdAt: rows[idx].createdAt || nextDeck.createdAt,
+      updatedAt: new Date().toISOString(),
+    };
+  } else {
+    rows.unshift(nextDeck);
+  }
+
+  writeDecks(rows);
+  return idx >= 0 ? rows[idx] : nextDeck;
+}
+
+function embedDeckLocally(deckId, rawText) {
+  const chunks = chunkDeckText(rawText);
+  const chunkRows = chunks.map((text, index) => ({
+    index,
+    text,
+    ...buildSparseVector(text),
+  }));
+
+  const allEmbeddings = readDeckEmbeddings();
+  allEmbeddings[deckId] = {
+    deckId,
+    chunkCount: chunkRows.length,
+    updatedAt: new Date().toISOString(),
+    chunks: chunkRows,
+  };
+  writeDeckEmbeddings(allEmbeddings);
+
+  return chunkRows.length;
+}
+
+function searchDeckLocally(deckId, queryText, topK = 5) {
+  const allEmbeddings = readDeckEmbeddings();
+  const deck = allEmbeddings[deckId];
+  if (!deck || !Array.isArray(deck.chunks) || deck.chunks.length === 0) return [];
+
+  const qVec = buildSparseVector(queryText);
+  return deck.chunks
+    .map((chunk) => ({
+      index: Number(chunk.index || 0),
+      text: String(chunk.text || ""),
+      score: cosineSparse(qVec, chunk),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, Math.max(1, Number(topK || 5)));
+}
+
+function extractGeminiText(response) {
+  if (!response) return "";
+  if (typeof response.text === "function") {
+    const txt = response.text();
+    if (typeof txt === "string" && txt.trim()) return txt.trim();
+  }
+
+  const candidateText = response?.candidates?.[0]?.content?.parts?.map((p) => p?.text || "").join("\n").trim();
+  return candidateText || "";
+}
+
+async function runGeminiPrompt({ prompt, image, modelName, responseSchema, generationConfig }) {
+  if (!gemini) {
+    throw new Error("Gemini API key is not configured on the server");
+  }
+
+  const selectedModel = String(modelName || "gemini-2.0-flash");
+  const model = gemini.getGenerativeModel({ model: selectedModel });
+  const parts = [{ text: String(prompt || "") }];
+
+  if (image?.data) {
+    parts.push({
+      inlineData: {
+        data: String(image.data),
+        mimeType: String(image.mimeType || "image/png"),
+      },
+    });
+  }
+
+  const nextConfig = {
+    temperature: typeof generationConfig?.temperature === "number" ? generationConfig.temperature : 0.35,
+    maxOutputTokens: Number(generationConfig?.maxOutputTokens || 2048),
+  };
+
+  if (responseSchema && typeof responseSchema === "object") {
+    nextConfig.responseMimeType = "application/json";
+    nextConfig.responseSchema = responseSchema;
+  }
+
+  try {
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts }],
+      generationConfig: nextConfig,
+    });
+
+    const text = extractGeminiText(result?.response);
+    return {
+      text,
+      model: selectedModel,
+    };
+  } catch (error) {
+    if (responseSchema) {
+      const fallbackResult = await model.generateContent({
+        contents: [{ role: "user", parts }],
+        generationConfig: {
+          temperature: nextConfig.temperature,
+          maxOutputTokens: nextConfig.maxOutputTokens,
+        },
+      });
+
+      return {
+        text: extractGeminiText(fallbackResult?.response),
+        model: selectedModel,
+      };
+    }
+    throw error;
+  }
+}
+
+app.post("/api/gemini-proxy", async (req, res) => {
+  const prompt = String(req.body?.prompt || "").trim();
+  if (!prompt) {
+    res.status(400).json({ error: "Missing prompt" });
+    return;
+  }
+
+  try {
+    const result = await runGeminiPrompt({
+      prompt,
+      image: req.body?.image,
+      modelName: req.body?.model,
+      responseSchema: req.body?.responseSchema,
+      generationConfig: req.body?.generationConfig,
+    });
+
+    if (!result.text) {
+      res.status(502).json({ error: "Model returned an empty response" });
+      return;
+    }
+
+    res.json(result);
+  } catch (error) {
+    const message = String(error?.message || "AI generation failed");
+    const unavailable = /not configured|api key/i.test(message);
+    res.status(unavailable ? 503 : 500).json({ error: message });
+  }
+});
+
+app.post("/api/decks/create", (req, res) => {
+  const uid = String(req.body?.uid || "anonymous").trim() || "anonymous";
+  const title = String(req.body?.title || "Untitled Deck").trim() || "Untitled Deck";
+  const rawText = String(req.body?.rawText || "");
+  const created = upsertDeck({ uid, title, rawText });
+  res.json({ ok: true, deckId: created.deckId, textLength: created.textLength });
+});
+
+app.get("/api/decks/:deckId", (req, res) => {
+  const deckId = String(req.params.deckId || "").trim();
+  const deck = readDecks().find((row) => row.deckId === deckId);
+  if (!deck) {
+    res.status(404).json({ error: "Deck not found" });
+    return;
+  }
+
+  res.json({
+    deckId: deck.deckId,
+    uid: deck.uid,
+    title: deck.title,
+    textLength: deck.textLength,
+    createdAt: deck.createdAt,
+    updatedAt: deck.updatedAt,
+  });
+});
+
+app.post("/api/decks/:deckId/embed", (req, res) => {
+  const deckId = String(req.params.deckId || "").trim();
+  if (!deckId) {
+    res.status(400).json({ error: "Missing deckId" });
+    return;
+  }
+
+  const rows = readDecks();
+  const idx = rows.findIndex((row) => row.deckId === deckId);
+  if (idx < 0) {
+    res.status(404).json({ error: "Deck not found" });
+    return;
+  }
+
+  const rawText = String(req.body?.rawText || rows[idx].rawText || "").trim();
+  if (rawText.length < 40) {
+    res.status(400).json({ error: "Deck text is too short to embed" });
+    return;
+  }
+
+  rows[idx] = {
+    ...rows[idx],
+    rawText,
+    textLength: rawText.length,
+    updatedAt: new Date().toISOString(),
+  };
+  writeDecks(rows);
+
+  const chunkCount = embedDeckLocally(deckId, rawText);
+  res.status(202).json({ ok: true, deckId, chunkCount });
+});
+
+app.get("/api/decks/:deckId/retrieve", (req, res) => {
+  const deckId = String(req.params.deckId || "").trim();
+  const q = String(req.query.q || "").trim();
+  const k = Number(req.query.k || 5);
+
+  if (!q) {
+    res.status(400).json({ error: "Missing query parameter q" });
+    return;
+  }
+
+  const matches = searchDeckLocally(deckId, q, k).map((item) => ({
+    index: item.index,
+    score: Math.round(item.score * 1000) / 1000,
+    text: item.text,
+  }));
+
+  res.json({ deckId, query: q, matches });
+});
+
+app.post("/api/decks/:deckId/study", async (req, res) => {
+  const deckId = String(req.params.deckId || "").trim();
+  const question = String(req.body?.question || "").trim();
+  if (!question) {
+    res.status(400).json({ error: "Missing question" });
+    return;
+  }
+
+  const topChunks = searchDeckLocally(deckId, question, 5);
+  if (!topChunks.length) {
+    res.json({
+      answer: "I could not find relevant content in this deck yet. Please upload or embed slide text first.",
+      sources: [],
+      grounded: false,
+    });
+    return;
+  }
+
+  const context = topChunks
+    .map((chunk, i) => `[Excerpt ${i + 1}]\n${chunk.text}`)
+    .join("\n\n");
+
+  if (!gemini) {
+    const fallback = topChunks[0].text.split(/(?<=[.!?])\s+/).slice(0, 2).join(" ");
+    res.json({
+      answer: fallback || "Relevant context found, but AI answering is unavailable right now.",
+      sources: topChunks.map((c) => ({ index: c.index, score: Math.round(c.score * 1000) / 1000 })),
+      grounded: true,
+      fallback: true,
+    });
+    return;
+  }
+
+  try {
+    const prompt = [
+      "You are a study tutor for SlidePlay.",
+      "Answer using ONLY the provided excerpts.",
+      "If the excerpts do not contain the answer, reply exactly: This topic is not covered in the uploaded slides.",
+      "Keep response concise (2-4 sentences).",
+      "",
+      "EXCERPTS:",
+      context,
+      "",
+      `QUESTION: ${question}`,
+    ].join("\n");
+
+    const result = await runGeminiPrompt({
+      prompt,
+      modelName: "gemini-2.0-flash",
+      generationConfig: { temperature: 0.2, maxOutputTokens: 600 },
+    });
+
+    res.json({
+      answer: result.text || "This topic is not covered in the uploaded slides.",
+      sources: topChunks.map((c) => ({ index: c.index, score: Math.round(c.score * 1000) / 1000 })),
+      grounded: true,
+      model: result.model,
+    });
+  } catch (error) {
+    res.status(500).json({ error: String(error?.message || "Study answer failed") });
+  }
+});
 
 // --- AI Hint Endpoint for Escape Game ---
 app.post("/api/ai-hint", async (req, res) => {
