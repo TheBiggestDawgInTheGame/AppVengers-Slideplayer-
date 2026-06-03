@@ -249,6 +249,50 @@ function handleFiles(fileCollection) {
   });
 }
 
+function normalizeQuizPayload(rawQuestions) {
+  if (!Array.isArray(rawQuestions)) return [];
+
+  return rawQuestions
+    .map((item, idx) => {
+      const question = String(item?.question || item?.questionText || item?.text || '').trim();
+      const options = Array.isArray(item?.options)
+        ? item.options.map((opt) => String(opt || '').trim()).filter(Boolean)
+        : Array.isArray(item?.answers)
+          ? item.answers.map((opt) => String(opt || '').trim()).filter(Boolean)
+          : [];
+
+      if (!question || options.length < 2) return null;
+
+      let correct = Number.isInteger(item?.correct) ? item.correct : -1;
+      if (correct < 0 || correct >= options.length) {
+        const rawCorrect = String(item?.correctAnswer || '').trim();
+        if (/^[A-D]$/i.test(rawCorrect)) {
+          correct = rawCorrect.toUpperCase().charCodeAt(0) - 65;
+        } else if (rawCorrect) {
+          const found = options.findIndex((opt) => opt.toLowerCase() === rawCorrect.toLowerCase());
+          correct = found >= 0 ? found : 0;
+        } else {
+          correct = 0;
+        }
+      }
+
+      return {
+        id: idx,
+        question,
+        questionText: question,
+        text: question,
+        options,
+        answers: options,
+        correct,
+        correctAnswer: options[correct] || options[0] || '',
+        explanation: String(item?.explanation || '').trim(),
+        difficulty: String(item?.difficulty || 'medium').toLowerCase(),
+        type: 'mcq',
+      };
+    })
+    .filter((q) => q && q.question.length > 5 && Array.isArray(q.options) && q.options.length >= 2);
+}
+
 async function uploadFiles() {
   if (selectedFiles.length === 0) {
     feedback.textContent = 'Please choose at least one supported file first.';
@@ -267,29 +311,28 @@ async function uploadFiles() {
     }
   }, 1800);
 
-    const formData = new FormData();
-    selectedFiles.forEach((file) => formData.append('slides', file));
+  const formData = new FormData();
+  selectedFiles.forEach((file) => formData.append('slides', file));
 
-    // --- Attach Firebase UID if logged in ---
-    let uid = null;
-    try {
-      if (window.saveLeaderboardScore) {
-        // shared/firebase-leaderboard.js exposes auth
-        const auth = window.saveLeaderboardScore.auth || window.auth;
-        if (auth && auth.currentUser) uid = auth.currentUser.uid;
-      }
-    } catch (_e) {}
-    if (uid) formData.append('uid', uid);
-
-    try {
-      const result = await uploadViaBackend(formData, uid);
+  // Attach Firebase UID if available so backend can store per-user uploads.
+  let uid = null;
+  try {
+    if (window.saveLeaderboardScore) {
+      const auth = window.saveLeaderboardScore.auth || window.auth;
+      if (auth && auth.currentUser) uid = auth.currentUser.uid;
+    }
+  } catch (_e) {}
+  if (uid) formData.append('uid', uid);
 
   try {
     const result = await uploadViaBackend(formData);
 
     if (Array.isArray(result.quizData) && result.quizData.length > 0) {
-      localStorage.setItem(GENERATED_QUIZ_KEY, JSON.stringify(result.quizData));
-      playQuizBtn.disabled = false;
+      const normalized = normalizeQuizPayload(result.quizData);
+      if (normalized.length > 0) {
+        localStorage.setItem(GENERATED_QUIZ_KEY, JSON.stringify(normalized));
+        playQuizBtn.disabled = false;
+      }
     }
 
     if (Array.isArray(result.files)) {
@@ -350,7 +393,12 @@ async function uploadViaBackend(formData) {
 
   for (const endpoint of UPLOAD_ENDPOINTS) {
     try {
-      const response = await fetch(endpoint, {
+      let url = endpoint;
+      if (formData.has && formData.has('uid') && endpoint.endsWith('/api/upload')) {
+        url = endpoint.replace('/api/upload', '/api/user-upload');
+      }
+
+      const response = await fetch(url, {
         method: 'POST',
         body: formData
       });
@@ -376,38 +424,6 @@ async function uploadViaBackend(formData) {
   }
 
   throw lastError || new Error('Upload failed.');
-    for (const endpoint of UPLOAD_ENDPOINTS) {
-      try {
-        // If uploading with UID, use /api/user-upload endpoint
-        let url = endpoint;
-        if (formData.has && formData.has('uid') && endpoint.endsWith('/api/upload')) {
-          url = endpoint.replace('/api/upload', '/api/user-upload');
-        }
-        const response = await fetch(url, {
-          method: 'POST',
-          body: formData
-        });
-
-        const rawBody = await response.text();
-        let result = {};
-        if (rawBody) {
-          try {
-            result = JSON.parse(rawBody);
-          } catch (_error) {
-            result = { message: rawBody };
-          }
-        }
-
-        if (!response.ok) {
-          throw new Error(result.message || `Upload failed with status ${response.status}.`);
-        }
-
-        return result;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError || new Error('Upload failed');
 }
 
 function fileNameTerms(name) {

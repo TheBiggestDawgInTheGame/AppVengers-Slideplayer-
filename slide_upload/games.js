@@ -28,6 +28,20 @@ function readJson(key, fallback) {
   }
 }
 
+function hasValidQuestionPayload(items) {
+  if (!Array.isArray(items) || items.length === 0) return false;
+  return items.some((item) => {
+    const question = String(item?.question || item?.questionText || item?.text || '').trim();
+    const options = Array.isArray(item?.options)
+      ? item.options
+      : Array.isArray(item?.answers)
+        ? item.answers
+        : [];
+    const correct = Number.isInteger(item?.correct) ? item.correct : -1;
+    return question.length > 5 && Array.isArray(options) && options.length >= 2 && correct >= 0 && correct < options.length;
+  });
+}
+
 const uploadedFiles = readJson(UPLOADED_FILES_KEY, []);
 const generatedQuiz = readJson(GENERATED_QUIZ_KEY, []);
 const demoSession = readJson(DEMO_SESSION_KEY, null);
@@ -196,6 +210,11 @@ psmAddPlayer.addEventListener('click', () => {
 });
 
 function launchGame() {
+  if (!hasValidQuestionPayload(generatedQuiz)) {
+    window.alert('No usable AI question set was found. Please re-upload slides so questions can be generated before launching a game.');
+    return;
+  }
+
   const activeQuizCard =
     (pendingCard?.dataset.quizSelector === 'true' && pendingCard) ||
     document.querySelector('.game-card.selected[data-quiz-selector="true"]');
