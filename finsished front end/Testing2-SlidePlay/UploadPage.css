@@ -920,6 +920,63 @@ body {
 .up-notify-ok  { color: #34d399; }
 .up-notify-err { color: #f87171; }
 
+.up-notify-log {
+  margin-top: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.up-notify-log-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #b9c2ff;
+  margin-bottom: 8px;
+}
+
+.up-notify-log-list {
+  display: grid;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.up-notify-log-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.78rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+}
+
+.up-notify-log-row.ok {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.up-notify-log-row.err {
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.up-notify-log-contact {
+  color: #e9ecff;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.up-notify-log-meta {
+  color: #c8d0ff;
+  text-align: right;
+}
+
 .up-action-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .up-start-btn {
   background: linear-gradient(135deg, #059669, #34d399);

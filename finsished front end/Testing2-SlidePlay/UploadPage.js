@@ -93,6 +93,8 @@ async function upSendNotifications() {
   const textarea = document.getElementById("upNotifyContacts");
   const statusEl = document.getElementById("upNotifyStatus");
   const sendBtn  = document.getElementById("upNotifySendBtn");
+  const logWrap  = document.getElementById("upNotifyLogWrap");
+  const logList  = document.getElementById("upNotifyLogList");
   if (!textarea || !statusEl || !sendBtn) return;
 
   const raw = textarea.value;
@@ -111,6 +113,8 @@ async function upSendNotifications() {
   sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending…';
   statusEl.textContent = "";
   statusEl.className = "up-notify-status";
+  if (logWrap) logWrap.classList.add("hidden");
+  if (logList) logList.innerHTML = "";
 
   try {
     const authToken = localStorage.getItem("sp_auth_token") || "";
@@ -131,13 +135,49 @@ async function upSendNotifications() {
     if (!res.ok) throw new Error(data.error || "Server error");
     statusEl.textContent = `✓ Sent to ${data.sent} contact${data.sent !== 1 ? "s" : ""}${data.failed ? ` (${data.failed} failed)` : ""}`;
     statusEl.className = "up-notify-status up-notify-ok";
+    upRenderNotifyLog(data.accepted || [], data.errors || []);
   } catch (e) {
     statusEl.textContent = "Failed: " + e.message;
     statusEl.className = "up-notify-status up-notify-err";
+    upRenderNotifyLog([], [{ contact: "Request", reason: e.message || "Unknown error" }]);
   } finally {
     sendBtn.disabled = false;
     sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Code to All';
   }
+}
+
+function upRenderNotifyLog(accepted, failed) {
+  const logWrap = document.getElementById("upNotifyLogWrap");
+  const logList = document.getElementById("upNotifyLogList");
+  if (!logWrap || !logList) return;
+
+  const okRows = (Array.isArray(accepted) ? accepted : []).map((entry) => ({
+    cls: "ok",
+    contact: String(entry?.contact || "Unknown"),
+    meta: `Delivered via ${String(entry?.channel || "message")}`,
+  }));
+
+  const errRows = (Array.isArray(failed) ? failed : []).map((entry) => ({
+    cls: "err",
+    contact: String(entry?.contact || "Unknown"),
+    meta: String(entry?.reason || "Delivery failed"),
+  }));
+
+  const rows = okRows.concat(errRows);
+  if (!rows.length) {
+    logWrap.classList.add("hidden");
+    logList.innerHTML = "";
+    return;
+  }
+
+  logList.innerHTML = rows.map((row) =>
+    `<div class="up-notify-log-row ${row.cls}">` +
+      `<span class="up-notify-log-contact">${row.contact.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>` +
+      `<span class="up-notify-log-meta">${row.meta.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>` +
+    `</div>`
+  ).join("");
+
+  logWrap.classList.remove("hidden");
 }
 
 function upHidden(id, hide) {
