@@ -967,6 +967,20 @@ function upsertSessionHistory(entry) {
 function readGameplayEvents() {
   const raw = safeReadJson(GAMEPLAY_EVENTS_FILE, []);
   if (!Array.isArray(raw)) return [];
+
+  const normalizeNotes = (notes) => {
+    if (!Array.isArray(notes)) return [];
+    return notes
+      .map((note) => ({
+        noteId: String(note?.noteId || `NOTE-${Date.now().toString(36).toUpperCase()}`),
+        text: String(note?.text || "").trim(),
+        createdAt: normalizeIsoDate(note?.createdAt) || new Date().toISOString(),
+        updatedAt: normalizeIsoDate(note?.updatedAt) || normalizeIsoDate(note?.createdAt) || new Date().toISOString(),
+      }))
+      .filter((note) => note.text.length > 0)
+      .slice(0, 100);
+  };
+
   return raw
     .map((item) => ({
       eventId: String(item?.eventId || ""),
@@ -981,6 +995,7 @@ function readGameplayEvents() {
       durationSec: Number(item?.durationSec || 0),
       createdAt: normalizeIsoDate(item?.createdAt) || new Date().toISOString(),
       meta: item?.meta && typeof item.meta === "object" ? item.meta : {},
+      notes: normalizeNotes(item?.notes),
     }))
     .filter((item) => item.uid || item.email);
 }
@@ -1005,8 +1020,32 @@ function appendGameplayEvent(eventRow) {
     durationSec: Number(eventRow?.durationSec || 0),
     createdAt: normalizeIsoDate(eventRow?.createdAt) || new Date().toISOString(),
     meta: eventRow?.meta && typeof eventRow.meta === "object" ? eventRow.meta : {},
+    notes: Array.isArray(eventRow?.notes) ? eventRow.notes : [],
   });
   return writeGameplayEvents(rows);
+}
+
+function gameplayEventBelongsToPlayer(eventRow, uid, email) {
+  const normalizedUid = String(uid || "").trim();
+  const normalizedEmail = normalizeEmail(email || "");
+  return (
+    (normalizedUid && eventRow.uid === normalizedUid) ||
+    (normalizedEmail && normalizeEmail(eventRow.email) === normalizedEmail)
+  );
+}
+
+function sanitizeGameplayEventForNotes(eventRow) {
+  return {
+    eventId: eventRow.eventId,
+    gameType: eventRow.gameType,
+    gameMode: eventRow.gameMode,
+    score: Number(eventRow.score || 0),
+    totalQuestions: Number(eventRow.totalQuestions || 0),
+    correctCount: Number(eventRow.correctCount || 0),
+    durationSec: Number(eventRow.durationSec || 0),
+    createdAt: eventRow.createdAt,
+    notes: Array.isArray(eventRow.notes) ? eventRow.notes : [],
+  };
 }
 
 function getRecentPlayerEvents(uid, email, limit = 8) {
@@ -2083,6 +2122,181 @@ app.get("/api/replay/:uid", (req, res) => {
     replay,
     missionProgress,
   });
+});
+
+app.get("/api/student/game-notes", (req, res) => {
+  const uid = String(req.query.uid || "").trim();
+  const email = normalizeEmail(req.query.email || "");
+  if (!uid && !email) {
+    res.status(400).json({ error: "Missing uid or email" });
+    return;
+  }
+
+  const events = getRecentPlayerEvents(uid, email, 300)
+    .map((eventRow) => sanitizeGameplayEventForNotes(eventRow));
+
+  res.json({ ok: true, events });
+});
+
+app.post("/api/student/game-notes/:eventId/notes", (req, res) => {
+  const eventId = String(req.params.eventId || "").trim();
+  const uid = String(req.body?.uid || "").trim();
+  const email = normalizeEmail(req.body?.email || "");
+  const text = String(req.body?.text || "").trim();
+
+  if (!eventId) {
+    res.status(400).json({ error: "Missing eventId" });
+    return;
+  }
+  if (!uid && !email) {
+    res.status(400).json({ error: "Missing uid or email" });
+    return;
+  }
+  if (!text || text.length < 2) {
+    res.status(400).json({ error: "Note must be at least 2 characters" });
+    return;
+  }
+
+  const rows = readGameplayEvents();
+  const idx = rows.findIndex((row) => row.eventId === eventId && gameplayEventBelongsToPlayer(row, uid, email));
+  if (idx < 0) {
+    res.status(404).json({ error: "Game history entry not found" });
+    return;
+  }
+
+  const note = {
+    noteId: `NOTE-${Date.now().toString(36).toUpperCase()}`,
+    text,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  rows[idx].notes = Array.isArray(rows[idx].notes) ? rows[idx].notes : [];
+  rows[idx].notes.unshift(note);
+  rows[idx].notes = rows[idx].notes.slice(0, 100);
+
+  if (!writeGameplayEvents(rows)) {
+    res.status(500).json({ error: "Could not save note" });
+    return;
+  }
+
+  res.status(201).json({ ok: true, note, event: sanitizeGameplayEventForNotes(rows[idx]) });
+});
+
+app.patch("/api/student/game-notes/:eventId/notes/:noteId", (req, res) => {
+  const eventId = String(req.params.eventId || "").trim();
+  const noteId = String(req.params.noteId || "").trim();
+  const uid = String(req.body?.uid || "").trim();
+  const email = normalizeEmail(req.body?.email || "");
+  const text = String(req.body?.text || "").trim();
+
+  if (!eventId || !noteId) {
+    res.status(400).json({ error: "Missing eventId or noteId" });
+    return;
+  }
+  if (!uid && !email) {
+    res.status(400).json({ error: "Missing uid or email" });
+    return;
+  }
+  if (!text || text.length < 2) {
+    res.status(400).json({ error: "Note must be at least 2 characters" });
+    return;
+  }
+
+  const rows = readGameplayEvents();
+  const eventIdx = rows.findIndex((row) => row.eventId === eventId && gameplayEventBelongsToPlayer(row, uid, email));
+  if (eventIdx < 0) {
+    res.status(404).json({ error: "Game history entry not found" });
+    return;
+  }
+
+  const noteIdx = (Array.isArray(rows[eventIdx].notes) ? rows[eventIdx].notes : [])
+    .findIndex((note) => String(note?.noteId || "") === noteId);
+  if (noteIdx < 0) {
+    res.status(404).json({ error: "Note not found" });
+    return;
+  }
+
+  rows[eventIdx].notes[noteIdx] = {
+    ...rows[eventIdx].notes[noteIdx],
+    text,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!writeGameplayEvents(rows)) {
+    res.status(500).json({ error: "Could not update note" });
+    return;
+  }
+
+  res.json({ ok: true, note: rows[eventIdx].notes[noteIdx], event: sanitizeGameplayEventForNotes(rows[eventIdx]) });
+});
+
+app.delete("/api/student/game-notes/:eventId/notes/:noteId", (req, res) => {
+  const eventId = String(req.params.eventId || "").trim();
+  const noteId = String(req.params.noteId || "").trim();
+  const uid = String(req.query.uid || req.body?.uid || "").trim();
+  const email = normalizeEmail(req.query.email || req.body?.email || "");
+
+  if (!eventId || !noteId) {
+    res.status(400).json({ error: "Missing eventId or noteId" });
+    return;
+  }
+  if (!uid && !email) {
+    res.status(400).json({ error: "Missing uid or email" });
+    return;
+  }
+
+  const rows = readGameplayEvents();
+  const eventIdx = rows.findIndex((row) => row.eventId === eventId && gameplayEventBelongsToPlayer(row, uid, email));
+  if (eventIdx < 0) {
+    res.status(404).json({ error: "Game history entry not found" });
+    return;
+  }
+
+  const currentNotes = Array.isArray(rows[eventIdx].notes) ? rows[eventIdx].notes : [];
+  const nextNotes = currentNotes.filter((note) => String(note?.noteId || "") !== noteId);
+  if (nextNotes.length === currentNotes.length) {
+    res.status(404).json({ error: "Note not found" });
+    return;
+  }
+
+  rows[eventIdx].notes = nextNotes;
+  if (!writeGameplayEvents(rows)) {
+    res.status(500).json({ error: "Could not delete note" });
+    return;
+  }
+
+  res.json({ ok: true, event: sanitizeGameplayEventForNotes(rows[eventIdx]) });
+});
+
+app.delete("/api/student/game-notes/:eventId", (req, res) => {
+  const eventId = String(req.params.eventId || "").trim();
+  const uid = String(req.query.uid || req.body?.uid || "").trim();
+  const email = normalizeEmail(req.query.email || req.body?.email || "");
+
+  if (!eventId) {
+    res.status(400).json({ error: "Missing eventId" });
+    return;
+  }
+  if (!uid && !email) {
+    res.status(400).json({ error: "Missing uid or email" });
+    return;
+  }
+
+  const rows = readGameplayEvents();
+  const idx = rows.findIndex((row) => row.eventId === eventId && gameplayEventBelongsToPlayer(row, uid, email));
+  if (idx < 0) {
+    res.status(404).json({ error: "Game history entry not found" });
+    return;
+  }
+
+  rows.splice(idx, 1);
+  if (!writeGameplayEvents(rows)) {
+    res.status(500).json({ error: "Could not delete game history" });
+    return;
+  }
+
+  res.json({ ok: true, deletedEventId: eventId });
 });
 
 app.post("/api/sms/test", async (req, res) => {

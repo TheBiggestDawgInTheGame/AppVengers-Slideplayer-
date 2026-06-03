@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlidePlayer - Notes</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="StudentDashboard.css" />
+  <style>
+    .notes-shell {
+      display: grid;
+      gap: 16px;
+    }
+
+    .notes-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .notes-title h1 {
+      font-family: Orbitron, sans-serif;
+      font-size: 1.3rem;
+      color: #e2e8f0;
+      margin: 0;
+      letter-spacing: 0.04em;
+    }
+
+    .notes-title p {
+      margin: 4px 0 0;
+      color: #9fb3d9;
+      font-family: Poppins, sans-serif;
+      font-size: 0.88rem;
+    }
+
+    .notes-refresh {
+      border: 1px solid rgba(92, 232, 255, 0.45);
+      background: rgba(6, 182, 212, 0.15);
+      color: #b8f6ff;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-family: Rajdhani, sans-serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .notes-status {
+      font-family: Poppins, sans-serif;
+      font-size: 0.84rem;
+      color: #8ca4ce;
+      min-height: 20px;
+    }
+
+    .history-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .game-card-note {
+      background: rgba(16, 22, 44, 0.78);
+      border: 1px solid rgba(138, 92, 246, 0.28);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .gcn-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .gcn-head h3 {
+      margin: 0;
+      font-family: Orbitron, sans-serif;
+      font-size: 0.95rem;
+      color: #f8fafc;
+      text-transform: uppercase;
+    }
+
+    .gcn-meta {
+      font-family: Poppins, sans-serif;
+      color: #9fb3d9;
+      font-size: 0.78rem;
+      margin: 4px 0 0;
+    }
+
+    .danger-btn {
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: rgba(248, 113, 113, 0.12);
+      color: #fecaca;
+      border-radius: 9px;
+      padding: 6px 9px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .note-row {
+      border: 1px solid rgba(92, 232, 255, 0.25);
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 8px;
+      background: rgba(11, 18, 36, 0.72);
+    }
+
+    .note-row textarea,
+    .new-note textarea {
+      width: 100%;
+      min-height: 72px;
+      resize: vertical;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(2, 6, 23, 0.45);
+      color: #e2e8f0;
+      font-family: Poppins, sans-serif;
+      font-size: 0.84rem;
+      padding: 9px;
+      box-sizing: border-box;
+    }
+
+    .note-actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .small-btn {
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      background: rgba(6, 182, 212, 0.14);
+      color: #baf7ff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 0.77rem;
+      font-family: Rajdhani, sans-serif;
+    }
+
+    .new-note {
+      margin-top: 10px;
+      border-top: 1px dashed rgba(139, 92, 246, 0.28);
+      padding-top: 10px;
+    }
+
+    .empty-state {
+      border: 1px dashed rgba(139, 92, 246, 0.4);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      color: #9fb3d9;
+      font-family: Poppins, sans-serif;
+      background: rgba(16, 22, 44, 0.5);
+    }
+
+    @media (max-width: 980px) {
+      .page-shell {
+        grid-template-columns: 1fr;
+      }
+      .navigation {
+        position: static;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+<body class="dark-mode" data-role="student">
+  <main class="page-shell">
+    <nav class="navigation">
+      <div class="nav-header">
+        <div class="logo-square">
+          <i class="fa-solid fa-gamepad"></i>
+        </div>
+        <div class="logo-text-wrapper">
+          <span class="logo-name">SlidePlayer</span>
+          <span class="logo-sub">STUDENT NOTES</span>
+        </div>
+      </div>
+
+      <ul class="nav-links">
+        <li><a href="Studentdashboard.html"><i class="fa-solid fa-gauge"></i> DASHBOARD</a></li>
+        <li><a href="loading.html?target=library.html"><i class="fa-solid fa-layer-group"></i> LIBRARY</a></li>
+        <li><a href="quests.html"><i class="fa-solid fa-bolt"></i> QUESTS</a></li>
+        <li><a href="../../slide_upload/games.html"><i class="fa-solid fa-gamepad"></i> GAME MODE</a></li>
+        <li><a href="loading.html?target=AnalyticsPage.html"><i class="fa-solid fa-chart-pie"></i> ANALYTICS</a></li>
+        <li class="active"><a href="student-notes.html"><i class="fa-solid fa-note-sticky"></i> NOTES</a></li>
+        <li><a href="studentpayment.html"><i class="fa-solid fa-credit-card"></i> BILLINGS</a></li>
+      </ul>
+
+      <div class="nav-footer">
+        <div class="user-pill">
+          <div class="user-meta">
+            <span class="user-display-name" id="notesUserName">Student</span>
+            <span class="user-status">Notes Hub</span>
+          </div>
+          <div class="user-icon">
+            <i class="fa-solid fa-user-astronaut"></i>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <section class="content-area">
+      <div class="notes-shell">
+        <div class="notes-topbar">
+          <div class="notes-title">
+            <h1>Game Notes</h1>
+            <p>Your played games are listed here. Add, update, or delete notes on each card.</p>
+          </div>
+          <button id="refreshBtn" class="notes-refresh"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+        </div>
+
+        <div id="notesStatus" class="notes-status"></div>
+        <div id="historyGrid" class="history-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function getIdentity() {
+      const params = new URLSearchParams(window.location.search);
+      const uid = params.get("uid") || localStorage.getItem("sp_user_uid") || "";
+      const email = params.get("email") || localStorage.getItem("sp_user_email") || "";
+      const display = localStorage.getItem("sp_user_display") || (email ? email.split("@")[0] : "Student");
+      return { uid: String(uid).trim(), email: String(email).trim().toLowerCase(), display };
+    }
+
+    function fmtDate(iso) {
+      const d = new Date(iso);
+      if (!Number.isFinite(d.getTime())) return "Unknown date";
+      return d.toLocaleString("en-ZA", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    async function api(path, options) {
+      const response = await fetch(path, options);
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (_err) {
+        data = {};
+      }
+      if (!response.ok) {
+        throw new Error(data.error || "Request failed");
+      }
+      return data;
+    }
+
+    const state = {
+      identity: getIdentity(),
+      events: []
+    };
+
+    function setStatus(message, isError) {
+      const el = document.getElementById("notesStatus");
+      if (!el) return;
+      el.textContent = message || "";
+      el.style.color = isError ? "#fda4af" : "#8ca4ce";
+    }
+
+    function cardTemplate(eventItem) {
+      const notes = Array.isArray(eventItem.notes) ? eventItem.notes : [];
+      const accuracy = eventItem.totalQuestions > 0
+        ? Math.round((eventItem.correctCount / Math.max(1, eventItem.totalQuestions)) * 100)
+        : 0;
+
+      const notesHtml = notes.map((note) => `
+        <div class="note-row" data-note-id="${escapeHtml(note.noteId)}">
+          <textarea>${escapeHtml(note.text)}</textarea>
+          <div class="note-actions">
+            <button class="small-btn" data-action="save-note" data-event-id="${escapeHtml(eventItem.eventId)}" data-note-id="${escapeHtml(note.noteId)}"><i class="fa-solid fa-floppy-disk"></i> Update</button>
+            <button class="danger-btn" data-action="delete-note" data-event-id="${escapeHtml(eventItem.eventId)}" data-note-id="${escapeHtml(note.noteId)}"><i class="fa-solid fa-trash"></i> Delete</button>
+          </div>
+        </div>
+      `).join("");
+
+      return `
+        <article class="game-card-note" data-event-id="${escapeHtml(eventItem.eventId)}">
+          <div class="gcn-head">
+            <div>
+              <h3>${escapeHtml(eventItem.gameType || "quiz")} - ${escapeHtml(eventItem.gameMode || "solo")}</h3>
+              <p class="gcn-meta">Played ${fmtDate(eventItem.createdAt)} | Score ${Number(eventItem.score || 0)} | Accuracy ${accuracy}%</p>
+            </div>
+            <button class="danger-btn" data-action="delete-history" data-event-id="${escapeHtml(eventItem.eventId)}"><i class="fa-solid fa-xmark"></i> Delete</button>
+          </div>
+
+          ${notesHtml || `<div class="gcn-meta">No notes yet for this game.</div>`}
+
+          <div class="new-note">
+            <textarea placeholder="Write a new note for this game..."></textarea>
+            <div class="note-actions">
+              <button class="small-btn" data-action="add-note" data-event-id="${escapeHtml(eventItem.eventId)}"><i class="fa-solid fa-plus"></i> Add Note</button>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function render() {
+      const wrap = document.getElementById("historyGrid");
+      if (!wrap) return;
+
+      if (!state.events.length) {
+        wrap.innerHTML = '<div class="empty-state">No played games found yet. Play a game and return to manage your notes.</div>';
+        return;
+      }
+
+      wrap.innerHTML = state.events.map(cardTemplate).join("");
+    }
+
+    async function loadEvents() {
+      const { uid, email } = state.identity;
+      if (!uid && !email) {
+        setStatus("Missing user identity. Please log in first.", true);
+        state.events = [];
+        render();
+        return;
+      }
+
+      setStatus("Loading your game history...");
+      const url = "/api/student/game-notes?uid=" + encodeURIComponent(uid) + "&email=" + encodeURIComponent(email);
+      try {
+        const data = await api(url);
+        state.events = Array.isArray(data.events) ? data.events : [];
+        render();
+        setStatus(state.events.length + " game card(s) loaded.");
+      } catch (error) {
+        state.events = [];
+        render();
+        setStatus(error.message || "Could not load game history notes.", true);
+      }
+    }
+
+    async function addNote(eventId, text) {
+      const payload = { uid: state.identity.uid, email: state.identity.email, text };
+      await api("/api/student/game-notes/" + encodeURIComponent(eventId) + "/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    async function updateNote(eventId, noteId, text) {
+      const payload = { uid: state.identity.uid, email: state.identity.email, text };
+      await api("/api/student/game-notes/" + encodeURIComponent(eventId) + "/notes/" + encodeURIComponent(noteId), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    async function deleteNote(eventId, noteId) {
+      const url = "/api/student/game-notes/" + encodeURIComponent(eventId) + "/notes/" + encodeURIComponent(noteId)
+        + "?uid=" + encodeURIComponent(state.identity.uid)
+        + "&email=" + encodeURIComponent(state.identity.email);
+      await api(url, { method: "DELETE" });
+    }
+
+    async function deleteHistory(eventId) {
+      const url = "/api/student/game-notes/" + encodeURIComponent(eventId)
+        + "?uid=" + encodeURIComponent(state.identity.uid)
+        + "&email=" + encodeURIComponent(state.identity.email);
+      await api(url, { method: "DELETE" });
+    }
+
+    document.addEventListener("click", async (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+
+      const action = button.getAttribute("data-action");
+      const eventId = button.getAttribute("data-event-id") || "";
+      const noteId = button.getAttribute("data-note-id") || "";
+      const card = button.closest(".game-card-note");
+      if (!card || !eventId) return;
+
+      try {
+        if (action === "add-note") {
+          const textarea = card.querySelector(".new-note textarea");
+          const text = String(textarea ? textarea.value : "").trim();
+          if (text.length < 2) {
+            setStatus("Note must be at least 2 characters.", true);
+            return;
+          }
+          await addNote(eventId, text);
+          if (textarea) textarea.value = "";
+          setStatus("Note added.");
+          await loadEvents();
+          return;
+        }
+
+        if (action === "save-note") {
+          const row = button.closest(".note-row");
+          const textarea = row ? row.querySelector("textarea") : null;
+          const text = String(textarea ? textarea.value : "").trim();
+          if (text.length < 2) {
+            setStatus("Note must be at least 2 characters.", true);
+            return;
+          }
+          await updateNote(eventId, noteId, text);
+          setStatus("Note updated.");
+          await loadEvents();
+          return;
+        }
+
+        if (action === "delete-note") {
+          if (!window.confirm("Delete this note?")) return;
+          await deleteNote(eventId, noteId);
+          setStatus("Note deleted.");
+          await loadEvents();
+          return;
+        }
+
+        if (action === "delete-history") {
+          if (!window.confirm("Delete this game history card and all its notes?")) return;
+          await deleteHistory(eventId);
+          setStatus("Game history deleted.");
+          await loadEvents();
+          return;
+        }
+      } catch (error) {
+        setStatus(error.message || "Action failed.", true);
+      }
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", () => {
+      loadEvents().catch((err) => setStatus(err.message || "Refresh failed.", true));
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const userNameEl = document.getElementById("notesUserName");
+      if (userNameEl) userNameEl.textContent = state.identity.display || "Student";
+      loadEvents().catch((err) => setStatus(err.message || "Load failed.", true));
+    });
+  </script>
+</body>
+</html>
