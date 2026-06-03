@@ -150,6 +150,12 @@
     }
     textarea { min-height: 90px; resize: vertical; }
     .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-row {
+      display: grid;
+      grid-template-columns: 1fr 180px 160px;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
     .students, .reports { display: grid; gap: 8px; }
     .rowitem {
       border: 1px solid rgba(255,255,255,0.14);
@@ -174,15 +180,59 @@
     .pill.paid { color: #baf9d6; border-color: rgba(110,243,191,0.4); }
     .pill.free { color: #ffd9e3; border-color: rgba(255,122,154,0.5); }
     .actions { margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; }
+    .report-summary {
+      margin-top: 7px;
+      font-size: 0.86rem;
+    }
     .btn-danger {
       border: 1px solid rgba(255,122,154,0.55);
       color: #ffd6df;
       background: rgba(255,122,154,0.15);
     }
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 8, 20, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      z-index: 3000;
+    }
+    .modal-bg.open { display: flex; }
+    .modal-card {
+      width: min(640px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 12px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.45);
+    }
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .modal-head h3 {
+      margin: 0;
+      font-family: Orbitron, sans-serif;
+      font-size: 0.96rem;
+    }
+    .close-btn {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.08);
+      color: #dce8ff;
+      border-radius: 8px;
+      padding: 6px 9px;
+      cursor: pointer;
+    }
     #status { min-height: 20px; color: var(--muted); font-size: 0.86rem; }
     @media (max-width: 1100px) {
       .layout { grid-template-columns: 1fr; }
       .grid { grid-template-columns: 1fr; }
+      .filter-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -242,9 +292,46 @@
 
       <section class="card">
         <h2>Reports</h2>
+        <div class="filter-row">
+          <input id="reportSearch" placeholder="Search by student, course, summary..." />
+          <select id="reportStatusFilter" title="Report status filter">
+            <option value="all">All statuses</option>
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+            <option value="review">Needs Review</option>
+          </select>
+          <select id="reportPaidFilter" title="Student paid filter">
+            <option value="all">All students</option>
+            <option value="paid">Paid students</option>
+            <option value="free">Free students</option>
+          </select>
+        </div>
         <div id="reportsList" class="reports"></div>
       </section>
     </main>
+  </div>
+
+  <div class="modal-bg" id="editReportModal" aria-modal="true" role="dialog">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Edit Report</h3>
+        <button class="close-btn" id="closeReportModal" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="stack">
+        <select id="modalStudentSelect" title="Modal student selector"></select>
+        <input id="modalCourseName" placeholder="Course name" />
+        <input id="modalMarks" type="number" min="0" max="100" placeholder="Marks (%)" />
+        <select id="modalReportStatus" title="Modal report status">
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
+          <option value="review">Needs Review</option>
+        </select>
+        <textarea id="modalSummary" placeholder="Update report summary..."></textarea>
+        <div class="actions">
+          <button class="btn" id="saveReportModal" type="button">Save Changes</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -252,7 +339,16 @@
     const uid = String(localStorage.getItem("sp_user_uid") || "").trim();
     const email = String(localStorage.getItem("sp_user_email") || "").trim().toLowerCase();
 
-    const state = { students: [], reports: [], selectedReportId: "" };
+    const state = {
+      students: [],
+      reports: [],
+      selectedReportId: "",
+      filters: {
+        query: "",
+        status: "all",
+        paid: "all",
+      },
+    };
 
     function hasHighestTeacherPlan() {
       try {
@@ -297,12 +393,15 @@
       const select = document.getElementById("studentSelect");
       if (!state.students.length) {
         select.innerHTML = '<option value="">No students found</option>';
+        document.getElementById("modalStudentSelect").innerHTML = '<option value="">No students found</option>';
         return;
       }
-      select.innerHTML = state.students.map((s) => {
+      const optionsHtml = state.students.map((s) => {
         const key = s.uid || s.email;
         return '<option value="' + esc(key) + '">' + esc(s.name) + ' - ' + esc(s.marks) + '%</option>';
       }).join("");
+      select.innerHTML = optionsHtml;
+      document.getElementById("modalStudentSelect").innerHTML = optionsHtml;
     }
 
     function renderStudents() {
@@ -331,18 +430,62 @@
       setStatus("Report selected: " + report.studentName);
     }
 
+    function openReportModal(report) {
+      if (!report) return;
+      state.selectedReportId = report.reportId;
+      const studentKey = report.studentUid || report.studentEmail;
+      if (studentKey) document.getElementById("modalStudentSelect").value = studentKey;
+      document.getElementById("modalCourseName").value = report.courseName || "";
+      document.getElementById("modalMarks").value = report.marks || 0;
+      document.getElementById("modalReportStatus").value = report.status || "draft";
+      document.getElementById("modalSummary").value = report.summary || "";
+      document.getElementById("editReportModal").classList.add("open");
+    }
+
+    function closeReportModal() {
+      document.getElementById("editReportModal").classList.remove("open");
+    }
+
+    function applyReportFilters(inputRows) {
+      const rows = Array.isArray(inputRows) ? inputRows : [];
+      const q = String(state.filters.query || "").trim().toLowerCase();
+      const status = String(state.filters.status || "all");
+      const paid = String(state.filters.paid || "all");
+
+      return rows.filter((r) => {
+        const byStatus = status === "all" ? true : String(r.status || "").toLowerCase() === status;
+        if (!byStatus) return false;
+
+        const student = state.students.find((s) =>
+          (r.studentUid && s.uid === r.studentUid) ||
+          (r.studentEmail && s.email === r.studentEmail)
+        );
+        const paidMatch = paid === "all"
+          ? true
+          : paid === "paid"
+            ? Boolean(student?.paid)
+            : !Boolean(student?.paid);
+        if (!paidMatch) return false;
+
+        if (!q) return true;
+        const blob = [r.studentName, r.courseName, r.summary, r.status].join(" ").toLowerCase();
+        return blob.includes(q);
+      });
+    }
+
     function renderReports() {
       const wrap = document.getElementById("reportsList");
-      if (!state.reports.length) {
+      const rows = applyReportFilters(state.reports);
+      if (!rows.length) {
         wrap.innerHTML = '<div class="muted">No reports yet. Create your first report.</div>';
         return;
       }
 
-      wrap.innerHTML = state.reports.map((r) =>
+      wrap.innerHTML = rows.map((r) =>
         '<article class="rowitem">'
           + '<div class="rowhead"><strong>' + esc(r.studentName) + '</strong><span class="pill">' + esc(r.status || 'draft') + '</span></div>'
           + '<div class="muted">' + esc(r.courseName || 'General') + ' | Marks: ' + esc(r.marks) + '%</div>'
-          + '<div style="margin-top:7px;font-size:0.86rem;">' + esc(r.summary || '') + '</div>'
+          + '<div class="report-summary">' + esc(r.summary || '') + '</div>'
           + '<div class="actions">'
             + '<button class="btn" data-edit="' + esc(r.reportId) + '">Edit</button>'
             + '<button class="btn btn-danger" data-delete="' + esc(r.reportId) + '">Delete</button>'
@@ -353,7 +496,10 @@
       wrap.querySelectorAll("[data-edit]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const report = state.reports.find((x) => x.reportId === btn.getAttribute("data-edit"));
-          if (report) fillFormFromReport(report);
+          if (report) {
+            fillFormFromReport(report);
+            openReportModal(report);
+          }
         });
       });
 
@@ -432,6 +578,33 @@
       setStatus("Report updated.");
     }
 
+    async function saveReportModal() {
+      if (!state.selectedReportId) {
+        setStatus("Select a report first.", true);
+        return;
+      }
+      const selected = studentByKey(document.getElementById("modalStudentSelect").value);
+      const payload = {
+        uid,
+        email,
+        studentUid: selected ? selected.uid : "",
+        studentEmail: selected ? selected.email : "",
+        studentName: selected ? selected.name : "Student",
+        courseName: document.getElementById("modalCourseName").value.trim(),
+        marks: Number(document.getElementById("modalMarks").value || 0),
+        status: document.getElementById("modalReportStatus").value,
+        summary: document.getElementById("modalSummary").value.trim(),
+      };
+      await api("/api/teacher/student-reports/" + encodeURIComponent(state.selectedReportId), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      closeReportModal();
+      await loadReports();
+      setStatus("Report updated from modal.");
+    }
+
     async function boot() {
       if (!hasHighestTeacherPlan()) {
         const go = confirm("Student Reports is a highest paid teacher feature. Upgrade to Teacher Premium/School now?");
@@ -451,6 +624,24 @@
     document.getElementById("refreshBtn").addEventListener("click", () => boot());
     document.getElementById("createBtn").addEventListener("click", () => createReport().catch((e) => setStatus(e.message, true)));
     document.getElementById("updateBtn").addEventListener("click", () => updateReport().catch((e) => setStatus(e.message, true)));
+    document.getElementById("closeReportModal").addEventListener("click", closeReportModal);
+    document.getElementById("saveReportModal").addEventListener("click", () => saveReportModal().catch((e) => setStatus(e.message, true)));
+    document.getElementById("editReportModal").addEventListener("click", (event) => {
+      if (event.target.id === "editReportModal") closeReportModal();
+    });
+
+    document.getElementById("reportSearch").addEventListener("input", (event) => {
+      state.filters.query = event.target.value || "";
+      renderReports();
+    });
+    document.getElementById("reportStatusFilter").addEventListener("change", (event) => {
+      state.filters.status = event.target.value || "all";
+      renderReports();
+    });
+    document.getElementById("reportPaidFilter").addEventListener("change", (event) => {
+      state.filters.paid = event.target.value || "all";
+      renderReports();
+    });
 
     boot();
   </script>

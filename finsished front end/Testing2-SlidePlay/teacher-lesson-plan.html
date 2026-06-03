@@ -99,6 +99,12 @@
     .grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; }
     .card h2 { margin: 0 0 10px; font-family: Orbitron, sans-serif; font-size: 1.02rem; }
     .stack { display: grid; gap: 8px; }
+    .filter-row {
+      display: grid;
+      grid-template-columns: 1fr 170px;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
     input, textarea, select {
       width: 100%;
       border: 1px solid rgba(255,255,255,0.2);
@@ -120,11 +126,50 @@
     .item .body { margin-top: 8px; font-size: 0.84rem; color: #dbe6ff; white-space: pre-wrap; }
     .actions { margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; }
     .actions-left { justify-content: flex-start; }
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 8, 20, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      z-index: 3000;
+    }
+    .modal-bg.open { display: flex; }
+    .modal-card {
+      width: min(680px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 12px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.45);
+    }
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .modal-head h3 {
+      margin: 0;
+      font-family: Orbitron, sans-serif;
+      font-size: 0.96rem;
+    }
+    .close-btn {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.08);
+      color: #dce8ff;
+      border-radius: 8px;
+      padding: 6px 9px;
+      cursor: pointer;
+    }
     .btn-danger { border-color: rgba(255,127,159,0.55); color: #ffd6e0; background: rgba(255,127,159,0.15); }
     #status { min-height: 20px; color: var(--muted); font-size: 0.86rem; }
     @media (max-width: 1100px) {
       .layout { grid-template-columns: 1fr; }
       .grid { grid-template-columns: 1fr; }
+      .filter-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -179,10 +224,43 @@
 
         <article class="card">
           <h2>Saved Lesson Plans</h2>
+          <div class="filter-row">
+            <input id="planSearch" placeholder="Search title, course, topics, notes..." />
+            <select id="planStatusFilter" title="Lesson plan status filter">
+              <option value="all">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="ready">Ready</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
           <div id="plansList" class="plans"></div>
         </article>
       </section>
     </main>
+  </div>
+
+  <div class="modal-bg" id="editPlanModal" aria-modal="true" role="dialog">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Edit Lesson Plan</h3>
+        <button class="close-btn" id="closePlanModal" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="stack">
+        <input id="modalTitle" placeholder="Lesson title" />
+        <input id="modalCourseName" placeholder="Course name" />
+        <textarea id="modalFocusTopics" placeholder="Focus topics..."></textarea>
+        <textarea id="modalQuestionGoals" placeholder="Question goals..."></textarea>
+        <textarea id="modalNotes" placeholder="Teaching notes..."></textarea>
+        <select id="modalStatusField" title="Modal status field">
+          <option value="draft">Draft</option>
+          <option value="ready">Ready</option>
+          <option value="published">Published</option>
+        </select>
+        <div class="actions">
+          <button id="savePlanModal" class="btn" type="button">Save Changes</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -190,7 +268,14 @@
     const uid = String(localStorage.getItem("sp_user_uid") || "").trim();
     const email = String(localStorage.getItem("sp_user_email") || "").trim().toLowerCase();
 
-    const state = { plans: [], selectedPlanId: "" };
+    const state = {
+      plans: [],
+      selectedPlanId: "",
+      filters: {
+        query: "",
+        status: "all",
+      },
+    };
 
     function hasHighestTeacherPlan() {
       try {
@@ -251,13 +336,42 @@
       setStatus("Plan selected: " + (plan.title || "Untitled"));
     }
 
+    function openPlanModal(plan) {
+      if (!plan) return;
+      state.selectedPlanId = plan.planId;
+      document.getElementById("modalTitle").value = plan.title || "";
+      document.getElementById("modalCourseName").value = plan.courseName || "";
+      document.getElementById("modalFocusTopics").value = plan.focusTopics || "";
+      document.getElementById("modalQuestionGoals").value = plan.questionGoals || "";
+      document.getElementById("modalNotes").value = plan.notes || "";
+      document.getElementById("modalStatusField").value = plan.status || "draft";
+      document.getElementById("editPlanModal").classList.add("open");
+    }
+
+    function closePlanModal() {
+      document.getElementById("editPlanModal").classList.remove("open");
+    }
+
+    function applyPlanFilters(rows) {
+      const q = String(state.filters.query || "").trim().toLowerCase();
+      const status = String(state.filters.status || "all");
+      return (Array.isArray(rows) ? rows : []).filter((row) => {
+        const statusOk = status === "all" ? true : String(row.status || "").toLowerCase() === status;
+        if (!statusOk) return false;
+        if (!q) return true;
+        const blob = [row.title, row.courseName, row.focusTopics, row.questionGoals, row.notes].join(" ").toLowerCase();
+        return blob.includes(q);
+      });
+    }
+
     function renderPlans() {
       const wrap = document.getElementById("plansList");
-      if (!state.plans.length) {
+      const rows = applyPlanFilters(state.plans);
+      if (!rows.length) {
         wrap.innerHTML = '<div class="meta">No lesson plans yet.</div>';
         return;
       }
-      wrap.innerHTML = state.plans.map((p) =>
+      wrap.innerHTML = rows.map((p) =>
         '<article class="item">'
           + '<h3>' + esc(p.title || 'Untitled lesson') + '</h3>'
           + '<div class="meta">' + esc(p.courseName || 'General') + ' | ' + esc(p.status || 'draft') + ' | Updated ' + new Date(p.updatedAt).toLocaleString() + '</div>'
@@ -272,7 +386,10 @@
       wrap.querySelectorAll("[data-edit]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const plan = state.plans.find((x) => x.planId === btn.getAttribute("data-edit"));
-          if (plan) fillForm(plan);
+          if (plan) {
+            fillForm(plan);
+            openPlanModal(plan);
+          }
         });
       });
 
@@ -329,6 +446,31 @@
       setStatus("Lesson plan updated.");
     }
 
+    async function savePlanModal() {
+      if (!state.selectedPlanId) {
+        setStatus("Select a lesson plan first.", true);
+        return;
+      }
+      const payload = {
+        uid,
+        email,
+        title: document.getElementById("modalTitle").value.trim(),
+        courseName: document.getElementById("modalCourseName").value.trim(),
+        focusTopics: document.getElementById("modalFocusTopics").value.trim(),
+        questionGoals: document.getElementById("modalQuestionGoals").value.trim(),
+        notes: document.getElementById("modalNotes").value.trim(),
+        status: document.getElementById("modalStatusField").value,
+      };
+      await api("/api/teacher/lesson-plans/" + encodeURIComponent(state.selectedPlanId), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      closePlanModal();
+      await loadPlans();
+      setStatus("Lesson plan updated from modal.");
+    }
+
     async function boot() {
       if (!hasHighestTeacherPlan()) {
         const go = confirm("Lesson Plan is a highest paid teacher feature. Upgrade to Teacher Premium/School now?");
@@ -347,6 +489,20 @@
     document.getElementById("refreshBtn").addEventListener("click", () => boot());
     document.getElementById("createBtn").addEventListener("click", () => createPlan().catch((e) => setStatus(e.message, true)));
     document.getElementById("updateBtn").addEventListener("click", () => updatePlan().catch((e) => setStatus(e.message, true)));
+    document.getElementById("closePlanModal").addEventListener("click", closePlanModal);
+    document.getElementById("savePlanModal").addEventListener("click", () => savePlanModal().catch((e) => setStatus(e.message, true)));
+    document.getElementById("editPlanModal").addEventListener("click", (event) => {
+      if (event.target.id === "editPlanModal") closePlanModal();
+    });
+
+    document.getElementById("planSearch").addEventListener("input", (event) => {
+      state.filters.query = event.target.value || "";
+      renderPlans();
+    });
+    document.getElementById("planStatusFilter").addEventListener("change", (event) => {
+      state.filters.status = event.target.value || "all";
+      renderPlans();
+    });
 
     boot();
   </script>
