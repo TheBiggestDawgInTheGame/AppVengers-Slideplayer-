@@ -1700,6 +1700,123 @@ app.post("/api/sms/test", async (req, res) => {
   }
 });
 
+app.post("/api/notify-session", async (req, res) => {
+  const body = req.body || {};
+  const code = String(body.code || "").trim().toUpperCase();
+  const sessionName = String(body.sessionName || "a live session").trim();
+  const hostName = String(body.hostName || "Teacher").trim();
+  const contactsRaw = Array.isArray(body.contacts) ? body.contacts : [];
+
+  if (!code || code.length < 4) {
+    res.status(400).json({ error: "Missing or invalid session code" });
+    return;
+  }
+
+  const contacts = Array.from(new Set(
+    contactsRaw
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+  ));
+
+  if (!contacts.length) {
+    res.status(400).json({ error: "Provide at least one contact" });
+    return;
+  }
+
+  const baseUrl = getPublicBaseUrl(req);
+  const joinUrl = `${baseUrl}/Studentdashboard.html`;
+  const emailContacts = contacts
+    .map((value) => normalizeEmail(value))
+    .filter((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
+  const smsContacts = contacts
+    .filter((value) => /^\+[1-9]\d{7,14}$/.test(value));
+
+  const accepted = [];
+  const failed = [];
+
+  const canSendEmail = Boolean(process.env.SENDGRID_API_KEY);
+  const twilioSid = String(process.env.TWILIO_ACCOUNT_SID || "").trim();
+  const twilioToken = String(process.env.TWILIO_AUTH_TOKEN || "").trim();
+  const twilioFrom = String(process.env.TWILIO_FROM_NUMBER || "").trim();
+  const canSendSms = Boolean(twilioSid && twilioToken && twilioFrom);
+
+  let twilioClient = null;
+  if (canSendSms) {
+    try {
+      const twilio = require("twilio");
+      twilioClient = twilio(twilioSid, twilioToken);
+    } catch (_) {
+      // SMS remains unavailable when Twilio package is missing.
+    }
+  }
+
+  const emailHtml = renderEmailTemplate({
+    title: "Session Code Invitation",
+    intro: `${hostName} invited you to join ${sessionName}.`,
+    bodyHtml:
+      `<p><strong>Session code:</strong> ${escapeHtml(code)}</p>` +
+      `<p>Open the student dashboard and enter this code to join.</p>` +
+      `<p><a href="${escapeHtml(joinUrl)}" style="color:#0ea5e9">${escapeHtml(joinUrl)}</a></p>`,
+    ctaLabel: "Join Session",
+    ctaUrl: joinUrl,
+  });
+
+  const emailText =
+    `${hostName} invited you to join ${sessionName}.\n` +
+    `Session code: ${code}\n` +
+    `Join here: ${joinUrl}`;
+
+  for (const email of emailContacts) {
+    if (!canSendEmail) {
+      failed.push({ contact: email, reason: "Email service is not configured" });
+      continue;
+    }
+    try {
+      await sgMail.send({
+        to: email,
+        from: getSendgridFrom(),
+        subject: `Session Code: ${code}`,
+        text: emailText,
+        html: emailHtml,
+      });
+      accepted.push({ contact: email, channel: "email" });
+    } catch (error) {
+      failed.push({ contact: email, reason: getSendgridErrorDetail(error) });
+    }
+  }
+
+  for (const phone of smsContacts) {
+    if (!twilioClient) {
+      failed.push({ contact: phone, reason: "SMS service is not configured" });
+      continue;
+    }
+    try {
+      const smsBody = `SlidePlay invite from ${hostName}. Session code: ${code}. Join: ${joinUrl}`;
+      await twilioClient.messages.create({ from: twilioFrom, to: phone, body: smsBody });
+      accepted.push({ contact: phone, channel: "sms" });
+    } catch (error) {
+      failed.push({ contact: phone, reason: String(error?.message || "SMS send failed") });
+    }
+  }
+
+  const unmatched = contacts.filter((value) => {
+    const normalized = String(value || "").trim();
+    return !emailContacts.includes(normalizeEmail(normalized)) && !smsContacts.includes(normalized);
+  });
+  unmatched.forEach((contact) => {
+    failed.push({ contact, reason: "Unsupported contact format (use email or E.164 phone)" });
+  });
+
+  res.json({
+    ok: true,
+    code,
+    sent: accepted.length,
+    failed: failed.length,
+    accepted,
+    errors: failed,
+  });
+});
+
 app.get("/api/admin/stats", ensureAdmin, async (_req, res) => {
   try {
     const paymentRows = normalizePaymentRows(safeReadJson(PAYMENTS_FILE, {}));

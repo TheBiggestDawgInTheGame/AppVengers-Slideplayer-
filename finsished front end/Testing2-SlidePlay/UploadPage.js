@@ -112,13 +112,9 @@ async function upSendNotifications() {
   statusEl.textContent = "";
   statusEl.className = "up-notify-status";
 
-  const SERVER = (location.hostname === "127.0.0.1" || location.hostname === "localhost")
-    ? "https://appvengers-slideplayer.onrender.com"
-    : location.origin;
-
   try {
     const authToken = localStorage.getItem("sp_auth_token") || "";
-    const res = await fetch(`${SERVER}/api/notify-session`, {
+    const res = await fetch(`${UP_API_BASE}/api/notify-session`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -429,10 +425,7 @@ async function upActivateWaitroom() {
   // ── Populate share link ───────────────────────────────────
   const shareInput = document.getElementById("upShareUrl");
   if (shareInput) {
-    // Prefer the deployed Render URL; fall back to current origin
-    const base = (location.hostname === "127.0.0.1" || location.hostname === "localhost")
-      ? "https://appvengers-slideplayer.onrender.com/app"
-      : (location.origin + "/app");
+    const base = UP_API_BASE || location.origin;
     shareInput.value = base + "/Studentdashboard.html";
   }
 
