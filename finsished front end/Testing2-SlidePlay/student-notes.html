@@ -146,6 +146,41 @@
       padding-top: 10px;
     }
 
+    .wrong-review {
+      margin-top: 10px;
+      border: 1px solid rgba(248, 113, 113, 0.35);
+      border-radius: 10px;
+      background: rgba(127, 29, 29, 0.18);
+      padding: 10px;
+    }
+
+    .wrong-review h4 {
+      margin: 0 0 8px;
+      color: #fecaca;
+      font-family: Rajdhani, sans-serif;
+      font-size: 0.88rem;
+      letter-spacing: 0.03em;
+    }
+
+    .wrong-item {
+      border-top: 1px dashed rgba(254, 202, 202, 0.28);
+      padding-top: 8px;
+      margin-top: 8px;
+      font-family: Poppins, sans-serif;
+      font-size: 0.8rem;
+      color: #fee2e2;
+    }
+
+    .wrong-item:first-of-type {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+
+    .wrong-item strong {
+      color: #fff;
+    }
+
     .empty-state {
       border: 1px dashed rgba(139, 92, 246, 0.4);
       border-radius: 12px;
@@ -271,9 +306,24 @@
 
     function cardTemplate(eventItem) {
       const notes = Array.isArray(eventItem.notes) ? eventItem.notes : [];
+      const wrongAnswers = Array.isArray(eventItem.wrongAnswers) ? eventItem.wrongAnswers : [];
       const accuracy = eventItem.totalQuestions > 0
         ? Math.round((eventItem.correctCount / Math.max(1, eventItem.totalQuestions)) * 100)
         : 0;
+
+      const wrongAnswersHtml = wrongAnswers.length
+        ? `<div class="wrong-review">
+            <h4><i class="fa-solid fa-triangle-exclamation"></i> Wrong Answers Review (${wrongAnswers.length})</h4>
+            ${wrongAnswers.map((item) => `
+              <div class="wrong-item">
+                <div><strong>Q:</strong> ${escapeHtml(item.question || "Question")}</div>
+                <div><strong>Your answer:</strong> ${escapeHtml(item.selectedAnswer || "Not captured")}</div>
+                <div><strong>Correct answer:</strong> ${escapeHtml(item.correctAnswer || "Not captured")}</div>
+                ${item.explanation ? `<div><strong>Why:</strong> ${escapeHtml(item.explanation)}</div>` : ""}
+              </div>
+            `).join("")}
+          </div>`
+        : `<div class="gcn-meta">No per-question wrong-answer details were captured for this game yet.</div>`;
 
       const notesHtml = notes.map((note) => `
         <div class="note-row" data-note-id="${escapeHtml(note.noteId)}">
@@ -294,6 +344,8 @@
             </div>
             <button class="danger-btn" data-action="delete-history" data-event-id="${escapeHtml(eventItem.eventId)}"><i class="fa-solid fa-xmark"></i> Delete</button>
           </div>
+
+          ${wrongAnswersHtml}
 
           ${notesHtml || `<div class="gcn-meta">No notes yet for this game.</div>`}
 

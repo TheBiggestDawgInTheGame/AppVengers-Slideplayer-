@@ -968,6 +968,32 @@ function readGameplayEvents() {
   const raw = safeReadJson(GAMEPLAY_EVENTS_FILE, []);
   if (!Array.isArray(raw)) return [];
 
+  const normalizeQuestionAttempts = (attempts) => {
+    if (!Array.isArray(attempts)) return [];
+    return attempts
+      .map((row, idx) => ({
+        attemptId: String(row?.attemptId || `ATT-${idx + 1}`),
+        question: String(row?.question || row?.questionText || "").trim(),
+        selectedAnswer: String(row?.selectedAnswer || row?.chosenAnswer || "").trim(),
+        correctAnswer: String(row?.correctAnswer || "").trim(),
+        isCorrect: Boolean(row?.isCorrect),
+        explanation: String(row?.explanation || "").trim(),
+      }))
+      .filter((row) => row.question);
+  };
+
+  const normalizeWrongAnswers = (wrongAnswers) => {
+    if (!Array.isArray(wrongAnswers)) return [];
+    return wrongAnswers
+      .map((row) => ({
+        question: String(row?.question || row?.questionText || "").trim(),
+        selectedAnswer: String(row?.selectedAnswer || row?.chosenAnswer || "").trim(),
+        correctAnswer: String(row?.correctAnswer || "").trim(),
+        explanation: String(row?.explanation || "").trim(),
+      }))
+      .filter((row) => row.question);
+  };
+
   const normalizeNotes = (notes) => {
     if (!Array.isArray(notes)) return [];
     return notes
@@ -994,7 +1020,13 @@ function readGameplayEvents() {
       correctCount: Number(item?.correctCount || 0),
       durationSec: Number(item?.durationSec || 0),
       createdAt: normalizeIsoDate(item?.createdAt) || new Date().toISOString(),
-      meta: item?.meta && typeof item.meta === "object" ? item.meta : {},
+      meta: item?.meta && typeof item.meta === "object"
+        ? {
+            ...item.meta,
+            questionAttempts: normalizeQuestionAttempts(item.meta?.questionAttempts),
+            wrongAnswers: normalizeWrongAnswers(item.meta?.wrongAnswers),
+          }
+        : { questionAttempts: [], wrongAnswers: [] },
       notes: normalizeNotes(item?.notes),
     }))
     .filter((item) => item.uid || item.email);
@@ -1007,6 +1039,41 @@ function writeGameplayEvents(rows) {
 
 function appendGameplayEvent(eventRow) {
   const rows = readGameplayEvents();
+
+  const rawMeta = eventRow?.meta && typeof eventRow.meta === "object" ? eventRow.meta : {};
+  const questionAttempts = Array.isArray(rawMeta.questionAttempts)
+    ? rawMeta.questionAttempts
+      .map((row, idx) => ({
+        attemptId: String(row?.attemptId || `ATT-${idx + 1}`),
+        question: String(row?.question || row?.questionText || "").trim(),
+        selectedAnswer: String(row?.selectedAnswer || row?.chosenAnswer || "").trim(),
+        correctAnswer: String(row?.correctAnswer || "").trim(),
+        isCorrect: Boolean(row?.isCorrect),
+        explanation: String(row?.explanation || "").trim(),
+      }))
+      .filter((row) => row.question)
+    : [];
+
+  const wrongAnswersFromPayload = Array.isArray(rawMeta.wrongAnswers)
+    ? rawMeta.wrongAnswers
+      .map((row) => ({
+        question: String(row?.question || row?.questionText || "").trim(),
+        selectedAnswer: String(row?.selectedAnswer || row?.chosenAnswer || "").trim(),
+        correctAnswer: String(row?.correctAnswer || "").trim(),
+        explanation: String(row?.explanation || "").trim(),
+      }))
+      .filter((row) => row.question)
+    : [];
+
+  const derivedWrongAnswers = questionAttempts
+    .filter((row) => !row.isCorrect)
+    .map((row) => ({
+      question: row.question,
+      selectedAnswer: row.selectedAnswer,
+      correctAnswer: row.correctAnswer,
+      explanation: row.explanation,
+    }));
+
   rows.unshift({
     eventId: String(eventRow?.eventId || `EVT-${Date.now().toString(36).toUpperCase()}`),
     uid: String(eventRow?.uid || "").trim(),
@@ -1019,7 +1086,11 @@ function appendGameplayEvent(eventRow) {
     correctCount: Number(eventRow?.correctCount || 0),
     durationSec: Number(eventRow?.durationSec || 0),
     createdAt: normalizeIsoDate(eventRow?.createdAt) || new Date().toISOString(),
-    meta: eventRow?.meta && typeof eventRow.meta === "object" ? eventRow.meta : {},
+    meta: {
+      ...rawMeta,
+      questionAttempts,
+      wrongAnswers: wrongAnswersFromPayload.length ? wrongAnswersFromPayload : derivedWrongAnswers,
+    },
     notes: Array.isArray(eventRow?.notes) ? eventRow.notes : [],
   });
   return writeGameplayEvents(rows);
@@ -1035,6 +1106,16 @@ function gameplayEventBelongsToPlayer(eventRow, uid, email) {
 }
 
 function sanitizeGameplayEventForNotes(eventRow) {
+  const attempts = Array.isArray(eventRow?.meta?.questionAttempts) ? eventRow.meta.questionAttempts : [];
+  const wrongAnswers = Array.isArray(eventRow?.meta?.wrongAnswers)
+    ? eventRow.meta.wrongAnswers
+    : attempts.filter((row) => !row.isCorrect).map((row) => ({
+        question: row.question,
+        selectedAnswer: row.selectedAnswer,
+        correctAnswer: row.correctAnswer,
+        explanation: row.explanation,
+      }));
+
   return {
     eventId: eventRow.eventId,
     gameType: eventRow.gameType,
@@ -1044,6 +1125,8 @@ function sanitizeGameplayEventForNotes(eventRow) {
     correctCount: Number(eventRow.correctCount || 0),
     durationSec: Number(eventRow.durationSec || 0),
     createdAt: eventRow.createdAt,
+    questionAttempts: attempts,
+    wrongAnswers,
     notes: Array.isArray(eventRow.notes) ? eventRow.notes : [],
   };
 }
