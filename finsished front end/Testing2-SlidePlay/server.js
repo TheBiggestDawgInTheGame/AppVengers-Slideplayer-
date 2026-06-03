@@ -37,6 +37,7 @@ const SESSION_HISTORY_RETENTION_MS = SESSION_HISTORY_RETENTION_DAYS * 24 * 60 * 
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || EMAIL_APP_URL || "https://appvengers-slideplayer-1.onrender.com")
   .trim()
   .replace(/\/+$/, "");
+const TEACHER_ACCESS_CODE = String(process.env.TEACHER_ACCESS_CODE || "SLIDEPLAY").trim().toUpperCase();
 const ADMIN_EMAIL_ALLOWLIST = new Set([
   "bossmk2209@gmail.com",
   "mutevherichard@gmail.com",
@@ -1164,6 +1165,21 @@ app.get("/api/users/:uid/role", async (req, res) => {
   } catch (_) {
     res.json({ role: "student" });
   }
+});
+
+app.post("/api/verify-teacher-code", (req, res) => {
+  const submitted = String(req.body?.code || req.body?.teacherCode || "").trim().toUpperCase();
+  if (!submitted) {
+    res.status(400).json({ ok: false, error: "Missing teacher code" });
+    return;
+  }
+
+  if (submitted !== TEACHER_ACCESS_CODE) {
+    res.status(401).json({ ok: false, error: "Invalid teacher access code" });
+    return;
+  }
+
+  res.json({ ok: true, role: "teacher" });
 });
 
 app.post("/api/users/sync", async (req, res) => {
