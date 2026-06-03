@@ -652,11 +652,13 @@ function mapPaymentStatus(status) {
 function planAmount(plan) {
   const p = String(plan || "").toLowerCase();
   const known = {
-    student_elite: 99,
-    student_premium: 149,
-    teacher_pro: 299,
-    teacher_premium: 399,
-    premium: 199,
+    student_elite: 90,
+    student_premium: 150,
+    teacher_pro: 150,
+    teacher_premium: 200,
+    pro: 150,
+    school: 200,
+    premium: 150,
   };
   return known[p] || 0;
 }

@@ -130,8 +130,8 @@ const TEACHER_PLAN_LABELS = {
   pro: "Teacher Pro",
   school: "School Premium",
 };
-const TEACHER_PLAN_MONTHLY = { free: 0, pro: 12, school: 49 };
-const TEACHER_PLAN_YEARLY = { free: 0, pro: 115, school: 470 };
+const TEACHER_PLAN_MONTHLY = { free: 0, pro: 150, school: 200 };
+const TEACHER_PLAN_YEARLY = { free: 0, pro: 1440, school: 1920 };
 
 // Student plans
 const STUDENT_PLAN_LABELS = {
@@ -366,7 +366,7 @@ function updateOrderSummary(plan) {
   if (orderPlanName) orderPlanName.textContent = PLAN_LABELS[plan];
   if (orderBilling) orderBilling.textContent = isYearly ? "Yearly" : "Monthly";
   if (orderTotal)
-    orderTotal.textContent = "$" + discountedPrice + (isYearly ? "/yr" : "/mo");
+    orderTotal.textContent = "R" + discountedPrice + (isYearly ? "/yr" : "/mo");
 
   if (discountRow) {
     if (appliedDiscount > 0) {
@@ -571,7 +571,7 @@ function completePurchase(method) {
   payments.unshift({
     receiptId: receiptId,
     plan: PLAN_LABELS[plan],
-    amount: "$" + discountedPrice,
+    amount: "R" + discountedPrice,
     date: new Date().toISOString(),
     status: method === "bank" ? "pending" : "paid",
     method: method,
