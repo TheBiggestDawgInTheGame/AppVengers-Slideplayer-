@@ -1842,6 +1842,29 @@ app.get("/api/admin/payments", ensureAdmin, async (_req, res) => {
   }
 });
 
+function normalizeSupportMessages(rawMessages) {
+  const rows = Array.isArray(rawMessages)
+    ? rawMessages
+    : Object.values(rawMessages || {});
+
+  return rows
+    .map((item, idx) => {
+      const messageId = Number(item?.MessageID || item?.id || idx + 1);
+      return {
+        MessageID: Number.isFinite(messageId) && messageId > 0 ? messageId : idx + 1,
+        Name: String(item?.Name || item?.name || "").trim(),
+        Email: normalizeEmail(item?.Email || item?.email || ""),
+        Subject: String(item?.Subject || item?.subject || "Help Center Request").trim(),
+        MessageText: String(item?.MessageText || item?.messageText || item?.message || "").trim(),
+        SourcePage: String(item?.SourcePage || item?.sourcePage || "help.html").trim(),
+        Status: String(item?.Status || item?.status || "open").trim().toLowerCase(),
+        CreatedAt: normalizeIsoDate(item?.CreatedAt || item?.createdAt || new Date().toISOString()),
+        UpdatedAt: normalizeIsoDate(item?.UpdatedAt || item?.updatedAt || ""),
+      };
+    })
+    .filter((item) => item.Name || item.Email || item.MessageText);
+}
+
 app.post("/api/support/messages", (req, res) => {
   const name = String(req.body?.name || "").trim();
   const email = normalizeEmail(req.body?.email || "");
@@ -1864,8 +1887,7 @@ app.post("/api/support/messages", (req, res) => {
     return;
   }
 
-  const messages = safeReadJson(SUPPORT_FILE, []);
-  const rows = Array.isArray(messages) ? messages : [];
+  const rows = normalizeSupportMessages(safeReadJson(SUPPORT_FILE, []));
   const nextId = rows.reduce((max, row) => {
     const id = Number(row?.MessageID);
     return Number.isFinite(id) ? Math.max(max, id) : max;
@@ -1892,11 +1914,7 @@ app.post("/api/support/messages", (req, res) => {
 });
 
 app.get("/api/admin/support/messages", ensureAdmin, async (_req, res) => {
-  const messages = safeReadJson(SUPPORT_FILE, []);
-  if (!Array.isArray(messages)) {
-    res.json({ messages: [] });
-    return;
-  }
+  const messages = normalizeSupportMessages(safeReadJson(SUPPORT_FILE, []));
   res.json({ messages: sortByDateDesc(messages, "CreatedAt") });
 });
 
@@ -1915,7 +1933,7 @@ app.patch("/api/admin/support/messages/:id", ensureAdmin, (req, res) => {
     return;
   }
 
-  const messages = safeReadJson(SUPPORT_FILE, []);
+  const messages = normalizeSupportMessages(safeReadJson(SUPPORT_FILE, []));
   if (!Array.isArray(messages)) {
     res.status(500).json({ error: "Support inbox is unavailable" });
     return;

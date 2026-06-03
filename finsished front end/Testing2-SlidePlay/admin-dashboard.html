@@ -569,7 +569,8 @@
   let cU=null, cR=null;
   let securityPollTimer=null;
   let securityAlertsCache=[];
-  const API_REQUEST_TIMEOUT_MS=1200;
+  const API_REQUEST_TIMEOUT_MS=8000;
+  const API_RETRY_ATTEMPTS=2;
 
   async function fetchWithTimeout(url, options={}){
     const controller=new AbortController();
@@ -610,30 +611,38 @@
     }
 
     for(const base of API_CANDIDATES){
-      try{
-        let resp=await fetchWithTimeout(base+path, await withAuthHeaders(false));
-        if(needsAdminAuth && resp.status===401){
-          resp=await fetchWithTimeout(base+path, await withAuthHeaders(true));
-        }
-        const data=await resp.json().catch(()=>({}));
-        if(resp.status===404){
-          throw new Error('Route not found at '+base);
-        }
-        if(!resp.ok){
-          if(resp.status>=500){
-            throw new Error(data?.error||('HTTP '+resp.status+' at '+base));
+      for(let attempt=1; attempt<=API_RETRY_ATTEMPTS; attempt++){
+        try{
+          let resp=await fetchWithTimeout(base+path, await withAuthHeaders(false));
+          if(needsAdminAuth && resp.status===401){
+            resp=await fetchWithTimeout(base+path, await withAuthHeaders(true));
+          }
+          const data=await resp.json().catch(()=>({}));
+          if(resp.status===404){
+            throw new Error('Route not found at '+base);
+          }
+          if(!resp.ok){
+            if(resp.status>=500){
+              throw new Error(data?.error||('HTTP '+resp.status+' at '+base));
+            }
+            API=base;
+            localStorage.setItem('sp_api_base', base);
+            throw new Error(data?.error||('HTTP '+resp.status));
           }
           API=base;
           localStorage.setItem('sp_api_base', base);
-          throw new Error(data?.error||('HTTP '+resp.status));
+          return data;
+        }catch(err){
+          const normalizedErr=err?.name==='AbortError'
+            ? new Error('Timed out contacting '+base)
+            : err;
+          lastError=normalizedErr;
+          const maybeTransient=/Timed out|HTTP 50\d|Failed to fetch|NetworkError/i.test(String(normalizedErr?.message||''));
+          if(attempt<API_RETRY_ATTEMPTS && maybeTransient){
+            continue;
+          }
+          break;
         }
-        API=base;
-        localStorage.setItem('sp_api_base', base);
-        return data;
-      }catch(err){
-        lastError=err?.name==='AbortError'
-          ? new Error('Timed out contacting '+base)
-          : err;
       }
     }
     throw lastError||new Error('API unavailable');
