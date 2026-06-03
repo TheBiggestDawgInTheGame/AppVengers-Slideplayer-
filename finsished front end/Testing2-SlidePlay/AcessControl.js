@@ -39,7 +39,7 @@
     teacherStatusEl.textContent =
       "Teacher: " + (session.username || session.email || "Unknown");
     // ── Enable paid feature buttons when teacher has a paid subscription ──
-    const sub = readJson("sp_subscription", null);
+    const sub = readJson("sp_teacher_subscription", null) || readJson("sp_subscription", null);
     const isPaidTeacher = sub && sub.status !== "cancelled" &&
       (sub.plan === "pro" || sub.plan === "school");
     if (isPaidTeacher) {

@@ -1842,6 +1842,55 @@ app.get("/api/admin/payments", ensureAdmin, async (_req, res) => {
   }
 });
 
+app.post("/api/support/messages", (req, res) => {
+  const name = String(req.body?.name || "").trim();
+  const email = normalizeEmail(req.body?.email || "");
+  const messageText = String(req.body?.message || req.body?.messageText || "").trim();
+  const subject = String(req.body?.subject || "Help Center Request").trim();
+  const sourcePage = String(req.body?.sourcePage || "help.html").trim();
+
+  if (!name || name.length < 2) {
+    res.status(400).json({ error: "Please provide your name" });
+    return;
+  }
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400).json({ error: "Please provide a valid email" });
+    return;
+  }
+
+  if (!messageText || messageText.length < 10) {
+    res.status(400).json({ error: "Message must be at least 10 characters" });
+    return;
+  }
+
+  const messages = safeReadJson(SUPPORT_FILE, []);
+  const rows = Array.isArray(messages) ? messages : [];
+  const nextId = rows.reduce((max, row) => {
+    const id = Number(row?.MessageID);
+    return Number.isFinite(id) ? Math.max(max, id) : max;
+  }, 0) + 1;
+
+  const record = {
+    MessageID: nextId,
+    Name: name,
+    Email: email,
+    Subject: subject || "Help Center Request",
+    MessageText: messageText,
+    SourcePage: sourcePage || "help.html",
+    Status: "open",
+    CreatedAt: new Date().toISOString(),
+  };
+
+  rows.push(record);
+  if (!safeWriteJson(SUPPORT_FILE, rows)) {
+    res.status(500).json({ error: "Could not save your support request" });
+    return;
+  }
+
+  res.status(201).json({ ok: true, message: record });
+});
+
 app.get("/api/admin/support/messages", ensureAdmin, async (_req, res) => {
   const messages = safeReadJson(SUPPORT_FILE, []);
   if (!Array.isArray(messages)) {
@@ -1915,20 +1964,22 @@ app.post("/api/admin/email/send", ensureAdmin, async (req, res) => {
   const accepted = [];
   const failed = [];
 
+  const brandedHtml = renderEmailTemplate({
+    title: subject,
+    intro: "Message from your SlidePlay admin team.",
+    bodyHtml: html || `<p>${normalizeTextToHtml(text)}</p>`,
+    ctaLabel: "Open SlidePlay",
+    ctaUrl: `${EMAIL_APP_URL}/main.html`,
+  });
+
   for (const email of recipients) {
     try {
       await sgMail.send({
         to: email,
         from: getSendgridFrom(),
         subject,
-        text: text || " ",
-        html: html || renderEmailTemplate({
-          title: subject,
-          intro: "Message from your SlidePlay admin team.",
-          bodyHtml: `<p>${normalizeTextToHtml(text)}</p>`,
-          ctaLabel: "Open SlidePlay",
-          ctaUrl: `${EMAIL_APP_URL}/main.html`,
-        }),
+        text: text || "Message from SlidePlay admin. Open the HTML version for full formatting.",
+        html: brandedHtml,
       });
       accepted.push(email);
     } catch (error) {

@@ -107,8 +107,22 @@ const IS_STUDENT = document.body.getAttribute("data-role") === "student";
 
 const SUBSCRIPTION_KEY = IS_STUDENT
   ? "sp_student_subscription"
-  : "sp_subscription";
+  : "sp_teacher_subscription";
 const PAYMENTS_KEY = IS_STUDENT ? "sp_student_payments" : "sp_payments";
+
+function migrateLegacyTeacherSubscriptionKey() {
+  if (IS_STUDENT) return;
+  const nextRaw = localStorage.getItem("sp_teacher_subscription");
+  if (nextRaw) return;
+  const legacyRaw = localStorage.getItem("sp_subscription");
+  if (!legacyRaw) return;
+  try {
+    JSON.parse(legacyRaw);
+    localStorage.setItem("sp_teacher_subscription", legacyRaw);
+  } catch (_e) {
+    // Ignore malformed legacy payloads.
+  }
+}
 
 // Teacher plans
 const TEACHER_PLAN_LABELS = {
@@ -151,6 +165,7 @@ let appliedDiscount = 0;
 // ── Init ──────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", function () {
+  migrateLegacyTeacherSubscriptionKey();
   loadCurrentSubscription();
   setupBillingToggle();
   setupPlanButtons();
@@ -785,7 +800,7 @@ function escHtml(str) {
 
 // Teacher plan gate
 window.spHasActivePlan = function (requiredPlan) {
-  const sub = readJson("sp_subscription", null);
+  const sub = readJson("sp_teacher_subscription", null) || readJson("sp_subscription", null);
   if (!sub || sub.plan === "free" || sub.status === "cancelled") return false;
   const tiers = ["free", "pro", "school"];
   return tiers.indexOf(sub.plan) >= tiers.indexOf(requiredPlan);
@@ -809,7 +824,7 @@ window.spRequirePlan = function (requiredPlan, featureName) {
 window.spStudentHasActivePlan = function (requiredPlan) {
   const sub = readJson("sp_student_subscription", null);
   if (!sub || sub.plan === "free" || sub.status === "cancelled") return false;
-  const tiers = ["free", "student_plus", "student_elite"];
+  const tiers = ["free", "student_elite", "student_premium"];
   return tiers.indexOf(sub.plan) >= tiers.indexOf(requiredPlan);
 };
 
@@ -831,7 +846,7 @@ window.spStudentRequirePlan = function (requiredPlan, featureName) {
 window.spGetXpMultiplier = function () {
   const sub = readJson("sp_student_subscription", null);
   if (!sub || sub.status === "cancelled") return 1;
-  if (sub.plan === "student_elite") return 2;
-  if (sub.plan === "student_plus") return 1.5;
+  if (sub.plan === "student_premium") return 2;
+  if (sub.plan === "student_elite") return 1.5;
   return 1;
 };

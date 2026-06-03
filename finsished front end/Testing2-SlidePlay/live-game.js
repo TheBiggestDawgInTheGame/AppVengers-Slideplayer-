@@ -54,7 +54,6 @@ let myScore = 0;
 let lastQuestion = -1;
 let gameStartedAt = Date.now();
 let reportSubmitted = false;
-let sessionArchived = false;
 const questionAttempts = [];
 
 const API_BASE = (
@@ -248,48 +247,6 @@ async function submitPremiumGameReport() {
     reportSubmitted = true;
   } catch (_) {
     // Non-fatal: report generation should not block game completion.
-  }
-}
-
-async function archiveCompletedSession() {
-  if (sessionArchived) return;
-  if (!session || LG.role !== "teacher") return;
-
-  const playersArr = session?.players && typeof session.players === "object"
-    ? Object.values(session.players)
-    : [];
-  const sorted = playersArr.slice().sort((a, b) => Number(b?.score || 0) - Number(a?.score || 0));
-  const winner = sorted[0] || null;
-
-  const payload = {
-    sessionCode: LG.code,
-    gameType: session.game || "quiz",
-    gameMode: session.mode || "solo",
-    hostName: session.host || LG.name || "Teacher",
-    playerCount: playersArr.length,
-    winnerName: winner ? String(winner.name || "") : "",
-    winnerScore: winner ? Number(winner.score || 0) : 0,
-    totalScore: winner ? Number(winner.score || 0) : 0,
-    status: "finished",
-    createdAt: session.createdAt || Date.now(),
-    finishedAt: new Date().toISOString(),
-  };
-
-  const headers = { "Content-Type": "application/json" };
-  const token = localStorage.getItem("sp_auth_token") || "";
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  try {
-    const resp = await fetch(API_BASE + "/api/sessions/archive", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-    if (resp.ok) {
-      sessionArchived = true;
-    }
-  } catch (_) {
-    // Best effort only; game completion must not fail.
   }
 }
 
@@ -708,10 +665,6 @@ function showGameOver() {
     }
   }
   setText("lgGoMessage", LG.role === "teacher" ? "Session complete. Well done!" : "Great work!");
-
-  if (LG.role === "teacher") {
-    archiveCompletedSession().catch(() => {});
-  }
 
   if (LG.role === "student") {
     submitPremiumGameReport().catch(() => {});

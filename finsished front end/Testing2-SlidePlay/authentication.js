@@ -50,10 +50,12 @@ const EMAIL_VERIFIED_SENT_AT_KEY = "sp_last_verification_email_sent_at";
 const GOOGLE_AUTH_INTENT_KEY = "sp_google_auth_intent";
 const GOOGLE_AUTH_INTENT_TS_KEY = "sp_google_auth_intent_ts";
 const GOOGLE_AUTH_INTENT_MAX_AGE_MS = 15 * 60 * 1000;
+const GOOGLE_AUTH_SOURCE_KEY = "sp_google_auth_source";
 
 let authPersistenceReady = false;
 let googleFinalizeInFlight = false;
 let googleAuthListenerInitialized = false;
+let googleSignInStartInFlight = false;
 
 const ADMIN_EMAIL_ALLOWLIST = new Set([
   "bossmk2209@gmail.com",
@@ -145,6 +147,7 @@ function markGoogleAuthIntent() {
   try {
     localStorage.setItem(GOOGLE_AUTH_INTENT_KEY, "1");
     localStorage.setItem(GOOGLE_AUTH_INTENT_TS_KEY, String(Date.now()));
+    localStorage.setItem(GOOGLE_AUTH_SOURCE_KEY, window.location.pathname || "");
   } catch (_) {}
 }
 
@@ -152,6 +155,7 @@ function clearGoogleAuthIntent() {
   try {
     localStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
     localStorage.removeItem(GOOGLE_AUTH_INTENT_TS_KEY);
+    localStorage.removeItem(GOOGLE_AUTH_SOURCE_KEY);
   } catch (_) {}
 }
 
@@ -163,6 +167,42 @@ function hasFreshGoogleAuthIntent() {
   } catch (_) {
     return false;
   }
+}
+
+function cleanupStaleGoogleAuthIntent() {
+  try {
+    if (localStorage.getItem(GOOGLE_AUTH_INTENT_KEY) !== "1") return;
+    const ts = Number(localStorage.getItem(GOOGLE_AUTH_INTENT_TS_KEY) || "0");
+    if (!Number.isFinite(ts) || Date.now() - ts > GOOGLE_AUTH_INTENT_MAX_AGE_MS) {
+      clearGoogleAuthIntent();
+    }
+  } catch (_) {
+    clearGoogleAuthIntent();
+  }
+}
+
+function resetAllGoogleButtons() {
+  resetGoogleButton(document.getElementById("googleLoginBtn"), "googleLoginBtn");
+  resetGoogleButton(document.getElementById("googleBtn"), "googleBtn");
+}
+
+function shouldPreferRedirectFlow() {
+  // Redirect flow is more reliable than popups across browsers and webviews.
+  const params = new URLSearchParams(window.location.search || "");
+  if (params.get("googlePopup") === "1") return false;
+  return true;
+}
+
+function shouldFallbackToRedirect(errCode) {
+  const code = String(errCode || "").trim();
+  if (!code) return true;
+  const nonRetryable = new Set([
+    "auth/unauthorized-domain",
+    "auth/operation-not-allowed",
+    "auth/account-exists-with-different-credential",
+    "auth/invalid-credential",
+  ]);
+  return !nonRetryable.has(code);
 }
 
 async function runFinalizeGoogleSignIn(user) {
@@ -496,12 +536,15 @@ function setupGoogle(btnId) {
 
   btn.addEventListener("click", async (e) => {
     e.preventDefault();
+    if (googleSignInStartInFlight) return;
+
+    googleSignInStartInFlight = true;
     await ensureAuthPersistence();
     markGoogleAuthIntent();
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Signing in...`;
 
-    if (isMobileAuthFlow()) {
+    if (isMobileAuthFlow() || shouldPreferRedirectFlow()) {
       // Popup auth is often blocked on mobile browsers; redirect flow is more reliable.
       try {
         await startGoogleRedirectWithWatchdog(
@@ -512,6 +555,7 @@ function setupGoogle(btnId) {
       } catch (err) {
         resetGoogleButton(btn, btnId);
         clearGoogleAuthIntent();
+        googleSignInStartInFlight = false;
         _showGoogleError(btn, "Unable to start Google sign-in redirect. Please try again.");
       }
       return;
@@ -522,13 +566,7 @@ function setupGoogle(btnId) {
       await runFinalizeGoogleSignIn(result.user);
     } catch (err) {
       console.error("Google sign-in error:", err.code || err.message);
-      const fallbackCodes = new Set([
-        "auth/popup-blocked",
-        "auth/popup-closed-by-user",
-        "auth/cancelled-popup-request",
-        "auth/operation-not-supported-in-this-environment",
-      ]);
-      if (fallbackCodes.has(err?.code)) {
+      if (shouldFallbackToRedirect(err?.code)) {
         try {
           await startGoogleRedirectWithWatchdog(
             btn,
@@ -538,12 +576,14 @@ function setupGoogle(btnId) {
         } catch (_) {
           resetGoogleButton(btn, btnId);
           clearGoogleAuthIntent();
+          googleSignInStartInFlight = false;
           _showGoogleError(btn, "Popup was blocked and redirect could not start. Please try again.");
         }
         return;
       }
       resetGoogleButton(btn, btnId);
       clearGoogleAuthIntent();
+      googleSignInStartInFlight = false;
       _showGoogleError(btn, err?.code === "auth/unauthorized-domain"
         ? `Google sign-in is not enabled for ${window.location.hostname} yet. Please add this domain in Firebase Auth > Authorized domains.`
         : "Google sign-in failed. Please try again.");
@@ -552,6 +592,7 @@ function setupGoogle(btnId) {
 }
 
 async function handleGoogleRedirect() {
+  cleanupStaleGoogleAuthIntent();
   await ensureAuthPersistence();
   try {
     const result = await getRedirectResult(auth);
@@ -569,10 +610,16 @@ async function handleGoogleRedirect() {
     const btnId = btn?.id || "googleBtn";
     resetGoogleButton(btn, btnId);
     clearGoogleAuthIntent();
+    googleSignInStartInFlight = false;
     if (btn) {
       _showGoogleError(btn, err?.code === "auth/unauthorized-domain"
         ? `Google sign-in is not enabled for ${window.location.hostname} yet. Please add this domain in Firebase Auth > Authorized domains.`
         : "Google sign-in failed. Please try again.");
+    }
+  } finally {
+    googleSignInStartInFlight = false;
+    if (!hasFreshGoogleAuthIntent()) {
+      resetAllGoogleButtons();
     }
   }
 }
@@ -782,3 +829,10 @@ setupResendVerificationButton();
 setupGoogle("googleLoginBtn");  // login.html Google button
 setupGoogleAuthRecoveryListener();
 handleGoogleRedirect();         // resolve redirect result on every page load
+window.addEventListener("pageshow", () => {
+  cleanupStaleGoogleAuthIntent();
+  if (!hasFreshGoogleAuthIntent()) {
+    resetAllGoogleButtons();
+    googleSignInStartInFlight = false;
+  }
+});

@@ -1,11 +1,59 @@
 [
   {
+    "PaymentID": 1780396976202,
+    "Email": "pay@test.com",
+    "Plan": "student_premium",
+    "AmountZAR": 90,
+    "Provider": "card",
+    "BillingCycle": "monthly",
+    "Status": "succeeded",
+    "CreatedAt": "2026-06-02T10:42:56.202Z"
+  },
+  {
+    "PaymentID": 1780396365608,
+    "FirebaseUID": "",
+    "DisplayName": "",
+    "Email": "pay@test.com",
+    "Plan": "student_premium",
+    "AmountZAR": 90,
+    "BillingCycle": "monthly",
+    "Provider": "card",
+    "Status": "succeeded",
+    "CreatedAt": "2026-06-02T10:32:45.608Z"
+  },
+  {
+    "PaymentID": 1780396242952,
+    "FirebaseUID": "",
+    "DisplayName": "",
+    "Email": "wire@test.com",
+    "Plan": "student_premium",
+    "AmountZAR": 90,
+    "BillingCycle": "monthly",
+    "Provider": "payfast",
+    "Status": "succeeded",
+    "CreatedAt": "2026-06-02T10:30:42.952Z"
+  },
+  {
+    "PaymentID": 1780396220045,
+    "FirebaseUID": "",
+    "DisplayName": "",
+    "Email": "wire@test.com",
+    "Plan": "student_premium",
+    "AmountZAR": 90,
+    "BillingCycle": "monthly",
+    "Provider": "payfast",
+    "Status": "succeeded",
+    "CreatedAt": "2026-06-02T10:30:20.045Z"
+  },
+  {
     "PaymentID": 1780256944906,
+    "FirebaseUID": "",
+    "DisplayName": "",
     "Email": "ksavage7123@gmail.com",
     "Plan": "student_elite",
     "AmountZAR": 99,
-    "Provider": "card",
     "BillingCycle": "monthly",
+    "Provider": "card",
     "Status": "succeeded",
     "CreatedAt": "2026-05-31T19:49:04.906Z"
   }

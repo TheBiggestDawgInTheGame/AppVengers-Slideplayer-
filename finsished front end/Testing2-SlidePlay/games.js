@@ -14,7 +14,19 @@ function getStudentPlan() {
   return 'free';
 }
 
+function getTeacherPlan() {
+  try {
+    const sub = JSON.parse(localStorage.getItem('sp_teacher_subscription') || localStorage.getItem('sp_subscription') || 'null');
+    if (sub && sub.status !== 'cancelled' && sub.plan) return sub.plan;
+  } catch (_) {}
+  return 'free';
+}
+
 function isPaidPlan() {
+  if (getUserRole() === 'teacher') {
+    const p = getTeacherPlan();
+    return p === 'pro' || p === 'school';
+  }
   const p = getStudentPlan();
   return p === 'student_elite' || p === 'student_premium';
 }

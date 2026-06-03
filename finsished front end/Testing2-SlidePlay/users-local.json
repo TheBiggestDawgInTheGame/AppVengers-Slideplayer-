@@ -10,5 +10,53 @@
     "GamesPlayed": 2,
     "LastLoginAt": "2026-05-31T19:51:06.974Z",
     "CreatedAt": "2026-05-31T19:46:29.001Z"
+  },
+  {
+    "FirebaseUID": "wire-test-1",
+    "DisplayName": "Wire Test",
+    "Email": "wire@test.com",
+    "Role": "student",
+    "AuthProvider": "password",
+    "CurrentPlan": "",
+    "TotalSpent": 0,
+    "GamesPlayed": 2,
+    "LastLoginAt": "2026-06-02T10:30:42.934Z",
+    "CreatedAt": "2026-06-02T10:30:19.632Z"
+  },
+  {
+    "FirebaseUID": "u1",
+    "DisplayName": "User One",
+    "Email": "u1@test.com",
+    "Role": "student",
+    "AuthProvider": "password",
+    "CurrentPlan": "",
+    "TotalSpent": 0,
+    "GamesPlayed": 2,
+    "LastLoginAt": "2026-06-02T10:42:58.347Z",
+    "CreatedAt": "2026-06-02T10:32:47.945Z"
+  },
+  {
+    "FirebaseUID": "flow-test",
+    "DisplayName": "Flow Test",
+    "Email": "flow@test.com",
+    "Role": "student",
+    "AuthProvider": "password",
+    "CurrentPlan": "",
+    "TotalSpent": 0,
+    "GamesPlayed": 1,
+    "LastLoginAt": "2026-06-02T10:46:15.530Z",
+    "CreatedAt": "2026-06-02T10:46:15.526Z"
+  },
+  {
+    "FirebaseUID": "demo-user-1",
+    "DisplayName": "demo@example.com",
+    "Email": "demo@example.com",
+    "Role": "student",
+    "AuthProvider": "password",
+    "CurrentPlan": "",
+    "TotalSpent": 0,
+    "GamesPlayed": 1,
+    "LastLoginAt": "2026-06-03T06:53:29.243Z",
+    "CreatedAt": "2026-06-03T06:53:29.240Z"
   }
 ]
