@@ -1295,6 +1295,10 @@ function extractGeminiText(response) {
   return candidateText || "";
 }
 
+function isGeminiQuotaError(message) {
+  return /429|too many requests|quota exceeded|rate-limits?/i.test(String(message || ""));
+}
+
 async function runGeminiPrompt({ prompt, image, modelName, responseSchema, generationConfig }) {
   if (!gemini) {
     throw new Error("Gemini API key is not configured on the server");
@@ -1378,6 +1382,10 @@ app.post("/api/gemini-proxy", async (req, res) => {
   } catch (error) {
     const message = String(error?.message || "AI generation failed");
     const unavailable = /not configured|api key/i.test(message);
+    if (isGeminiQuotaError(message)) {
+      res.status(429).json({ error: message, retryable: true });
+      return;
+    }
     res.status(unavailable ? 503 : 500).json({ error: message });
   }
 });
@@ -1518,7 +1526,15 @@ app.post("/api/decks/:deckId/study", async (req, res) => {
       model: result.model,
     });
   } catch (error) {
-    res.status(500).json({ error: String(error?.message || "Study answer failed") });
+    const message = String(error?.message || "Study answer failed");
+    const fallback = topChunks[0]?.text?.split(/(?<=[.!?])\s+/)?.slice(0, 2)?.join(" ") || "";
+    res.status(isGeminiQuotaError(message) ? 429 : 200).json({
+      answer: fallback || "Relevant deck context is available, but AI answering is temporarily unavailable.",
+      sources: topChunks.map((c) => ({ index: c.index, score: Math.round(c.score * 1000) / 1000 })),
+      grounded: true,
+      fallback: true,
+      error: message,
+    });
   }
 });
 
