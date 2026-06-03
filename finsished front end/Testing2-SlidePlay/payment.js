@@ -836,7 +836,7 @@ window.spStudentRequirePlan = function (requiredPlan, featureName) {
         STUDENT_PLAN_LABELS[requiredPlan] +
         " plan.\n\nUpgrade now?",
     );
-    if (go) window.location.href = "student-payment.html";
+    if (go) window.location.href = "studentpayment.html";
     return false;
   }
   return true;

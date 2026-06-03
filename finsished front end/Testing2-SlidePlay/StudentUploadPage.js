@@ -203,7 +203,7 @@ function goToStudy() {
 function goToChill() {
   if (triesExhausted()) {
     alert("You've used all " + MAX_TRIES_FREE + " free uploads this week.\n\nUpgrade to Student Elite or Premium for unlimited uploads.");
-    window.location.href = "student-payment.html";
+    window.location.href = "studentpayment.html";
     return;
   }
   updateTriesUI();
@@ -217,7 +217,7 @@ function goToStory() {
     window.location.href = "../../games/story_mode/index.html";
   } else {
     var go = confirm("Story Mode requires a Premium plan.\n\nUpgrade to Student Elite or Premium to unlock it.\n\nGo to upgrade page?");
-    if (go) window.location.href = "student-payment.html";
+    if (go) window.location.href = "studentpayment.html";
   }
 }
 

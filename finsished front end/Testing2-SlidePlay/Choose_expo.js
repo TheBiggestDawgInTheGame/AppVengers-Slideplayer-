@@ -152,7 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
         var go = confirm(
           "Story Mode is a Premium feature.\n\nUpgrade to Student Elite or Premium to unlock it.\n\nGo to upgrade page?"
         );
-        if (go) window.location.href = "student-payment.html";
+        if (go) window.location.href = "studentpayment.html";
       }
     });
   }
