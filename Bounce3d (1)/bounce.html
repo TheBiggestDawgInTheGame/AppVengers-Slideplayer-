@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bounce 3D – Slopes, Pause & Score History</title>
+    <link rel="stylesheet" href="bounce.css" />
+    <!-- three.js (r128) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  </head>
+  <body>
+    <div id="loading">Generating World…</div>
+
+    <div id="ui-layer">
+      <div class="hud-top">
+        <div>SCORE: <span id="score">0</span></div>
+        <div>LEVEL: <span id="level">1</span></div>
+        <div class="controls-hint">
+          ARROWS – Move<br />
+          SPACE – Jump<br />
+          MOUSE – Look around<br />
+          ESC – Pause
+        </div>
+      </div>
+    </div>
+
+    <!-- Game‑over screen (shows final total score) -->
+    <div id="game-over-screen">
+      <h1>GAME OVER</h1>
+      <p class="final">Final Score: <span id="final-score">0</span></p>
+      <button id="retry-btn">RETRY</button>
+    </div>
+
+    <!-- Pause screen (appears when you press ESC) -->
+    <div id="pause-screen">
+      <div class="pause-content">
+        <h1>PAUSED</h1>
+        <button id="resume-btn">RESUME</button>
+        <button id="scores-btn">SCORES</button>
+        <button id="restart-level-btn">RESTART LEVEL</button>
+
+        <!-- Score‑history panel (hidden until you press “SCORES”) -->
+        <div id="score-history" style="display: none">
+          <h2>Previous Scores</h2>
+          <ul id="score-list"></ul>
+          <button id="back-from-scores-btn">BACK</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script src="bounce.js"></script>
+
+    <div class="audio-container">
+      <audio
+        id="jump-sound"
+        src="https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3"
+      ></audio>
+      <audio
+        id="bounce-sound"
+        src="https://assets.mixkit.co/sfx/preview/mixkit-basketball-ball-hard-hit-2093.mp3"
+      ></audio>
+      <audio
+        id="fall-sound"
+        src="https://assets.mixkit.co/sfx/preview/mixkit-fast-small-swoosh-1020.mp3"
+      ></audio>
+      <audio
+        id="gameover-sound"
+        src="https://assets.mixkit.co/sfx/preview/mixkit-game-show-loss-2031.mp3"
+      ></audio>
+    </div>
+  </body>
+</html>
