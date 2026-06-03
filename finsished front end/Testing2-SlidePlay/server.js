@@ -28,6 +28,8 @@ const SUPPORT_FILE = path.join(__dirname, "support-messages.json");
 const SESSION_HISTORY_FILE = path.join(__dirname, "session-history.json");
 const GAMEPLAY_EVENTS_FILE = path.join(__dirname, "gameplay-events.json");
 const MISSIONS_FILE = path.join(__dirname, "learning-missions.json");
+const STUDENT_REPORTS_FILE = path.join(__dirname, "teacher-student-reports.json");
+const LESSON_PLANS_FILE = path.join(__dirname, "teacher-lesson-plans.json");
 const DECKS_FILE = path.join(__dirname, "ai-decks.json");
 const DECK_EMBEDDINGS_FILE = path.join(__dirname, "ai-deck-embeddings.json");
 const DEFAULT_DB_URL = "https://slideplay-38d3f-default-rtdb.firebaseio.com";
@@ -1182,6 +1184,89 @@ function writeMissions(rows) {
   return safeWriteJson(MISSIONS_FILE, Array.isArray(rows) ? rows : []);
 }
 
+function readStudentReports() {
+  const raw = safeReadJson(STUDENT_REPORTS_FILE, []);
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => ({
+    reportId: String(item?.reportId || `REP-${Date.now().toString(36).toUpperCase()}`),
+    teacherUid: String(item?.teacherUid || "").trim(),
+    teacherEmail: normalizeEmail(item?.teacherEmail || ""),
+    studentUid: String(item?.studentUid || "").trim(),
+    studentEmail: normalizeEmail(item?.studentEmail || ""),
+    studentName: String(item?.studentName || "Student"),
+    courseName: String(item?.courseName || "General").trim(),
+    marks: Number(item?.marks || 0),
+    summary: String(item?.summary || "").trim(),
+    status: String(item?.status || "draft").toLowerCase(),
+    createdAt: normalizeIsoDate(item?.createdAt) || new Date().toISOString(),
+    updatedAt: normalizeIsoDate(item?.updatedAt) || normalizeIsoDate(item?.createdAt) || new Date().toISOString(),
+  }));
+}
+
+function writeStudentReports(rows) {
+  return safeWriteJson(STUDENT_REPORTS_FILE, Array.isArray(rows) ? rows.slice(0, 5000) : []);
+}
+
+function readLessonPlans() {
+  const raw = safeReadJson(LESSON_PLANS_FILE, []);
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => ({
+    planId: String(item?.planId || `PLAN-${Date.now().toString(36).toUpperCase()}`),
+    teacherUid: String(item?.teacherUid || "").trim(),
+    teacherEmail: normalizeEmail(item?.teacherEmail || ""),
+    title: String(item?.title || "Untitled lesson").trim(),
+    courseName: String(item?.courseName || "General").trim(),
+    focusTopics: String(item?.focusTopics || "").trim(),
+    notes: String(item?.notes || "").trim(),
+    questionGoals: String(item?.questionGoals || "").trim(),
+    status: String(item?.status || "draft").toLowerCase(),
+    createdAt: normalizeIsoDate(item?.createdAt) || new Date().toISOString(),
+    updatedAt: normalizeIsoDate(item?.updatedAt) || normalizeIsoDate(item?.createdAt) || new Date().toISOString(),
+  }));
+}
+
+function writeLessonPlans(rows) {
+  return safeWriteJson(LESSON_PLANS_FILE, Array.isArray(rows) ? rows.slice(0, 5000) : []);
+}
+
+function teacherIdentityFromRequest(req) {
+  return {
+    uid: String(req.query?.uid || req.body?.uid || "").trim(),
+    email: normalizeEmail(req.query?.email || req.body?.email || ""),
+  };
+}
+
+async function verifyHighestPaidTeacher(req, res) {
+  const { uid, email } = teacherIdentityFromRequest(req);
+  if (!uid && !email) {
+    res.status(400).json({ error: "Missing teacher uid or email" });
+    return null;
+  }
+
+  const users = await fetchUsersFromDb();
+  const normalizedUsers = withUserPaymentStats(users, normalizePaymentRows(safeReadJson(PAYMENTS_FILE, {})));
+  const teacher = normalizedUsers.find((row) =>
+    (uid && String(row.FirebaseUID || "").trim() === uid) ||
+    (email && normalizeEmail(row.Email) === email)
+  );
+
+  const plan = String(teacher?.CurrentPlan || "").toLowerCase();
+  const highestPlans = new Set(["school", "teacher_premium"]);
+  if (!highestPlans.has(plan)) {
+    res.status(402).json({
+      error: "Highest paid teacher plan required",
+      requiredPlans: ["school", "teacher_premium"],
+      currentPlan: plan || "free",
+    });
+    return null;
+  }
+
+  return {
+    uid: uid || String(teacher?.FirebaseUID || "").trim(),
+    email: email || normalizeEmail(teacher?.Email || ""),
+  };
+}
+
 function buildReplaySummary(events) {
   const byGame = new Map();
   for (const evt of events || []) {
@@ -2205,6 +2290,252 @@ app.get("/api/replay/:uid", (req, res) => {
     replay,
     missionProgress,
   });
+});
+
+app.get("/api/teacher/student-roster", async (req, res) => {
+  const identity = await verifyHighestPaidTeacher(req, res);
+  if (!identity) return;
+
+  const users = await fetchUsersFromDb();
+  const payments = normalizePaymentRows(safeReadJson(PAYMENTS_FILE, {}));
+  const enriched = withUserPaymentStats(users, payments);
+
+  const students = enriched
+    .filter((row) => String(row.Role || "").toLowerCase() === "student")
+    .map((student) => {
+      const events = getRecentPlayerEvents(String(student.FirebaseUID || ""), normalizeEmail(student.Email || ""), 60);
+      const attempted = events.reduce((sum, item) => sum + Number(item.totalQuestions || 0), 0);
+      const correct = events.reduce((sum, item) => sum + Number(item.correctCount || 0), 0);
+      const marks = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
+      return {
+        uid: String(student.FirebaseUID || ""),
+        email: normalizeEmail(student.Email || ""),
+        name: String(student.DisplayName || student.Email || "Student"),
+        paid: Boolean(student.CurrentPlan),
+        plan: String(student.CurrentPlan || "free"),
+        marks,
+        gamesPlayed: Number(student.GamesPlayed || events.length || 0),
+      };
+    })
+    .sort((a, b) => b.marks - a.marks)
+    .slice(0, 500);
+
+  res.json({ ok: true, students });
+});
+
+app.get("/api/teacher/student-reports", async (req, res) => {
+  const identity = await verifyHighestPaidTeacher(req, res);
+  if (!identity) return;
+
+  const reports = readStudentReports()
+    .filter((row) =>
+      (identity.uid && row.teacherUid === identity.uid) ||
+      (identity.email && row.teacherEmail === identity.email)
+    )
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  res.json({ ok: true, reports });
+});
+
+app.post("/api/teacher/student-reports", async (req, res) => {
+  const identity = await verifyHighestPaidTeacher(req, res);
+  if (!identity) return;
+
+  const studentName = String(req.body?.studentName || "").trim();
+  const courseName = String(req.body?.courseName || "General").trim();
+  const summary = String(req.body?.summary || "").trim();
+  const marks = Number(req.body?.marks || 0);
+
+  if (!studentName || summary.length < 5) {
+    res.status(400).json({ error: "Student name and summary are required" });
+    return;
+  }
+
+  const rows = readStudentReports();
+  const report = {
+    reportId: `REP-${Date.now().toString(36).toUpperCase()}`,
+    teacherUid: identity.uid,
+    teacherEmail: identity.email,
+    studentUid: String(req.body?.studentUid || "").trim(),
+    studentEmail: normalizeEmail(req.body?.studentEmail || ""),
+    studentName,
+    courseName: courseName || "General",
+    marks: Number.isFinite(marks) ? marks : 0,
+    summary,
+    status: String(req.body?.status || "draft").toLowerCase(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  rows.unshift(report);
+  if (!writeStudentReports(rows)) {
+    res.status(500).json({ error: "Could not save report" });
+    return;
+  }
+  res.status(201).json({ ok: true, report });
+});
+
+app.patch("/api/teacher/student-reports/:reportId", async (req, res) => {
+  const identity = await verifyHighestPaidTeacher(req, res);
+  if (!identity) return;
+
+  const reportId = String(req.params.reportId || "").trim();
+  if (!reportId) {
+    res.status(400).json({ error: "Missing reportId" });
+    return;
+  }
+
+  const rows = readStudentReports();
+  const idx = rows.findIndex((row) => row.reportId === reportId && (
+    (identity.uid && row.teacherUid === identity.uid) ||
+    (identity.email && row.teacherEmail === identity.email)
+  ));
+  if (idx < 0) {
+    res.status(404).json({ error: "Report not found" });
+    return;
+  }
+
+  rows[idx] = {
+    ...rows[idx],
+    studentName: String(req.body?.studentName || rows[idx].studentName || "Student").trim(),
+    courseName: String(req.body?.courseName || rows[idx].courseName || "General").trim(),
+    marks: Number.isFinite(Number(req.body?.marks)) ? Number(req.body?.marks) : Number(rows[idx].marks || 0),
+    summary: String(req.body?.summary || rows[idx].summary || "").trim(),
+    status: String(req.body?.status || rows[idx].status || "draft").toLowerCase(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!writeStudentReports(rows)) {
+    res.status(500).json({ error: "Could not update report" });
+    return;
+  }
+  res.json({ ok: true, report: rows[idx] });
+});
+
+app.delete("/api/teacher/student-reports/:reportId", async (req, res) => {
+  const identity = await verifyHighestPaidTeacher(req, res);
+  if (!identity) return;
+
+  const reportId = String(req.params.reportId || "").trim();
+  const rows = readStudentReports();
+  const next = rows.filter((row) => !(row.reportId === reportId && (
+    (identity.uid && row.teacherUid === identity.uid) ||
+    (identity.email && row.teacherEmail === identity.email)
+  )));
+
+  if (next.length === rows.length) {
+    res.status(404).json({ error: "Report not found" });
+    return;
+  }
+  if (!writeStudentReports(next)) {
+    res.status(500).json({ error: "Could not delete report" });
+    return;
+  }
+  res.json({ ok: true, deleted: reportId });
+});
+
+app.get("/api/teacher/lesson-plans", async (req, res) => {
+  const identity = await verifyHighestPaidTeacher(req, res);
+  if (!identity) return;
+
+  const plans = readLessonPlans()
+    .filter((row) =>
+      (identity.uid && row.teacherUid === identity.uid) ||
+      (identity.email && row.teacherEmail === identity.email)
+    )
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  res.json({ ok: true, plans });
+});
+
+app.post("/api/teacher/lesson-plans", async (req, res) => {
+  const identity = await verifyHighestPaidTeacher(req, res);
+  if (!identity) return;
+
+  const title = String(req.body?.title || "").trim();
+  if (!title) {
+    res.status(400).json({ error: "Title is required" });
+    return;
+  }
+
+  const rows = readLessonPlans();
+  const plan = {
+    planId: `PLAN-${Date.now().toString(36).toUpperCase()}`,
+    teacherUid: identity.uid,
+    teacherEmail: identity.email,
+    title,
+    courseName: String(req.body?.courseName || "General").trim(),
+    focusTopics: String(req.body?.focusTopics || "").trim(),
+    notes: String(req.body?.notes || "").trim(),
+    questionGoals: String(req.body?.questionGoals || "").trim(),
+    status: String(req.body?.status || "draft").toLowerCase(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  rows.unshift(plan);
+  if (!writeLessonPlans(rows)) {
+    res.status(500).json({ error: "Could not save lesson plan" });
+    return;
+  }
+  res.status(201).json({ ok: true, plan });
+});
+
+app.patch("/api/teacher/lesson-plans/:planId", async (req, res) => {
+  const identity = await verifyHighestPaidTeacher(req, res);
+  if (!identity) return;
+
+  const planId = String(req.params.planId || "").trim();
+  const rows = readLessonPlans();
+  const idx = rows.findIndex((row) => row.planId === planId && (
+    (identity.uid && row.teacherUid === identity.uid) ||
+    (identity.email && row.teacherEmail === identity.email)
+  ));
+
+  if (idx < 0) {
+    res.status(404).json({ error: "Lesson plan not found" });
+    return;
+  }
+
+  rows[idx] = {
+    ...rows[idx],
+    title: String(req.body?.title || rows[idx].title || "Untitled lesson").trim(),
+    courseName: String(req.body?.courseName || rows[idx].courseName || "General").trim(),
+    focusTopics: String(req.body?.focusTopics || rows[idx].focusTopics || "").trim(),
+    notes: String(req.body?.notes || rows[idx].notes || "").trim(),
+    questionGoals: String(req.body?.questionGoals || rows[idx].questionGoals || "").trim(),
+    status: String(req.body?.status || rows[idx].status || "draft").toLowerCase(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!writeLessonPlans(rows)) {
+    res.status(500).json({ error: "Could not update lesson plan" });
+    return;
+  }
+  res.json({ ok: true, plan: rows[idx] });
+});
+
+app.delete("/api/teacher/lesson-plans/:planId", async (req, res) => {
+  const identity = await verifyHighestPaidTeacher(req, res);
+  if (!identity) return;
+
+  const planId = String(req.params.planId || "").trim();
+  const rows = readLessonPlans();
+  const next = rows.filter((row) => !(row.planId === planId && (
+    (identity.uid && row.teacherUid === identity.uid) ||
+    (identity.email && row.teacherEmail === identity.email)
+  )));
+
+  if (next.length === rows.length) {
+    res.status(404).json({ error: "Lesson plan not found" });
+    return;
+  }
+
+  if (!writeLessonPlans(next)) {
+    res.status(500).json({ error: "Could not delete lesson plan" });
+    return;
+  }
+  res.json({ ok: true, deleted: planId });
 });
 
 app.get("/api/student/game-notes", (req, res) => {

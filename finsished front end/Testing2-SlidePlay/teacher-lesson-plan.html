@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson Plan | SlidePlay Teacher</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    :root {
+      --bg: #070b17;
+      --panel: #101833;
+      --panel2: #162145;
+      --line: rgba(125, 146, 255, 0.3);
+      --text: #ebf0ff;
+      --muted: #9aa8cd;
+      --cyan: #3adfff;
+      --pink: #f565c3;
+      --danger: #ff7f9f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Poppins, Segoe UI, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 88% 8%, #281750 0%, transparent 30%), radial-gradient(circle at 12% 12%, #10244e 0%, var(--bg) 44%), var(--bg);
+    }
+    .layout {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 265px 1fr;
+      gap: 14px;
+      padding: 14px;
+    }
+    .nav, .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 14px;
+      box-shadow: 0 0 28px rgba(0,0,0,0.35);
+    }
+    .nav {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; border-bottom: 1px dashed rgba(255,255,255,0.13); padding-bottom: 8px; }
+    .brand .core {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      color: var(--cyan);
+      border: 1px solid var(--line);
+      background: rgba(58,223,255,0.15);
+    }
+    .brand h2 { margin: 0; font-size: 1.02rem; font-family: Orbitron, sans-serif; }
+    .brand p { margin: 0; font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; }
+    .nav a {
+      text-decoration: none;
+      color: var(--muted);
+      border-radius: 10px;
+      padding: 9px 10px;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 600;
+    }
+    .nav a.active,
+    .nav a:hover {
+      color: var(--text);
+      border-color: rgba(245,101,195,0.35);
+      background: linear-gradient(90deg, rgba(245,101,195,0.2), rgba(58,223,255,0.1));
+    }
+    .badge-paid {
+      font-size: 0.7rem;
+      border: 1px solid rgba(245,101,195,0.46);
+      border-radius: 999px;
+      padding: 1px 7px;
+      color: #ffd9f2;
+      white-space: nowrap;
+    }
+    .main { display: grid; gap: 12px; }
+    .card { padding: 14px; }
+    .header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .header h1 { margin: 0; font-family: Orbitron, sans-serif; font-size: 1.26rem; }
+    .header p { margin: 4px 0 0; color: var(--muted); font-size: 0.88rem; }
+    .btn {
+      border: 1px solid var(--line);
+      background: rgba(58,223,255,0.13);
+      color: #c5f7ff;
+      border-radius: 9px;
+      padding: 8px 11px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; }
+    .card h2 { margin: 0 0 10px; font-family: Orbitron, sans-serif; font-size: 1.02rem; }
+    .stack { display: grid; gap: 8px; }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 9px;
+      padding: 9px 10px;
+      background: var(--panel2);
+      color: var(--text);
+    }
+    textarea { min-height: 96px; resize: vertical; }
+    .plans { display: grid; gap: 8px; }
+    .item {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.03);
+    }
+    .item h3 { margin: 0; font-size: 0.95rem; }
+    .item .meta { margin-top: 4px; font-size: 0.8rem; color: var(--muted); }
+    .item .body { margin-top: 8px; font-size: 0.84rem; color: #dbe6ff; white-space: pre-wrap; }
+    .actions { margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; }
+    .actions-left { justify-content: flex-start; }
+    .btn-danger { border-color: rgba(255,127,159,0.55); color: #ffd6e0; background: rgba(255,127,159,0.15); }
+    #status { min-height: 20px; color: var(--muted); font-size: 0.86rem; }
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="nav">
+      <div class="brand">
+        <div class="core"><i class="fa-solid fa-atom"></i></div>
+        <div>
+          <h2>SlidePlay</h2>
+          <p>TEACHER COMMAND</p>
+        </div>
+      </div>
+      <a href="teacher.html"><span><i class="fa-solid fa-gauge-high"></i> Dashboard</span></a>
+      <a href="UploadPage.html"><span><i class="fa-solid fa-cloud-arrow-up"></i> Resource Upload</span></a>
+      <a href="teacher-student-reports.html"><span><i class="fa-solid fa-file-lines"></i> Student Reports</span><span class="badge-paid">PAID+</span></a>
+      <a class="active" href="teacher-lesson-plan.html"><span><i class="fa-solid fa-book-open-reader"></i> Lesson Plan</span><span class="badge-paid">PAID+</span></a>
+      <a href="payment.html"><span><i class="fa-solid fa-credit-card"></i> Billing &amp; Plans</span></a>
+    </aside>
+
+    <main class="main">
+      <section class="card header">
+        <div>
+          <h1>Lesson Plan Notes</h1>
+          <p>Highest paid feature: set focus topics, question goals, and teaching notes with full CRUD.</p>
+        </div>
+        <button id="refreshBtn" class="btn"><i class="fa-solid fa-rotate"></i> Refresh</button>
+      </section>
+
+      <section id="status"></section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Create / Update Plan</h2>
+          <div class="stack">
+            <input id="title" placeholder="Lesson title" />
+            <input id="courseName" placeholder="Course name" />
+            <textarea id="focusTopics" placeholder="Focus topics for this lesson..."></textarea>
+            <textarea id="questionGoals" placeholder="What questions should be based on..."></textarea>
+            <textarea id="notes" placeholder="Teaching notes and reminders..."></textarea>
+            <select id="statusField" title="Plan status">
+              <option value="draft">Draft</option>
+              <option value="ready">Ready</option>
+              <option value="published">Published</option>
+            </select>
+            <div class="actions actions-left">
+              <button id="createBtn" class="btn">Create Plan</button>
+              <button id="updateBtn" class="btn">Update Selected</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>Saved Lesson Plans</h2>
+          <div id="plansList" class="plans"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const API_BASE = (window.SLIDEPLAY_API_BASE || localStorage.getItem("sp_api_base") || window.location.origin).replace(/\/$/, "");
+    const uid = String(localStorage.getItem("sp_user_uid") || "").trim();
+    const email = String(localStorage.getItem("sp_user_email") || "").trim().toLowerCase();
+
+    const state = { plans: [], selectedPlanId: "" };
+
+    function hasHighestTeacherPlan() {
+      try {
+        const sub = JSON.parse(localStorage.getItem("sp_teacher_subscription") || localStorage.getItem("sp_subscription") || "null");
+        if (!sub || !sub.plan) return false;
+        const plan = String(sub.plan).toLowerCase();
+        const status = String(sub.status || "active").toLowerCase();
+        if (["cancelled", "expired", "locked"].includes(status)) return false;
+        return plan === "school" || plan === "teacher_premium";
+      } catch (_err) {
+        return false;
+      }
+    }
+
+    function esc(v) {
+      return String(v || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function setStatus(msg, bad) {
+      const el = document.getElementById("status");
+      el.textContent = msg || "";
+      el.style.color = bad ? "#ffc4d4" : "#9aa8cd";
+    }
+
+    async function api(path, options) {
+      const resp = await fetch(API_BASE + path, options || {});
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || ("HTTP " + resp.status));
+      return data;
+    }
+
+    function payloadFromForm() {
+      return {
+        uid,
+        email,
+        title: document.getElementById("title").value.trim(),
+        courseName: document.getElementById("courseName").value.trim(),
+        focusTopics: document.getElementById("focusTopics").value.trim(),
+        questionGoals: document.getElementById("questionGoals").value.trim(),
+        notes: document.getElementById("notes").value.trim(),
+        status: document.getElementById("statusField").value,
+      };
+    }
+
+    function fillForm(plan) {
+      state.selectedPlanId = plan.planId;
+      document.getElementById("title").value = plan.title || "";
+      document.getElementById("courseName").value = plan.courseName || "";
+      document.getElementById("focusTopics").value = plan.focusTopics || "";
+      document.getElementById("questionGoals").value = plan.questionGoals || "";
+      document.getElementById("notes").value = plan.notes || "";
+      document.getElementById("statusField").value = plan.status || "draft";
+      setStatus("Plan selected: " + (plan.title || "Untitled"));
+    }
+
+    function renderPlans() {
+      const wrap = document.getElementById("plansList");
+      if (!state.plans.length) {
+        wrap.innerHTML = '<div class="meta">No lesson plans yet.</div>';
+        return;
+      }
+      wrap.innerHTML = state.plans.map((p) =>
+        '<article class="item">'
+          + '<h3>' + esc(p.title || 'Untitled lesson') + '</h3>'
+          + '<div class="meta">' + esc(p.courseName || 'General') + ' | ' + esc(p.status || 'draft') + ' | Updated ' + new Date(p.updatedAt).toLocaleString() + '</div>'
+          + '<div class="body"><strong>Focus:</strong> ' + esc(p.focusTopics || '-') + '\n\n<strong>Question Goals:</strong> ' + esc(p.questionGoals || '-') + '\n\n<strong>Notes:</strong> ' + esc(p.notes || '-') + '</div>'
+          + '<div class="actions">'
+            + '<button class="btn" data-edit="' + esc(p.planId) + '">Edit</button>'
+            + '<button class="btn btn-danger" data-delete="' + esc(p.planId) + '">Delete</button>'
+          + '</div>'
+        + '</article>'
+      ).join("");
+
+      wrap.querySelectorAll("[data-edit]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const plan = state.plans.find((x) => x.planId === btn.getAttribute("data-edit"));
+          if (plan) fillForm(plan);
+        });
+      });
+
+      wrap.querySelectorAll("[data-delete]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("Delete this lesson plan?")) return;
+          try {
+            await api("/api/teacher/lesson-plans/" + encodeURIComponent(btn.getAttribute("data-delete"))
+              + "?uid=" + encodeURIComponent(uid)
+              + "&email=" + encodeURIComponent(email), { method: "DELETE" });
+            await loadPlans();
+            setStatus("Lesson plan deleted.");
+          } catch (err) {
+            setStatus(err.message, true);
+          }
+        });
+      });
+    }
+
+    async function loadPlans() {
+      const data = await api("/api/teacher/lesson-plans?uid=" + encodeURIComponent(uid) + "&email=" + encodeURIComponent(email));
+      state.plans = Array.isArray(data.plans) ? data.plans : [];
+      renderPlans();
+    }
+
+    async function createPlan() {
+      const payload = payloadFromForm();
+      if (!payload.title) {
+        setStatus("Lesson title is required.", true);
+        return;
+      }
+      await api("/api/teacher/lesson-plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      state.selectedPlanId = "";
+      await loadPlans();
+      setStatus("Lesson plan created.");
+    }
+
+    async function updatePlan() {
+      if (!state.selectedPlanId) {
+        setStatus("Select a lesson plan first.", true);
+        return;
+      }
+      const payload = payloadFromForm();
+      await api("/api/teacher/lesson-plans/" + encodeURIComponent(state.selectedPlanId), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      await loadPlans();
+      setStatus("Lesson plan updated.");
+    }
+
+    async function boot() {
+      if (!hasHighestTeacherPlan()) {
+        const go = confirm("Lesson Plan is a highest paid teacher feature. Upgrade to Teacher Premium/School now?");
+        if (go) window.location.href = "payment.html";
+        else window.location.href = "teacher.html";
+        return;
+      }
+      try {
+        await loadPlans();
+        setStatus("Ready.");
+      } catch (err) {
+        setStatus(err.message || "Could not load lesson plans.", true);
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", () => boot());
+    document.getElementById("createBtn").addEventListener("click", () => createPlan().catch((e) => setStatus(e.message, true)));
+    document.getElementById("updateBtn").addEventListener("click", () => updatePlan().catch((e) => setStatus(e.message, true)));
+
+    boot();
+  </script>
+</body>
+</html>

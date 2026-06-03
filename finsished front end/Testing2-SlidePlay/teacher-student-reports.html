@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Reports | SlidePlay Teacher</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    :root {
+      --bg: #060a18;
+      --panel: #0f1733;
+      --panel2: #141f45;
+      --line: rgba(125, 147, 255, 0.32);
+      --text: #ebf1ff;
+      --muted: #96a5cf;
+      --cyan: #43dfff;
+      --pink: #f868c5;
+      --danger: #ff7a9a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: radial-gradient(circle at 10% 10%, #10234b 0%, var(--bg) 42%), var(--bg);
+      font-family: Poppins, Segoe UI, sans-serif;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 265px 1fr;
+      min-height: 100vh;
+      gap: 14px;
+      padding: 14px;
+    }
+    .nav, .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 14px;
+      box-shadow: 0 0 25px rgba(0,0,0,0.35);
+    }
+    .nav {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed rgba(255,255,255,0.13);
+    }
+    .brand .core {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      color: var(--cyan);
+      border: 1px solid var(--line);
+      background: rgba(67,223,255,0.14);
+    }
+    .brand h2 {
+      margin: 0;
+      font-size: 1.02rem;
+      font-family: Orbitron, sans-serif;
+    }
+    .brand p {
+      margin: 0;
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+    .nav a {
+      text-decoration: none;
+      color: var(--muted);
+      border-radius: 10px;
+      padding: 9px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid transparent;
+      font-weight: 600;
+    }
+    .nav a.active,
+    .nav a:hover {
+      color: var(--text);
+      border-color: rgba(248, 104, 197, 0.35);
+      background: linear-gradient(90deg, rgba(248,104,197,0.18), rgba(67,223,255,0.1));
+    }
+    .badge-paid {
+      font-size: 0.7rem;
+      border: 1px solid rgba(248,104,197,0.45);
+      color: #ffd5ef;
+      padding: 1px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .main {
+      display: grid;
+      gap: 12px;
+    }
+    .top {
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .title h1 {
+      margin: 0;
+      font-family: Orbitron, sans-serif;
+      font-size: 1.26rem;
+    }
+    .title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .btn {
+      border: 1px solid var(--line);
+      background: rgba(67,223,255,0.12);
+      color: #c5f4ff;
+      border-radius: 9px;
+      padding: 8px 11px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 12px;
+    }
+    .card { padding: 14px; }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1.02rem;
+      font-family: Orbitron, sans-serif;
+    }
+    .stack { display: grid; gap: 8px; }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 9px;
+      padding: 9px 10px;
+      background: var(--panel2);
+      color: var(--text);
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .students, .reports { display: grid; gap: 8px; }
+    .rowitem {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.03);
+    }
+    .rowhead {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.88rem;
+    }
+    .muted { color: var(--muted); font-size: 0.82rem; }
+    .pill {
+      font-size: 0.73rem;
+      border-radius: 999px;
+      padding: 2px 7px;
+      border: 1px solid rgba(255,255,255,0.22);
+    }
+    .pill.paid { color: #baf9d6; border-color: rgba(110,243,191,0.4); }
+    .pill.free { color: #ffd9e3; border-color: rgba(255,122,154,0.5); }
+    .actions { margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-danger {
+      border: 1px solid rgba(255,122,154,0.55);
+      color: #ffd6df;
+      background: rgba(255,122,154,0.15);
+    }
+    #status { min-height: 20px; color: var(--muted); font-size: 0.86rem; }
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="nav">
+      <div class="brand">
+        <div class="core"><i class="fa-solid fa-atom"></i></div>
+        <div>
+          <h2>SlidePlay</h2>
+          <p>TEACHER COMMAND</p>
+        </div>
+      </div>
+      <a href="teacher.html"><span><i class="fa-solid fa-gauge-high"></i> Dashboard</span></a>
+      <a href="UploadPage.html"><span><i class="fa-solid fa-cloud-arrow-up"></i> Resource Upload</span></a>
+      <a class="active" href="teacher-student-reports.html"><span><i class="fa-solid fa-file-lines"></i> Student Reports</span><span class="badge-paid">PAID+</span></a>
+      <a href="teacher-lesson-plan.html"><span><i class="fa-solid fa-book-open-reader"></i> Lesson Plan</span><span class="badge-paid">PAID+</span></a>
+      <a href="payment.html"><span><i class="fa-solid fa-credit-card"></i> Billing &amp; Plans</span></a>
+    </aside>
+
+    <main class="main">
+      <section class="card top">
+        <div class="title">
+          <h1>Student Reports</h1>
+          <p>Highest paid feature: view enrolled students, paid status, marks, and manage reports.</p>
+        </div>
+        <button class="btn" id="refreshBtn"><i class="fa-solid fa-rotate"></i> Refresh</button>
+      </section>
+
+      <section id="status"></section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Enrolled Students</h2>
+          <div id="studentsList" class="students"></div>
+        </article>
+
+        <article class="card">
+          <h2>Create / Update Report</h2>
+          <div class="stack">
+            <select id="studentSelect" title="Student selector"></select>
+            <input id="courseName" placeholder="Course name" />
+            <input id="marks" type="number" min="0" max="100" placeholder="Marks (%)" />
+            <select id="reportStatus" title="Report status">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="review">Needs Review</option>
+            </select>
+            <textarea id="summary" placeholder="Write teacher report summary..."></textarea>
+            <div class="toolbar">
+              <button class="btn" id="createBtn">Create Report</button>
+              <button class="btn" id="updateBtn">Update Selected</button>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>Reports</h2>
+        <div id="reportsList" class="reports"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const API_BASE = (window.SLIDEPLAY_API_BASE || localStorage.getItem("sp_api_base") || window.location.origin).replace(/\/$/, "");
+    const uid = String(localStorage.getItem("sp_user_uid") || "").trim();
+    const email = String(localStorage.getItem("sp_user_email") || "").trim().toLowerCase();
+
+    const state = { students: [], reports: [], selectedReportId: "" };
+
+    function hasHighestTeacherPlan() {
+      try {
+        const sub = JSON.parse(localStorage.getItem("sp_teacher_subscription") || localStorage.getItem("sp_subscription") || "null");
+        if (!sub || !sub.plan) return false;
+        const plan = String(sub.plan).toLowerCase();
+        const status = String(sub.status || "active").toLowerCase();
+        if (["cancelled", "expired", "locked"].includes(status)) return false;
+        return plan === "school" || plan === "teacher_premium";
+      } catch (_err) {
+        return false;
+      }
+    }
+
+    function setStatus(msg, bad) {
+      const el = document.getElementById("status");
+      el.textContent = msg || "";
+      el.style.color = bad ? "#ffc4d4" : "#96a5cf";
+    }
+
+    function esc(v) {
+      return String(v || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    async function api(path, options) {
+      const resp = await fetch(API_BASE + path, options || {});
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || ("HTTP " + resp.status));
+      return data;
+    }
+
+    function studentByKey(value) {
+      return state.students.find((s) => (s.uid || s.email) === value) || null;
+    }
+
+    function renderStudentPicker() {
+      const select = document.getElementById("studentSelect");
+      if (!state.students.length) {
+        select.innerHTML = '<option value="">No students found</option>';
+        return;
+      }
+      select.innerHTML = state.students.map((s) => {
+        const key = s.uid || s.email;
+        return '<option value="' + esc(key) + '">' + esc(s.name) + ' - ' + esc(s.marks) + '%</option>';
+      }).join("");
+    }
+
+    function renderStudents() {
+      const wrap = document.getElementById("studentsList");
+      if (!state.students.length) {
+        wrap.innerHTML = '<div class="muted">No enrolled students found.</div>';
+        return;
+      }
+      wrap.innerHTML = state.students.map((s) => {
+        const paid = s.paid ? 'paid' : 'free';
+        return '<div class="rowitem">'
+          + '<div class="rowhead"><strong>' + esc(s.name) + '</strong><span class="pill ' + paid + '">' + (s.paid ? 'PAID' : 'FREE') + '</span></div>'
+          + '<div class="muted">Marks: ' + esc(s.marks) + '% | Games: ' + esc(s.gamesPlayed) + ' | Plan: ' + esc(s.plan || 'free') + '</div>'
+          + '</div>';
+      }).join("");
+    }
+
+    function fillFormFromReport(report) {
+      state.selectedReportId = report.reportId;
+      const studentKey = report.studentUid || report.studentEmail;
+      if (studentKey) document.getElementById("studentSelect").value = studentKey;
+      document.getElementById("courseName").value = report.courseName || "";
+      document.getElementById("marks").value = report.marks || 0;
+      document.getElementById("reportStatus").value = report.status || "draft";
+      document.getElementById("summary").value = report.summary || "";
+      setStatus("Report selected: " + report.studentName);
+    }
+
+    function renderReports() {
+      const wrap = document.getElementById("reportsList");
+      if (!state.reports.length) {
+        wrap.innerHTML = '<div class="muted">No reports yet. Create your first report.</div>';
+        return;
+      }
+
+      wrap.innerHTML = state.reports.map((r) =>
+        '<article class="rowitem">'
+          + '<div class="rowhead"><strong>' + esc(r.studentName) + '</strong><span class="pill">' + esc(r.status || 'draft') + '</span></div>'
+          + '<div class="muted">' + esc(r.courseName || 'General') + ' | Marks: ' + esc(r.marks) + '%</div>'
+          + '<div style="margin-top:7px;font-size:0.86rem;">' + esc(r.summary || '') + '</div>'
+          + '<div class="actions">'
+            + '<button class="btn" data-edit="' + esc(r.reportId) + '">Edit</button>'
+            + '<button class="btn btn-danger" data-delete="' + esc(r.reportId) + '">Delete</button>'
+          + '</div>'
+        + '</article>'
+      ).join("");
+
+      wrap.querySelectorAll("[data-edit]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const report = state.reports.find((x) => x.reportId === btn.getAttribute("data-edit"));
+          if (report) fillFormFromReport(report);
+        });
+      });
+
+      wrap.querySelectorAll("[data-delete]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("Delete this report?")) return;
+          try {
+            await api("/api/teacher/student-reports/" + encodeURIComponent(btn.getAttribute("data-delete"))
+              + "?uid=" + encodeURIComponent(uid)
+              + "&email=" + encodeURIComponent(email), { method: "DELETE" });
+            await loadReports();
+            setStatus("Report deleted.");
+          } catch (err) {
+            setStatus(err.message, true);
+          }
+        });
+      });
+    }
+
+    async function loadRoster() {
+      const data = await api("/api/teacher/student-roster?uid=" + encodeURIComponent(uid) + "&email=" + encodeURIComponent(email));
+      state.students = Array.isArray(data.students) ? data.students : [];
+      renderStudents();
+      renderStudentPicker();
+    }
+
+    async function loadReports() {
+      const data = await api("/api/teacher/student-reports?uid=" + encodeURIComponent(uid) + "&email=" + encodeURIComponent(email));
+      state.reports = Array.isArray(data.reports) ? data.reports : [];
+      renderReports();
+    }
+
+    function buildPayload() {
+      const selected = studentByKey(document.getElementById("studentSelect").value);
+      return {
+        uid,
+        email,
+        studentUid: selected ? selected.uid : "",
+        studentEmail: selected ? selected.email : "",
+        studentName: selected ? selected.name : "Student",
+        courseName: document.getElementById("courseName").value.trim(),
+        marks: Number(document.getElementById("marks").value || 0),
+        status: document.getElementById("reportStatus").value,
+        summary: document.getElementById("summary").value.trim(),
+      };
+    }
+
+    async function createReport() {
+      const payload = buildPayload();
+      if (!payload.summary || payload.summary.length < 5) {
+        setStatus("Summary must be at least 5 characters.", true);
+        return;
+      }
+      await api("/api/teacher/student-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      state.selectedReportId = "";
+      await loadReports();
+      setStatus("Report created.");
+    }
+
+    async function updateReport() {
+      if (!state.selectedReportId) {
+        setStatus("Select a report first.", true);
+        return;
+      }
+      const payload = buildPayload();
+      await api("/api/teacher/student-reports/" + encodeURIComponent(state.selectedReportId), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      await loadReports();
+      setStatus("Report updated.");
+    }
+
+    async function boot() {
+      if (!hasHighestTeacherPlan()) {
+        const go = confirm("Student Reports is a highest paid teacher feature. Upgrade to Teacher Premium/School now?");
+        if (go) window.location.href = "payment.html";
+        else window.location.href = "teacher.html";
+        return;
+      }
+
+      try {
+        await Promise.all([loadRoster(), loadReports()]);
+        setStatus("Ready.");
+      } catch (err) {
+        setStatus(err.message || "Could not load reports.", true);
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", () => boot());
+    document.getElementById("createBtn").addEventListener("click", () => createReport().catch((e) => setStatus(e.message, true)));
+    document.getElementById("updateBtn").addEventListener("click", () => updateReport().catch((e) => setStatus(e.message, true)));
+
+    boot();
+  </script>
+</body>
+</html>

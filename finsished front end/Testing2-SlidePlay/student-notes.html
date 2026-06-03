@@ -297,6 +297,18 @@
       events: []
     };
 
+    function hasPremiumStudentAccess() {
+      try {
+        const sub = JSON.parse(localStorage.getItem("sp_student_subscription") || "null");
+        if (!sub || !sub.plan) return false;
+        const status = String(sub.status || "active").toLowerCase();
+        if (status === "cancelled" || status === "expired" || status === "locked") return false;
+        return String(sub.plan).toLowerCase() === "student_premium";
+      } catch (_err) {
+        return false;
+      }
+    }
+
     function setStatus(message, isError) {
       const el = document.getElementById("notesStatus");
       if (!el) return;
@@ -490,6 +502,16 @@
     });
 
     document.addEventListener("DOMContentLoaded", () => {
+      if (!hasPremiumStudentAccess()) {
+        const go = window.confirm("Student Notes is a Premium-only feature. Upgrade now to unlock it?");
+        if (go) {
+          window.location.href = "studentpayment.html?plan=student_premium&source=student-notes";
+        } else {
+          window.location.href = "Studentdashboard.html";
+        }
+        return;
+      }
+
       const userNameEl = document.getElementById("notesUserName");
       if (userNameEl) userNameEl.textContent = state.identity.display || "Student";
       loadEvents().catch((err) => setStatus(err.message || "Load failed.", true));
