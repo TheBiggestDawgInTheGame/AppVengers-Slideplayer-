@@ -938,6 +938,34 @@
     return 1;
   }
 
+  function normalizeQuestionAttempts(attempts) {
+    if (!Array.isArray(attempts)) return [];
+    return attempts
+      .map((item, index) => ({
+        attemptId: String(item?.attemptId || `ATT-${index + 1}`),
+        question: String(item?.question || item?.questionText || '').trim(),
+        selectedAnswer: String(item?.selectedAnswer || item?.selected || item?.answer || '').trim(),
+        correctAnswer: String(item?.correctAnswer || '').trim(),
+        isCorrect: Boolean(item?.isCorrect ?? item?.correct),
+        explanation: String(item?.explanation || '').trim(),
+      }))
+      .filter((row) => row.question);
+  }
+
+  function gatherQuestionAttempts() {
+    if (config && typeof config.getAttempts === 'function') {
+      const fromConfig = normalizeQuestionAttempts(config.getAttempts());
+      if (fromConfig.length) return fromConfig;
+    }
+
+    if (Array.isArray(window.__jeopardyQuizAttempts)) {
+      const fromGlobal = normalizeQuestionAttempts(window.__jeopardyQuizAttempts);
+      if (fromGlobal.length) return fromGlobal;
+    }
+
+    return [];
+  }
+
   function recordGameplay(score) {
     const uid = String(localStorage.getItem('sp_user_uid') || '').trim();
     const email = String(localStorage.getItem('sp_user_email') || '').trim().toLowerCase();
@@ -953,6 +981,9 @@
       playerCount: getPlayerCountForMode(),
       totalScore: Number(score || 0),
       winnerScore: Number(score || 0),
+      meta: {
+        questionAttempts: gatherQuestionAttempts(),
+      },
     };
 
     fetch(getApiBase() + '/api/gameplay/record', {
