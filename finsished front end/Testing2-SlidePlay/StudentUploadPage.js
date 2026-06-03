@@ -64,6 +64,55 @@ function isUnlimitedPlan() {
   return false;
 }
 
+function normalizeGameQuestions(rawQuestions) {
+  if (!Array.isArray(rawQuestions)) return [];
+
+  return rawQuestions
+    .map(function (item, idx) {
+      var question = String(item && (item.question || item.questionText || item.text) || "").trim();
+      var options = Array.isArray(item && item.options)
+        ? item.options.map(function (opt) { return String(opt || "").trim(); }).filter(Boolean)
+        : Array.isArray(item && item.answers)
+          ? item.answers.map(function (opt) { return String(opt || "").trim(); }).filter(Boolean)
+          : [];
+
+      if (!question || options.length < 2) return null;
+
+      var correct = Number.isInteger(item && item.correct) ? item.correct : -1;
+      if (correct < 0 || correct >= options.length) {
+        var letter = String(item && item.correctAnswer || "").trim().toUpperCase();
+        if (/^[A-D]$/.test(letter)) {
+          correct = letter.charCodeAt(0) - 65;
+        } else if (letter) {
+          var matchIdx = options.findIndex(function (opt) {
+            return opt.toLowerCase() === letter.toLowerCase();
+          });
+          correct = matchIdx >= 0 ? matchIdx : 0;
+        } else {
+          correct = 0;
+        }
+      }
+
+      return {
+        id: idx,
+        question: question,
+        questionText: question,
+        text: question,
+        options: options,
+        answers: options,
+        correct: correct,
+        correctAnswer: options[correct] || options[0] || "",
+        explanation: String(item && item.explanation || "").trim(),
+        difficulty: String(item && item.difficulty || "medium").trim().toLowerCase() || "medium",
+        type: "mcq",
+        source: String(item && item.source || "ai").trim() || "ai"
+      };
+    })
+    .filter(function (q) {
+      return q && q.question.length > 5 && Array.isArray(q.options) && q.options.length >= 2;
+    });
+}
+
 function getMaxTries() {
   return isUnlimitedPlan() ? 999 : MAX_TRIES_FREE;
 }
@@ -352,10 +401,10 @@ function initChillStep() {
 
       window.AIProcessor.processFile(
         chillFile,
-        { difficulty: "medium", count: 15, questionType: "mixed" },
+        { difficulty: "medium", count: 15, questionType: "mcq" },
         setProgress
       ).then(function (result) {
-        var qs = result.questions || [];
+        var qs = normalizeGameQuestions(result.questions || []);
 
         // Store for games.html / all game pages to read
         var fileEntry = {
