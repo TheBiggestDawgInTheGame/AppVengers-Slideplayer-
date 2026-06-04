@@ -180,6 +180,68 @@ const LANGUAGE_KEY = 'storyModeLanguage';
 const ANALYTICS_KEY = 'storyModeAnalytics';
 const SAVE_SLOT_PREFIX = 'storyModeSaveSlot';
 const ACHIEVEMENTS_KEY = 'storyModeAchievements';
+const MISSION_PROGRESS_KEY = 'storyModeMissionProgress';
+const PENDING_MISSION_KEY = 'storyModePendingMission';
+
+let missionProgress = readJsonLocal(MISSION_PROGRESS_KEY, {
+    completed: {},
+    quizPassed: {}
+});
+
+function normalizeMissionProgress() {
+    if (!missionProgress || typeof missionProgress !== 'object') {
+        missionProgress = { completed: {}, quizPassed: {} };
+    }
+    if (!missionProgress.completed || typeof missionProgress.completed !== 'object') {
+        missionProgress.completed = {};
+    }
+    if (!missionProgress.quizPassed || typeof missionProgress.quizPassed !== 'object') {
+        missionProgress.quizPassed = {};
+    }
+
+    const legacyCompleted = Number(localStorage.getItem('storyModeMissionsCompleted') || 0);
+    for (let id = 1; id <= Math.min(legacyCompleted, 5); id += 1) {
+        if (!missionProgress.completed[id]) {
+            missionProgress.completed[id] = true;
+        }
+        if (!missionProgress.quizPassed[id]) {
+            missionProgress.quizPassed[id] = true;
+        }
+    }
+}
+
+function persistMissionProgress() {
+    normalizeMissionProgress();
+    localStorage.setItem(MISSION_PROGRESS_KEY, JSON.stringify(missionProgress));
+}
+
+function getCompletedWorldCount() {
+    normalizeMissionProgress();
+    let count = 0;
+    for (let id = 1; id <= 5; id += 1) {
+        if (missionProgress?.completed?.[id]) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+function isWorldUnlocked(worldId) {
+    normalizeMissionProgress();
+    const id = Number(worldId || 0);
+    if (id === 1) return true;
+    if (id > 1 && id <= 5) {
+        const prev = id - 1;
+        return Boolean(missionProgress?.completed?.[prev] && missionProgress?.quizPassed?.[prev]);
+    }
+    if (id === 6) {
+        for (let i = 1; i <= 5; i += 1) {
+            if (!missionProgress?.completed?.[i] || !missionProgress?.quizPassed?.[i]) return false;
+        }
+        return true;
+    }
+    return false;
+}
 
 const ACHIEVEMENT_DEFS = [
     { id: 'first_mission',    icon: '🎯', label: 'First Mission',        desc: 'Complete your first world.',                         check: (p, a, s) => p.missionsCompleted >= 1 },
@@ -454,6 +516,7 @@ function saveSlot(slotIndex) {
         avatarId: selectedAvatarId,
         points: progressState.points,
         missionsCompleted: progressState.missionsCompleted,
+        missionProgress,
         coopEnabled: coopMode,
         branch: getCurrentBranchChoice(),
         language: selectedLanguage,
@@ -477,6 +540,10 @@ function loadSlot(slotIndex) {
     selectedAvatarId = slot.avatarId || selectedAvatarId;
     progressState.points = Number(slot.points || progressState.points);
     progressState.missionsCompleted = Number(slot.missionsCompleted || progressState.missionsCompleted);
+    if (slot.missionProgress && typeof slot.missionProgress === 'object') {
+        missionProgress = slot.missionProgress;
+        persistMissionProgress();
+    }
     progressState.coopEnabled = Boolean(slot.coopEnabled);
     coopMode = progressState.coopEnabled;
     selectedLanguage = slot.language || selectedLanguage;
@@ -531,26 +598,50 @@ function applyReturnFromLauncher() {
     const score = Number(params.get('resultScore') || 0);
     const time = Number(params.get('resultTime') || 0);
     const collectibles = Number(params.get('resultCollectibles') || 0);
+    const pendingMission = readJsonLocal(PENDING_MISSION_KEY, null);
+    const returnedMissionId = Number(params.get('missionId') || pendingMission?.id || selectedMission?.id || 0);
+    const returnedMissionTitle = params.get('missionTitle') || pendingMission?.title || selectedMission?.title || 'Story Mission';
+    const returnedDifficulty = pendingMission?.difficulty || selectedMission?.difficulty || 'Easy';
 
     if (status === 'win') {
-        const earned = Math.max(0, Math.floor(score / 5)) + (collectibles * 20);
+        const difficultyBonus = {
+            easy: 110,
+            medium: 150,
+            hard: 200,
+            legendary: 280
+        };
+        const key = String(returnedDifficulty || 'easy').toLowerCase();
+        const baseFromDifficulty = difficultyBonus[key] || 120;
+        const earned = Math.max(baseFromDifficulty, Math.floor(score / 5)) + (collectibles * 20);
+
+        if (returnedMissionId > 0) {
+            missionProgress.completed[returnedMissionId] = true;
+            missionProgress.quizPassed[returnedMissionId] = true;
+            persistMissionProgress();
+        }
+
         progressState.points += earned;
-        progressState.missionsCompleted = Math.min(progressState.missionsCompleted + 1, 5);
+        progressState.missionsCompleted = Math.min(getCompletedWorldCount(), 5);
         persistProgressState();
         completeDailyChallengeIfEligible();
         checkAndGrantAchievements();
         renderMenuHUD();
+        if (document.getElementById('missionScreen')?.classList.contains('active')) {
+            loadMissions();
+        }
         showToast(`Mission complete — +${earned} pts earned`, 'success');
     } else {
         showToast(`Mission ${status} — Score: ${score} | Time: ${time}s`, 'warn');
     }
+
+    localStorage.removeItem(PENDING_MISSION_KEY);
 
     void submitPremiumStoryModeReport({
         status,
         score,
         time,
         collectibles,
-        missionTitle: params.get('missionTitle') || selectedMission?.title || 'Story Mission'
+        missionTitle: returnedMissionTitle
     });
 
     if (window.history && window.history.replaceState) {
@@ -983,83 +1074,103 @@ function proceedToMissionSelection() {
 
 function getMissionWorlds() {
     const base = selectedCharacter.missions;
+    const progressionDifficulty = {
+        1: 'Easy',
+        2: 'Medium',
+        3: 'Hard',
+        4: 'Hard',
+        5: 'Legendary',
+        6: 'Legendary'
+    };
     return [
         {
             id: 1,
             sector: "Western Cape",
             landmark: "Table Mountain",
             title: "Table Mountain Summit",
-            difficulty: base[0]?.difficulty || "Easy",
+            difficulty: progressionDifficulty[1],
             description: base[0]?.description || "Take the upper route, pass the mist line, and recover the summit beacon before sunrise.",
             ambience: "Cable lines, cliff paths, and cold Atlantic wind.",
             image: "https://picsum.photos/seed/table-mountain-cape-town/1200/800",
             themeClass: "theme-1",
             buttonClass: "enter-pink",
-            unlocked: true
+            unlocked: isWorldUnlocked(1),
+            completed: Boolean(missionProgress?.completed?.[1]),
+            quizPassed: Boolean(missionProgress?.quizPassed?.[1])
         },
         {
             id: 2,
             sector: "Gauteng",
             landmark: "Vilakazi Street",
             title: "Vilakazi Pulse",
-            difficulty: base[1]?.difficulty || "Medium",
+            difficulty: progressionDifficulty[2],
             description: base[1]?.description || "Move through a living street of memory and resistance while carrying a live intel package.",
             ambience: "Historic homes, bright murals, and dense township energy.",
             image: "https://picsum.photos/seed/vilakazi-street-soweto/1200/800",
             themeClass: "theme-2",
             buttonClass: "enter-teal",
-            unlocked: true
+            unlocked: isWorldUnlocked(2),
+            completed: Boolean(missionProgress?.completed?.[2]),
+            quizPassed: Boolean(missionProgress?.quizPassed?.[2])
         },
         {
             id: 3,
             sector: "KwaZulu-Natal",
             landmark: "Moses Mabhida Stadium",
             title: "Sky Arc Stadium",
-            difficulty: base[2]?.difficulty || "Hard",
+            difficulty: progressionDifficulty[3],
             description: base[2]?.description || "Scale the arch, dodge drone sweeps, and trigger the skyline relay over Durban.",
             ambience: "Floodlights, sea air, and a high exposed skyline route.",
             image: "https://picsum.photos/seed/moses-mabhida-durban/1200/800",
             themeClass: "theme-3",
             buttonClass: "enter-violet",
-            unlocked: true
+            unlocked: isWorldUnlocked(3),
+            completed: Boolean(missionProgress?.completed?.[3]),
+            quizPassed: Boolean(missionProgress?.quizPassed?.[3])
         },
         {
             id: 4,
             sector: "Tshwane",
             landmark: "Union Buildings",
             title: "Union Grounds",
-            difficulty: "Medium",
+            difficulty: progressionDifficulty[4],
             description: "Cross the terraced gardens and secure the archives beneath the seat of power.",
             ambience: "Stone steps, jacaranda light, and ceremonial courtyards.",
             image: "https://picsum.photos/seed/union-buildings-pretoria/1200/800",
             themeClass: "theme-4",
             buttonClass: "enter-muted",
-            unlocked: true
+            unlocked: isWorldUnlocked(4),
+            completed: Boolean(missionProgress?.completed?.[4]),
+            quizPassed: Boolean(missionProgress?.quizPassed?.[4])
         },
         {
             id: 5,
             sector: "Mpumalanga",
             landmark: "Blyde River Canyon",
             title: "Canyon Echo",
-            difficulty: "Hard",
+            difficulty: progressionDifficulty[5],
             description: "Descend through the canyon edge and restore the relay hidden in the rock face.",
             ambience: "Red cliffs, deep drop-offs, and echoing wind channels.",
             image: "https://picsum.photos/seed/blyde-river-canyon/1200/800",
             themeClass: "theme-5",
             buttonClass: "enter-muted",
-            unlocked: true
+            unlocked: isWorldUnlocked(5),
+            completed: Boolean(missionProgress?.completed?.[5]),
+            quizPassed: Boolean(missionProgress?.quizPassed?.[5])
         },
         {
             id: 6,
             sector: "Gauteng/North West",
             landmark: "Cradle of Humankind",
             title: "Cradle Vault",
-            difficulty: "Locked",
+            difficulty: progressionDifficulty[6],
             description: "Complete every landmark route to unlock the buried origin vault.",
             ambience: "Cave chambers, fossil halls, and the oldest silence in the country.",
             themeClass: "theme-locked",
             buttonClass: "enter-muted",
-            unlocked: false
+            unlocked: isWorldUnlocked(6),
+            completed: Boolean(missionProgress?.completed?.[6]),
+            quizPassed: Boolean(missionProgress?.quizPassed?.[6])
         }
     ];
 }
@@ -1071,7 +1182,9 @@ function loadMissions() {
     updateCoopStatusUI();
 
     const totalWorlds = 5;
-    const completed = Math.min(progressState.missionsCompleted, totalWorlds);
+    const completed = Math.min(getCompletedWorldCount(), totalWorlds);
+    progressState.missionsCompleted = completed;
+    persistProgressState();
     const unlockedPercent = Math.round((completed / totalWorlds) * 100);
     document.getElementById('missionProgressValue').textContent = `${unlockedPercent}%`;
     document.getElementById('missionProgressFill').style.width = `${unlockedPercent}%`;
@@ -1100,7 +1213,7 @@ function loadMissions() {
         let badgeHtml = '';
         if (!mission.unlocked) {
             badgeHtml = '<span class="badge-progress locked">🔒 Locked</span>';
-        } else if (mission.id <= completed) {
+        } else if (mission.completed) {
             badgeHtml = '<span class="badge-progress complete">✓ Done</span>';
         } else if (mission.id === completed + 1) {
             badgeHtml = '<span class="badge-progress inprogress">▶ Next</span>';
@@ -1221,6 +1334,9 @@ function resumeProgress() {
         points: Number(localStorage.getItem('storyModePoints') || 0),
         coopEnabled: localStorage.getItem('storyModeCoopEnabled') === 'true'
     };
+    missionProgress = readJsonLocal(MISSION_PROGRESS_KEY, missionProgress);
+    normalizeMissionProgress();
+    persistMissionProgress();
     coopMode = progressState.coopEnabled;
 
     loadCharacters();
@@ -1298,7 +1414,15 @@ function renderLeaderboard() {
 function startMissionWorld(worldId) {
     const world = currentMissionWorlds.find(m => m.id === worldId);
     if (!world || !world.unlocked) {
+        showToast('This world is locked. Complete previous world and pass its quiz first.', 'warn');
         return;
+    }
+    if (world.id > 1) {
+        const prev = world.id - 1;
+        if (!missionProgress?.completed?.[prev] || !missionProgress?.quizPassed?.[prev]) {
+            showToast('Complete and pass the previous world quiz to unlock this mission.', 'warn');
+            return;
+        }
     }
     if (!ensureSlideContextAvailable()) {
         return;
@@ -1386,6 +1510,7 @@ function renderMenuHUD() {
         return;
     }
     const streak = getEffectiveDailyStreak(getDayKey());
+    progressState.missionsCompleted = Math.min(getCompletedWorldCount(), 5);
     hudPoints.textContent = progressState.points.toLocaleString();
     hudMissions.textContent = `${progressState.missionsCompleted}/5`;
     hudStreak.innerHTML = streak > 0 ? `🔥 ${streak}` : '&mdash;';
@@ -1400,6 +1525,7 @@ function continueSavedGame() {
     }
     loadCharacters();
     renderFeaturedCharacter();
+    missionProgress = readJsonLocal(MISSION_PROGRESS_KEY, missionProgress);
     loadMissions();
     showScreen('missionScreen');
 }
@@ -1440,12 +1566,12 @@ function startGame(missionId, missionTitle) {
     setTimeout(() => {
         analyticsState.launches += 1;
         saveAnalytics();
-        progressState.missionsCompleted += 1;
-        progressState.points += coopMode ? 180 : 120;
-        completeDailyChallengeIfEligible();
-        persistProgressState();
-        renderLeaderboard();
-        updateDebugPanel();
+        localStorage.setItem(PENDING_MISSION_KEY, JSON.stringify({
+            id: Number(selectedMission?.id || missionId || 0),
+            title: selectedMission?.title || missionTitle || 'Story Mission',
+            difficulty: selectedMission?.difficulty || 'Easy',
+            startedAt: new Date().toISOString()
+        }));
         window.location.href = buildWebGlLaunchUrl(missionTitle);
     }, 3200);
 }
@@ -1453,6 +1579,8 @@ function startGame(missionId, missionTitle) {
 // Initialize
 coopMode = progressState.coopEnabled;
 selectedCharacter = characters[0];
+normalizeMissionProgress();
+persistMissionProgress();
 applyStoredAccessibilityPrefs();
 applyReturnFromLauncher();
 loadCharacters();
