@@ -396,20 +396,45 @@ function prefillLoginFromEmailLink() {
   if (passwordInput) passwordInput.focus();
 }
 
-async function verifyTeacherCodeWithServer(code) {
+async function verifyTeacherCodeWithServer(code, email = "") {
   const trimmed = String(code || "").trim();
   if (!trimmed) return false;
   try {
     const response = await fetch(`${API_BASE}/api/verify-teacher-code`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: trimmed }),
+      body: JSON.stringify({ code: trimmed, email: normalizeEmail(email) }),
     });
     if (!response.ok) return false;
     const payload = await response.json().catch(() => null);
     return Boolean(payload && payload.ok);
   } catch (_) {
     return false;
+  }
+}
+
+async function requestTeacherCodeByEmail(email, name = "") {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) {
+    return { ok: false, error: "Enter your email first to receive a teacher code." };
+  }
+  try {
+    const response = await fetch(`${API_BASE}/api/teacher-access/request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: normalizedEmail, name: String(name || "").trim() }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      return { ok: false, error: String(payload?.error || "Failed to send teacher code.") };
+    }
+    return {
+      ok: true,
+      message: String(payload?.message || "Teacher code sent to your email."),
+      devCode: payload?.devCode ? String(payload.devCode) : "",
+    };
+  } catch (_) {
+    return { ok: false, error: "Could not request teacher code right now. Please try again." };
   }
 }
 
@@ -443,7 +468,8 @@ function showRolePicker(onSelect) {
   overlay.querySelector("#rpTeacher").addEventListener("click", async () => {
     // Prompt for teacher access code
     const codeInput = prompt("Enter the teacher access code to continue:");
-    const isValidCode = await verifyTeacherCodeWithServer(codeInput);
+    const activeEmail = normalizeEmail(auth.currentUser?.email || "");
+    const isValidCode = await verifyTeacherCodeWithServer(codeInput, activeEmail);
     if (!isValidCode) {
       overlay.querySelector("#rpCodeError").textContent = "Invalid teacher access code. Select Student or try again.";
       overlay.querySelector("#rpCodeError").style.display = "block";
@@ -704,11 +730,23 @@ function setupSignupForm() {
     }
     if (!isAllowlistedAdmin && role === "teacher") {
       const enteredCode = document.getElementById("teacherCode")?.value.trim();
-      const isValidCode = await verifyTeacherCodeWithServer(enteredCode);
-      if (!isValidCode) {
-        document.getElementById("teacherCodeError").textContent = "Invalid teacher access code";
+      if (!enteredCode) {
+        const reqResult = await requestTeacherCodeByEmail(email, username);
+        const parts = [
+          reqResult.ok ? "We emailed your teacher access code." : reqResult.error,
+          reqResult.devCode ? `Code: ${reqResult.devCode}` : "",
+          "Enter the code and submit again.",
+        ].filter(Boolean);
+        document.getElementById("teacherCodeError").textContent = parts.join(" ");
         document.getElementById("teacherCodeBox").classList.add("error");
         valid = false;
+      } else {
+        const isValidCode = await verifyTeacherCodeWithServer(enteredCode, email);
+        if (!isValidCode) {
+          document.getElementById("teacherCodeError").textContent = "Invalid teacher access code";
+          document.getElementById("teacherCodeBox").classList.add("error");
+          valid = false;
+        }
       }
     }
     if (!valid) return;

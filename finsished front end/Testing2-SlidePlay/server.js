@@ -25,6 +25,7 @@ if (process.env.SENDGRID_API_KEY) {
 const PAYMENTS_FILE = path.join(__dirname, "payfast_payments.json");
 const USERS_FILE = path.join(__dirname, "users-local.json");
 const SUPPORT_FILE = path.join(__dirname, "support-messages.json");
+const TEACHER_INVITES_FILE = path.join(__dirname, "teacher-access-invites.json");
 const SESSION_HISTORY_FILE = path.join(__dirname, "session-history.json");
 const GAMEPLAY_EVENTS_FILE = path.join(__dirname, "gameplay-events.json");
 const MISSIONS_FILE = path.join(__dirname, "learning-missions.json");
@@ -42,6 +43,8 @@ const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || EMAIL_APP_URL || "
   .trim()
   .replace(/\/+$/, "");
 const TEACHER_ACCESS_CODE = String(process.env.TEACHER_ACCESS_CODE || "SLIDEPLAY").trim().toUpperCase();
+const TEACHER_INVITE_TTL_MINUTES = Math.max(10, Number(process.env.TEACHER_INVITE_TTL_MINUTES || 30));
+const TEACHER_INVITE_MAX_PER_HOUR = Math.max(1, Number(process.env.TEACHER_INVITE_MAX_PER_HOUR || 3));
 const ADMIN_EMAIL_ALLOWLIST = new Set([
   "bossmk2209@gmail.com",
   "mutevherichard@gmail.com",
@@ -343,6 +346,92 @@ function getSendgridErrorDetail(error) {
     .filter(Boolean);
 
   return lines.length ? lines.join("; ") : fallback;
+}
+
+function hashTeacherCode(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  return crypto.createHash("sha256").update(normalized).digest("hex");
+}
+
+function normalizeTeacherInviteRows(rows) {
+  const input = Array.isArray(rows) ? rows : [];
+  const now = Date.now();
+  const retentionMs = 14 * 24 * 60 * 60 * 1000;
+  return input
+    .map((row) => ({
+      id: String(row?.id || "").trim() || `inv_${Math.random().toString(36).slice(2, 10)}`,
+      email: normalizeEmail(row?.email || ""),
+      codeHash: String(row?.codeHash || "").trim(),
+      codeLast4: String(row?.codeLast4 || "").trim(),
+      requestedAt: normalizeIsoDate(row?.requestedAt) || new Date().toISOString(),
+      expiresAt: normalizeIsoDate(row?.expiresAt),
+      usedAt: normalizeIsoDate(row?.usedAt),
+    }))
+    .filter((row) => row.email && row.codeHash && row.expiresAt)
+    .filter((row) => {
+      const created = Date.parse(row.requestedAt || row.expiresAt || "");
+      if (!Number.isFinite(created)) return true;
+      return now - created <= retentionMs;
+    });
+}
+
+function loadTeacherInviteRows() {
+  return normalizeTeacherInviteRows(safeReadJson(TEACHER_INVITES_FILE, []));
+}
+
+function saveTeacherInviteRows(rows) {
+  const normalized = normalizeTeacherInviteRows(rows);
+  return safeWriteJson(TEACHER_INVITES_FILE, normalized.slice(0, 5000));
+}
+
+function findValidTeacherInvite(invites, email, code) {
+  const normalizedEmail = normalizeEmail(email);
+  const codeHash = hashTeacherCode(code);
+  const now = Date.now();
+  return invites.find((row) => {
+    if (row.email !== normalizedEmail) return false;
+    if (row.codeHash !== codeHash) return false;
+    if (row.usedAt) return false;
+    const expires = Date.parse(row.expiresAt || "");
+    if (!Number.isFinite(expires)) return false;
+    return expires >= now;
+  }) || null;
+}
+
+async function sendTeacherInviteEmail(req, email, name, code, expiresAtIso) {
+  if (!process.env.SENDGRID_API_KEY) return { ok: true, skipped: true };
+
+  const signupUrl = `${toAbsoluteUrl(req, "/signup.html")}?role=teacher&email=${encodeURIComponent(email)}`;
+  const expiresLabel = new Date(expiresAtIso).toLocaleString("en-ZA", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  await sgMail.send({
+    to: email,
+    from: getSendgridFrom(),
+    subject: `${EMAIL_BRAND_NAME}: Your Teacher Access Code`,
+    text:
+      `Hi ${name || "Teacher"},\n` +
+      `Your teacher access code is: ${code}\n` +
+      `This code expires on ${expiresLabel}.\n` +
+      `Complete signup here: ${signupUrl}`,
+    html: renderEmailTemplate({
+      title: "Teacher Access Code Issued",
+      intro: `Hi ${escapeHtml(name || "Teacher")}, your verified teacher code is ready.`,
+      bodyHtml:
+        `<p><strong>Access Code:</strong> <span style=\"font-family:monospace;letter-spacing:.08em\">${escapeHtml(code)}</span></p>` +
+        `<p><strong>Expires:</strong> ${escapeHtml(expiresLabel)}</p>` +
+        "<p>Use this one-time code on the signup form to activate your teacher account.</p>",
+      ctaLabel: "Open Teacher Signup",
+      ctaUrl: signupUrl,
+    }),
+  });
+
+  return { ok: true };
 }
 
 function normalizeServiceAccount(raw) {
@@ -1823,9 +1912,21 @@ app.get("/api/users/:uid/role", async (req, res) => {
 
 app.post("/api/verify-teacher-code", (req, res) => {
   const submitted = String(req.body?.code || req.body?.teacherCode || "").trim().toUpperCase();
+  const email = normalizeEmail(req.body?.email || "");
   if (!submitted) {
     res.status(400).json({ ok: false, error: "Missing teacher code" });
     return;
+  }
+
+  if (email) {
+    const invites = loadTeacherInviteRows();
+    const matched = findValidTeacherInvite(invites, email, submitted);
+    if (matched) {
+      matched.usedAt = new Date().toISOString();
+      saveTeacherInviteRows(invites);
+      res.json({ ok: true, role: "teacher", source: "invite" });
+      return;
+    }
   }
 
   if (submitted !== TEACHER_ACCESS_CODE) {
@@ -1833,7 +1934,60 @@ app.post("/api/verify-teacher-code", (req, res) => {
     return;
   }
 
-  res.json({ ok: true, role: "teacher" });
+  res.json({ ok: true, role: "teacher", source: "legacy" });
+});
+
+app.post("/api/teacher-access/request", async (req, res) => {
+  const email = normalizeEmail(req.body?.email || "");
+  const name = String(req.body?.name || "").trim();
+
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    res.status(400).json({ ok: false, error: "Valid email is required" });
+    return;
+  }
+
+  const invites = loadTeacherInviteRows();
+  const now = Date.now();
+  const oneHourAgo = now - 60 * 60 * 1000;
+  const recentCount = invites.filter((row) => {
+    if (row.email !== email) return false;
+    const requestedAt = Date.parse(row.requestedAt || "");
+    return Number.isFinite(requestedAt) && requestedAt >= oneHourAgo;
+  }).length;
+
+  if (recentCount >= TEACHER_INVITE_MAX_PER_HOUR) {
+    res.status(429).json({ ok: false, error: "Too many code requests. Try again in about an hour." });
+    return;
+  }
+
+  const code = crypto.randomBytes(4).toString("hex").toUpperCase();
+  const nowIso = new Date(now).toISOString();
+  const expiresAtIso = new Date(now + TEACHER_INVITE_TTL_MINUTES * 60 * 1000).toISOString();
+
+  invites.unshift({
+    id: `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+    email,
+    codeHash: hashTeacherCode(code),
+    codeLast4: code.slice(-4),
+    requestedAt: nowIso,
+    expiresAt: expiresAtIso,
+    usedAt: null,
+  });
+  saveTeacherInviteRows(invites);
+
+  try {
+    const result = await sendTeacherInviteEmail(req, email, name, code, expiresAtIso);
+    const isLocalHost = req.hostname === "localhost" || req.hostname === "127.0.0.1";
+    res.json({
+      ok: true,
+      message: "Teacher access code sent.",
+      expiresAt: expiresAtIso,
+      devCode: result?.skipped && isLocalHost ? code : undefined,
+      skipped: Boolean(result?.skipped),
+    });
+  } catch (error) {
+    res.status(502).json({ ok: false, error: getSendgridErrorDetail(error) });
+  }
 });
 
 app.post("/api/users/sync", async (req, res) => {
