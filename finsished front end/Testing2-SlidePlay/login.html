@@ -42,17 +42,51 @@
         font-family: "Orbitron", sans-serif;
       }
 
-      /* VIDEO BACKGROUND */
-      .video-bg {
+      /* HERO BACKGROUND */
+      .hero-bg {
         position: fixed;
         inset: 0;
         z-index: -3;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 22%, rgba(92, 232, 255, 0.2), transparent 45%),
+          radial-gradient(circle at 82% 18%, rgba(139, 92, 246, 0.24), transparent 48%),
+          radial-gradient(circle at 70% 84%, rgba(6, 182, 212, 0.18), transparent 40%),
+          linear-gradient(130deg, #070b16 0%, #0b1020 45%, #0d1226 100%);
       }
 
-      .video-bg video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+      .hero-bg::before,
+      .hero-bg::after {
+        content: "";
+        position: absolute;
+        width: 42vw;
+        height: 42vw;
+        border-radius: 50%;
+        filter: blur(55px);
+        opacity: 0.32;
+        animation: drift 12s ease-in-out infinite alternate;
+      }
+
+      .hero-bg::before {
+        background: #8b5cf6;
+        left: -12vw;
+        top: 8vh;
+      }
+
+      .hero-bg::after {
+        background: #06b6d4;
+        right: -10vw;
+        bottom: 6vh;
+        animation-delay: 1.6s;
+      }
+
+      @keyframes drift {
+        from {
+          transform: translateY(-8px) scale(1);
+        }
+        to {
+          transform: translateY(14px) scale(1.06);
+        }
       }
 
       .overlay {
@@ -312,12 +346,8 @@
   </head>
 
   <body>
-    <!-- VIDEO -->
-    <div class="video-bg">
-      <video autoplay muted loop playsinline>
-        <source src="walker.mp4" type="video/mp4" />
-      </video>
-    </div>
+    <!-- HERO BACKGROUND -->
+    <div class="hero-bg" aria-hidden="true"></div>
 
     <div class="overlay"></div>
     <div id="particles"></div>

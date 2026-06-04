@@ -25,7 +25,22 @@ function showProcessingModal() {
     modal.innerHTML = `<div class="success-panel"><div class="success-icon"><i class="fa-solid fa-spinner fa-spin"></i></div><h2>Processing Payment…</h2><p>Please wait while we verify your payment.</p></div>`;
     document.body.appendChild(modal);
   }
+  modal.classList.remove("sp-hidden");
   modal.classList.add("open");
+}
+
+function showModalById(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.remove("sp-hidden");
+  modal.classList.add("open");
+}
+
+function hideModalById(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.remove("open");
+  modal.classList.add("sp-hidden");
 }
 
 function triggerConfetti() {
@@ -302,7 +317,7 @@ function openCheckout(plan) {
   updateOrderSummary(plan);
   generateBankRef();
 
-  if (modal) modal.classList.add("open");
+  showModalById("checkoutModal");
 
   document.getElementById("paymentForm").reset();
   showMethodPanel("card");
@@ -386,13 +401,13 @@ function setupCheckoutClose() {
 
   if (closeBtn) {
     closeBtn.addEventListener("click", function () {
-      if (overlay) overlay.classList.remove("open");
+      hideModalById("checkoutModal");
     });
   }
 
   if (overlay) {
     overlay.addEventListener("click", function (e) {
-      if (e.target === overlay) overlay.classList.remove("open");
+      if (e.target === overlay) hideModalById("checkoutModal");
     });
   }
 }
@@ -630,7 +645,7 @@ function completePurchase(method, gatewayReceiptId) {
   writeJson(SUBSCRIPTION_KEY, subscription);
   writeJson(PAYMENTS_KEY, payments);
 
-  document.getElementById("checkoutModal").classList.remove("open");
+  hideModalById("checkoutModal");
   showSuccessModal(plan, receiptId);
   loadCurrentSubscription();
   updateInvoicesList();
@@ -646,14 +661,14 @@ function showSuccessModal(plan, receiptId) {
   if (receiptEl) receiptEl.textContent = receiptId;
   if (planMsg)
     planMsg.textContent = "Your " + PLAN_LABELS[plan] + " plan is now active.";
-  if (modal) modal.classList.add("open");
+  showModalById("successModal");
 
   const viewInvoicesBtn = document.getElementById("successViewInvoices");
   if (viewInvoicesBtn) {
     viewInvoicesBtn.addEventListener(
       "click",
       function () {
-        modal.classList.remove("open");
+        hideModalById("successModal");
         showInvoices();
       },
       { once: true },
@@ -663,7 +678,7 @@ function showSuccessModal(plan, receiptId) {
   modal.addEventListener(
     "click",
     function (e) {
-      if (e.target === modal) modal.classList.remove("open");
+      if (e.target === modal) hideModalById("successModal");
     },
     { once: true },
   );
