@@ -1073,6 +1073,42 @@ h1 {
   gap: 20px;
 }
 
+.invite-section-sidebar,
+.time-display-sidebar {
+  animation: none;
+}
+
+.right-sidebar .invite-section {
+  padding: 20px;
+}
+
+.right-sidebar .invite-content {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.right-sidebar .invite-box {
+  align-items: flex-start;
+}
+
+.right-sidebar .invite-btn {
+  margin-left: auto;
+}
+
+.right-sidebar .time-card {
+  padding: 18px 20px;
+}
+
+.right-sidebar .time-content {
+  width: 100%;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.right-sidebar .current-time {
+  font-size: 2rem;
+}
+
 h2 {
   font-family: var(--font-head);
   font-size: 0.88rem;
@@ -1464,6 +1500,16 @@ footer {
   .content-area { flex-direction: column; }
   .right-sidebar { flex: none; width: 100%; flex-direction: row; flex-wrap: wrap; }
   .leaderboard, .system-comms { flex: 1; min-width: 260px; }
+
+  .right-sidebar .invite-section,
+  .right-sidebar .time-display-section {
+    flex: 1;
+    min-width: 260px;
+  }
+
+  .right-sidebar .invite-content {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 700px) {
@@ -1491,6 +1537,11 @@ footer {
   .plans-grid { grid-template-columns: 1fr; }
   .invite-content { grid-template-columns: 1fr; }
   .charts-section { grid-template-columns: 1fr; }
+
+  .right-sidebar .time-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
