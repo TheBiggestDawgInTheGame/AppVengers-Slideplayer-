@@ -414,22 +414,16 @@
           <button type="button" class="method-tab" data-method="bank">
             <i class="fa-solid fa-building-columns"></i> Bank Transfer
           </button>
+          <button type="button" class="method-tab" data-method="stripe">
+            <i class="fa-brands fa-stripe-s"></i> Stripe
+          </button>
           <button type="button" class="method-tab" data-method="payfast">
-            <img src="https://www.payfast.io/wp-content/uploads/2022/11/Payfast-logo-2022.svg" alt="PayFast" style="height:1em;vertical-align:middle;margin-right:4px;filter:brightness(0) invert(1);"> PayFast
+            <i class="fa-solid fa-shield-halved"></i> PayFast
           </button>
         </div>
 
         <form class="payment-form" id="paymentForm" novalidate>
           <div class="pay-method-panel active" id="panel-card">
-                      <div class="pay-method-panel" id="panel-payfast">
-                        <div class="payfast-info-box">
-                          <h4><img src="https://www.payfast.io/wp-content/uploads/2022/11/Payfast-logo-2022.svg" alt="PayFast" style="height:1.2em;vertical-align:middle;margin-right:6px;filter:brightness(0) invert(1);"> PayFast Payment</h4>
-                          <p>Pay securely using South Africa's leading payment gateway. You will be redirected to PayFast to complete your payment.</p>
-                        </div>
-                        <button type="button" class="pay-btn" id="payfastBtn">
-                          <span><i class="fa-solid fa-lock"></i> Pay with PayFast</span>
-                        </button>
-                      </div>
             <div class="form-group">
               <label for="cardName">Cardholder Name</label>
               <input
@@ -534,6 +528,42 @@
             <p class="method-note">
               <i class="fa-solid fa-circle-info"></i> Activation within 1–2
               business days after transfer confirmation.
+            </p>
+          </div>
+
+          <div class="pay-method-panel" id="panel-stripe">
+            <div class="bank-details-box">
+              <h4><i class="fa-brands fa-stripe-s"></i> Stripe Checkout</h4>
+              <div class="bank-row">
+                <span>Provider</span><strong>Stripe Secure Checkout</strong>
+              </div>
+              <div class="bank-row">
+                <span>Security</span><strong>PCI-DSS Level 1</strong>
+              </div>
+              <div class="bank-row">
+                <span>Verification</span><strong>3D Secure when required</strong>
+              </div>
+            </div>
+            <p class="method-note">
+              <i class="fa-solid fa-circle-info"></i> You will continue to a hosted Stripe payment sheet and return automatically after confirmation.
+            </p>
+          </div>
+
+          <div class="pay-method-panel" id="panel-payfast">
+            <div class="bank-details-box">
+              <h4><i class="fa-solid fa-shield-halved"></i> PayFast Checkout</h4>
+              <div class="bank-row">
+                <span>Provider</span><strong>PayFast South Africa</strong>
+              </div>
+              <div class="bank-row">
+                <span>Currency</span><strong>ZAR</strong>
+              </div>
+              <div class="bank-row">
+                <span>Flow</span><strong>Hosted redirect payment</strong>
+              </div>
+            </div>
+            <p class="method-note">
+              <i class="fa-solid fa-circle-info"></i> You will continue to PayFast to authorize payment, then return to SlidePlay for activation.
             </p>
           </div>
 

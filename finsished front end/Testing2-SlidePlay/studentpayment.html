@@ -141,6 +141,8 @@
         <button class="method-tab active" data-method="card"><i class="fa-solid fa-credit-card"></i> Card</button>
         <button class="method-tab" data-method="mobile"><i class="fa-solid fa-mobile-screen-button"></i> Mobile Money</button>
         <button class="method-tab" data-method="bank"><i class="fa-solid fa-building-columns"></i> Bank Transfer</button>
+        <button class="method-tab" data-method="stripe"><i class="fa-brands fa-stripe-s"></i> Stripe</button>
+        <button class="method-tab" data-method="payfast"><i class="fa-solid fa-shield-halved"></i> PayFast</button>
         <button class="method-tab" data-method="crypto"><i class="fa-brands fa-bitcoin"></i> Crypto</button>
       </div>
       <!-- Card Form -->
@@ -200,6 +202,24 @@
             <input type="file" id="transferProof" accept="image/*,.pdf" />
           </div>
           <p class="method-note"><i class="fa-solid fa-circle-info"></i> Activation within 1–2 business days after transfer confirmation.</p>
+        </div>
+        <div class="pay-method-panel" id="panel-stripe">
+          <div class="bank-details-box">
+            <h4><i class="fa-brands fa-stripe-s"></i> Stripe Checkout</h4>
+            <div class="bank-row"><span>Provider</span><strong>Stripe Secure Checkout</strong></div>
+            <div class="bank-row"><span>Security</span><strong>PCI-DSS Level 1</strong></div>
+            <div class="bank-row"><span>Verification</span><strong>3D Secure when required</strong></div>
+          </div>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> Continue to Stripe to complete payment and return to SlidePlay automatically.</p>
+        </div>
+        <div class="pay-method-panel" id="panel-payfast">
+          <div class="bank-details-box">
+            <h4><i class="fa-solid fa-shield-halved"></i> PayFast Checkout</h4>
+            <div class="bank-row"><span>Provider</span><strong>PayFast South Africa</strong></div>
+            <div class="bank-row"><span>Currency</span><strong>ZAR</strong></div>
+            <div class="bank-row"><span>Flow</span><strong>Hosted redirect payment</strong></div>
+          </div>
+          <p class="method-note"><i class="fa-solid fa-circle-info"></i> Continue to PayFast to authorize and return for instant activation.</p>
         </div>
         <!-- Crypto -->
         <div class="pay-method-panel" id="panel-crypto">

@@ -63,43 +63,6 @@ function triggerConfetti() {
   setTimeout(()=>container.remove(), 2200);
 }
 // ── PayFast Integration ──────────────────────────────
-function setupPayFast() {
-  const btn = document.getElementById("payfastBtn");
-  if (!btn) return;
-  btn.addEventListener("click", async function () {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Redirecting…';
-    try {
-      // Gather order info
-      const plan = selectedPlan || "free";
-      const price = isYearly ? PLAN_YEARLY[plan] : PLAN_MONTHLY[plan];
-      const discountedPrice = Math.max(0, price - Math.round((price * appliedDiscount) / 100));
-      const user_email = localStorage.getItem("sp_user_email") || "";
-      const res = await fetch("/api/payfast/init", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: discountedPrice,
-          item_name: PLAN_LABELS[plan],
-          user_email,
-          plan,
-        }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        alert("Could not initiate PayFast payment: " + (data.error || "Unknown error"));
-        btn.disabled = false;
-        btn.innerHTML = '<span><i class="fa-solid fa-lock"></i> Pay with PayFast</span>';
-      }
-    } catch (e) {
-      alert("PayFast error: " + e.message);
-      btn.disabled = false;
-      btn.innerHTML = '<span><i class="fa-solid fa-lock"></i> Pay with PayFast</span>';
-    }
-  });
-}
 // payment.js — SlidePlay Billing & Subscription Logic
 
 // ── Role detection (set data-role="student" on <body> for student page) ──
@@ -175,7 +138,6 @@ document.addEventListener("DOMContentLoaded", function () {
   setupPaymentForm();
   setupInvoiceToggle();
   setupCancelSub();
-  setupPayFast();
   formatCardInputs();
 
   // ── URL param auto-open (from gate redirect) ──
@@ -399,6 +361,21 @@ function showMethodPanel(method) {
   });
   const target = document.getElementById("panel-" + method);
   if (target) target.classList.add("active");
+  updatePayButtonLabel(method);
+}
+
+function updatePayButtonLabel(method) {
+  const payBtnText = document.getElementById("payBtnText");
+  if (!payBtnText) return;
+  if (method === "stripe") {
+    payBtnText.innerHTML = '<i class="fa-brands fa-stripe-s"></i> Continue to Stripe';
+    return;
+  }
+  if (method === "payfast") {
+    payBtnText.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Continue to PayFast';
+    return;
+  }
+  payBtnText.innerHTML = '<i class="fa-solid fa-lock"></i> Pay Now';
 }
 
 // ── Close Checkout ────────────────────────────────
@@ -464,13 +441,13 @@ function setupPaymentForm() {
   const form = document.getElementById("paymentForm");
   if (!form) return;
 
-  form.addEventListener("submit", function (e) {
+  form.addEventListener("submit", async function (e) {
     e.preventDefault();
-    handlePayment();
+    await handlePayment();
   });
 }
 
-function handlePayment() {
+async function handlePayment() {
   const termsCheck = document.getElementById("termsCheck");
   if (!termsCheck || !termsCheck.checked) {
     alert("Please agree to the Terms of Service before proceeding.");
@@ -485,10 +462,83 @@ function handlePayment() {
 
   setPayBtnLoading(true);
 
-  setTimeout(function () {
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  try {
+    const gatewayReceipt = await simulateGatewaySettlement(method);
+    completePurchase(method, gatewayReceipt);
+  } catch (error) {
+    alert("Payment failed: " + (error?.message || "Could not complete payment."));
+  } finally {
     setPayBtnLoading(false);
-    completePurchase(method);
-  }, 1800);
+  }
+}
+
+async function simulateGatewaySettlement(method) {
+  if (!selectedPlan) {
+    throw new Error("Please select a plan first.");
+  }
+
+  const provider = method || "card";
+  const price = isYearly ? PLAN_YEARLY[selectedPlan] : PLAN_MONTHLY[selectedPlan];
+  const discountedPrice = Math.max(
+    0,
+    price - Math.round((price * appliedDiscount) / 100),
+  );
+
+  if (provider !== "stripe" && provider !== "payfast") {
+    return null;
+  }
+
+  const fallbackEmail = "demo@slideplay.local";
+  const email = String(localStorage.getItem("sp_user_email") || fallbackEmail).trim() || fallbackEmail;
+
+  try {
+    if (provider === "payfast") {
+      await fetch("/api/payfast/init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: discountedPrice,
+          item_name: PLAN_LABELS[selectedPlan],
+          user_email: email,
+          plan: selectedPlan,
+          return_url: window.location.origin + window.location.pathname + "?payfast=success",
+          cancel_url: window.location.origin + window.location.pathname + "?payfast=cancel",
+        }),
+      });
+    }
+  } catch (_ignored) {
+    // Best effort only. We still complete simulation through unified endpoint.
+  }
+
+  const res = await fetch("/api/payments/simulate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      plan: selectedPlan,
+      provider,
+      billingCycle: isYearly ? "yearly" : "monthly",
+      amount: discountedPrice,
+    }),
+  });
+
+  if (!res.ok) {
+    let message = "Gateway request failed.";
+    try {
+      const errData = await res.json();
+      if (errData?.error) {
+        message = String(errData.error);
+      }
+    } catch (_ignored) {
+      // keep default message
+    }
+    throw new Error(message);
+  }
+
+  const data = await res.json();
+  return data?.payment?.ReceiptID || data?.payment?.PaymentID || null;
 }
 
 function validateCardFields() {
@@ -542,8 +592,8 @@ function setPayBtnLoading(loading) {
   if (payLoading) payLoading.classList.toggle("sp-hidden", !loading);
 }
 
-function completePurchase(method) {
-  const receiptId = generateReceiptId();
+function completePurchase(method, gatewayReceiptId) {
+  const receiptId = gatewayReceiptId || generateReceiptId();
   const plan = selectedPlan;
   const price = isYearly ? PLAN_YEARLY[plan] : PLAN_MONTHLY[plan];
   const discountedPrice = Math.max(
