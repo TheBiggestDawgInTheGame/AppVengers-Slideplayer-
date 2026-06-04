@@ -281,22 +281,46 @@ function renderEmailTemplate({ title, intro, bodyHtml, ctaLabel, ctaUrl }) {
   const safeCtaUrl = escapeHtml(ctaUrl || EMAIL_APP_URL);
   const safeBrand = escapeHtml(EMAIL_BRAND_NAME);
   return `
-  <div style="margin:0;padding:24px;background:#f3f6fb;font-family:Segoe UI,Arial,sans-serif;">
-    <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e6ebf2;border-radius:14px;overflow:hidden;">
-      <div style="background:linear-gradient(120deg,#06b6d4,#0ea5e9);padding:22px 24px;color:#ffffff;">
-        <div style="font-size:12px;letter-spacing:.08em;opacity:.92;text-transform:uppercase;">${safeBrand}</div>
-        <h1 style="margin:8px 0 0;font-size:24px;line-height:1.2;">${safeTitle}</h1>
+  <div style="margin:0;padding:24px;background:#050814;font-family:Segoe UI,Arial,sans-serif;">
+    <div style="max-width:700px;margin:0 auto;background:#0b1226;border:1px solid #1f2a44;border-radius:16px;overflow:hidden;box-shadow:0 20px 40px rgba(2,6,23,.45);">
+      <div style="background:linear-gradient(120deg,#7c3aed,#06b6d4);padding:24px 26px;color:#ffffff;">
+        <div style="font-size:11px;letter-spacing:.12em;opacity:.95;text-transform:uppercase;">${safeBrand} Transmission</div>
+        <h1 style="margin:8px 0 0;font-size:25px;line-height:1.2;">${safeTitle}</h1>
       </div>
-      <div style="padding:24px;color:#0f172a;line-height:1.6;font-size:15px;">
-        <p style="margin:0 0 14px;">${safeIntro}</p>
-        <div style="margin:0 0 20px;">${safeBody}</div>
-        <a href="${safeCtaUrl}" style="display:inline-block;background:#0ea5e9;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:10px;font-weight:600;">${safeCtaLabel}</a>
+      <div style="padding:26px;color:#dbe7ff;line-height:1.65;font-size:15px;">
+        <p style="margin:0 0 14px;color:#dbe7ff;">${safeIntro}</p>
+        <div style="margin:0 0 20px;color:#c7d7f8;">${safeBody}</div>
+        <a href="${safeCtaUrl}" style="display:inline-block;background:linear-gradient(120deg,#06b6d4,#3b82f6);color:#ffffff;text-decoration:none;padding:11px 19px;border-radius:10px;font-weight:700;">${safeCtaLabel}</a>
       </div>
-      <div style="padding:14px 24px;border-top:1px solid #e6ebf2;color:#64748b;font-size:12px;">
-        You are receiving this email from ${safeBrand}.
+      <div style="padding:14px 24px;border-top:1px solid #1f2a44;color:#93a8cf;font-size:12px;">
+        You are receiving this secure update from ${safeBrand}.
       </div>
     </div>
   </div>`;
+}
+
+function describeRole(role) {
+  const normalized = String(role || "student").toLowerCase();
+  if (normalized === "teacher") return "Teacher";
+  if (normalized === "admin") return "Admin";
+  return "Student";
+}
+
+function planDisplayName(plan) {
+  const p = String(plan || "").toLowerCase();
+  const labels = {
+    student_elite: "Student Elite",
+    student_premium: "Student Premium",
+    teacher_pro: "Teacher Pro",
+    teacher_premium: "Teacher Premium",
+    teacher_enterprise: "Teacher Enterprise",
+    pro: "Teacher Pro",
+    school: "School Premium",
+    school_premium: "School Premium",
+    premium: "Premium",
+    free: "Free",
+  };
+  return labels[p] || (plan ? String(plan) : "Premium");
 }
 
 function getSendgridErrorDetail(error) {
@@ -671,6 +695,7 @@ function normalizePaymentRows(rawPayments) {
         FirebaseUID: String(row.FirebaseUID || row.uid || ""),
         DisplayName: String(row.DisplayName || row.displayName || ""),
         Email: String(row.Email || row.email || ""),
+        ReceiptID: String(row.ReceiptID || row.receiptId || ""),
         Plan: String(row.Plan || row.plan || ""),
         AmountZAR: Number(row.AmountZAR || row.amount || 0),
         BillingCycle: String(row.BillingCycle || row.billingCycle || "monthly"),
@@ -691,6 +716,7 @@ function normalizePaymentRows(rawPayments) {
       FirebaseUID: "",
       DisplayName: "",
       Email: String(email || ""),
+      ReceiptID: String(info?.receiptId || ""),
       Plan: plan,
       AmountZAR: Number(info?.amount || planAmount(plan) || 0),
       BillingCycle: String(info?.billingCycle || "monthly"),
@@ -1914,11 +1940,12 @@ app.post("/api/payfast/init", (req, res) => {
 
 function savePaymentStatus(email, plan, status, provider = "payfast", billingCycle = "monthly", amountOverride) {
   const normalizedEmail = normalizeEmail(email);
-  if (!normalizedEmail || !plan) return;
+  if (!normalizedEmail || !plan) return null;
 
   const existingRows = normalizePaymentRows(safeReadJson(PAYMENTS_FILE, {}));
-  existingRows.unshift({
+  const created = {
     PaymentID: Date.now(),
+    ReceiptID: `SP-${Date.now().toString(36).toUpperCase()}`,
     Email: normalizedEmail,
     Plan: String(plan),
     AmountZAR: Number.isFinite(Number(amountOverride)) ? Number(amountOverride) : planAmount(plan),
@@ -1926,8 +1953,10 @@ function savePaymentStatus(email, plan, status, provider = "payfast", billingCyc
     BillingCycle: String(billingCycle || "monthly"),
     Status: mapPaymentStatus(status),
     CreatedAt: new Date().toISOString(),
-  });
+  };
+  existingRows.unshift(created);
   safeWriteJson(PAYMENTS_FILE, existingRows.slice(0, 5000));
+  return created;
 }
 
 app.post("/api/payments/simulate", (req, res) => {
@@ -1942,8 +1971,38 @@ app.post("/api/payments/simulate", (req, res) => {
     return;
   }
 
-  savePaymentStatus(email, plan, "COMPLETE", provider, billingCycle, amount);
-  res.json({ ok: true });
+  const payment = savePaymentStatus(email, plan, "COMPLETE", provider, billingCycle, amount);
+
+  if (payment && process.env.SENDGRID_API_KEY) {
+    const amountLabel = `R${Number(payment.AmountZAR || 0).toFixed(2)}`;
+    sgMail.send({
+      to: email,
+      from: getSendgridFrom(),
+      subject: `${EMAIL_BRAND_NAME} Receipt: ${planDisplayName(plan)}`,
+      text:
+        `Payment confirmed for ${planDisplayName(plan)}.\n` +
+        `Amount: ${amountLabel}\n` +
+        `Billing: ${String(payment.BillingCycle || "monthly")}\n` +
+        `Provider: ${String(payment.Provider || "card")}\n` +
+        `Receipt: ${String(payment.ReceiptID || payment.PaymentID || "-")}`,
+      html: renderEmailTemplate({
+        title: "Payment Receipt Confirmed",
+        intro: "Your SlidePlay plan has been activated.",
+        bodyHtml:
+          `<p><strong>Plan:</strong> ${escapeHtml(planDisplayName(plan))}</p>` +
+          `<p><strong>Amount:</strong> ${escapeHtml(amountLabel)}</p>` +
+          `<p><strong>Billing Cycle:</strong> ${escapeHtml(String(payment.BillingCycle || "monthly"))}</p>` +
+          `<p><strong>Provider:</strong> ${escapeHtml(String(payment.Provider || "card"))}</p>` +
+          `<p><strong>Receipt ID:</strong> ${escapeHtml(String(payment.ReceiptID || payment.PaymentID || "-"))}</p>`,
+        ctaLabel: "Open Billing",
+        ctaUrl: `${EMAIL_APP_URL}/payment.html`,
+      }),
+    }).catch((e) => {
+      console.error("Simulated payment receipt email failed:", getSendgridErrorDetail(e));
+    });
+  }
+
+  res.json({ ok: true, payment });
 });
 
 app.post("/api/payfast/ipn", async (req, res) => {
@@ -1971,7 +2030,7 @@ app.post("/api/payfast/ipn", async (req, res) => {
     if (String(ipnData.payment_status || "").toUpperCase() === "COMPLETE") {
       const email = normalizeEmail(ipnData.email_address);
       const plan = String(ipnData.custom_str1 || "");
-      savePaymentStatus(email, plan, "COMPLETE");
+      const payment = savePaymentStatus(email, plan, "COMPLETE");
 
       const admin = getFirebaseAdmin();
       if (admin && email) {
@@ -1990,17 +2049,27 @@ app.post("/api/payfast/ipn", async (req, res) => {
 
       if (email && process.env.SENDGRID_API_KEY) {
         const planLabel = escapeHtml(plan || "Premium");
+        const amountLabel = payment ? `R${Number(payment.AmountZAR || 0).toFixed(2)}` : "R0.00";
         const msg = {
           to: email,
           from: getSendgridFrom(),
-          subject: `Payment Received - ${EMAIL_BRAND_NAME}`,
-          text: `Thank you for your payment for the ${plan} plan! Your premium access is now active.`,
+          subject: `${EMAIL_BRAND_NAME} Receipt: ${planDisplayName(plan)}`,
+          text:
+            `Payment confirmed for ${planDisplayName(plan)}.\n` +
+            `Amount: ${amountLabel}\n` +
+            `Provider: ${payment?.Provider || "payfast"}\n` +
+            `Receipt: ${payment?.ReceiptID || payment?.PaymentID || "-"}`,
           html: renderEmailTemplate({
-            title: "Payment Confirmed",
-            intro: `Thanks for upgrading to ${plan || "your selected"} plan.`,
-            bodyHtml: `<p>Your premium access is now active. You can launch games and continue learning immediately.</p><p><strong>Plan:</strong> ${planLabel}</p>`,
-            ctaLabel: "Open SlidePlay",
-            ctaUrl: `${EMAIL_APP_URL}/main.html`,
+            title: "Payment Receipt Confirmed",
+            intro: `Thanks for upgrading to ${planDisplayName(plan)}.`,
+            bodyHtml:
+              `<p>Your premium access is now active.</p>` +
+              `<p><strong>Plan:</strong> ${planLabel}</p>` +
+              `<p><strong>Amount:</strong> ${escapeHtml(amountLabel)}</p>` +
+              `<p><strong>Provider:</strong> ${escapeHtml(String(payment?.Provider || "payfast"))}</p>` +
+              `<p><strong>Receipt ID:</strong> ${escapeHtml(String(payment?.ReceiptID || payment?.PaymentID || "-"))}</p>`,
+            ctaLabel: "Open Billing",
+            ctaUrl: `${EMAIL_APP_URL}/payment.html`,
           }),
         };
         try {
@@ -2021,7 +2090,7 @@ app.post("/api/payfast/ipn", async (req, res) => {
 });
 
 app.post("/send-welcome-email", async (req, res) => {
-  const { email } = req.body || {};
+  const { email, name, role } = req.body || {};
   if (!email) {
     res.status(400).send("Missing email");
     return;
@@ -2036,12 +2105,17 @@ app.post("/send-welcome-email", async (req, res) => {
     to: email,
     from: getSendgridFrom(),
     subject: `Welcome to ${EMAIL_BRAND_NAME}!`,
-    text: "Thank you for signing up for SlidePlayer! We're excited to have you on board. If you have any questions or need assistance, feel free to reach out to our support team.",
+    text:
+      `Welcome to ${EMAIL_BRAND_NAME}, ${String(name || "Commander")}!\n` +
+      `Role: ${describeRole(role)}\n` +
+      "Your command center is ready. Start a mission from login and deploy your first session.",
     html: renderEmailTemplate({
       title: `Welcome to ${EMAIL_BRAND_NAME}`,
-      intro: "Thanks for signing up. Your account is ready.",
-      bodyHtml: "<p>Start by uploading your slides, generating a quiz, and jumping into game mode.</p><p>If you need help, reply to this email and our support team will assist you.</p>",
-      ctaLabel: "Start Learning",
+      intro: `Access granted, ${escapeHtml(String(name || "Commander"))}.`,
+      bodyHtml:
+        `<p>Your <strong>${escapeHtml(describeRole(role))}</strong> profile is now online in the SlidePlay grid.</p>` +
+        "<p>Launch your first mission: upload content, generate quizzes, and activate game mode.</p>",
+      ctaLabel: "Enter Command Center",
       ctaUrl: `${EMAIL_APP_URL}/login.html`,
     }),
   };
@@ -2053,6 +2127,86 @@ app.post("/send-welcome-email", async (req, res) => {
     const detail = getSendgridErrorDetail(error);
     console.error("Welcome email failed:", detail);
     res.status(500).json({ error: "Error sending email", detail });
+  }
+});
+
+app.post("/api/email/verification-notice", async (req, res) => {
+  const email = normalizeEmail(req.body?.email || "");
+  const name = String(req.body?.name || "").trim();
+  const verifyUrl = String(req.body?.verifyUrl || `${EMAIL_APP_URL}/login.html?verify=1`).trim();
+
+  if (!email) {
+    res.status(400).json({ error: "Missing email" });
+    return;
+  }
+
+  if (!process.env.SENDGRID_API_KEY) {
+    res.json({ ok: true, skipped: true, reason: "SendGrid is not configured" });
+    return;
+  }
+
+  try {
+    await sgMail.send({
+      to: email,
+      from: getSendgridFrom(),
+      subject: `${EMAIL_BRAND_NAME}: Verify Your Email`,
+      text:
+        `Hi ${name || "there"},\n` +
+        "Please verify your email to activate all SlidePlay features.\n" +
+        `Verification link: ${verifyUrl}`,
+      html: renderEmailTemplate({
+        title: "Email Verification Required",
+        intro: `Hi ${escapeHtml(name || "there")}, your account is almost fully online.`,
+        bodyHtml:
+          "<p>Verify your email address to unlock the full SlidePlay command grid.</p>" +
+          `<p><a href=\"${escapeHtml(verifyUrl)}\" style=\"color:#06b6d4\">${escapeHtml(verifyUrl)}</a></p>`,
+        ctaLabel: "Verify Email",
+        ctaUrl: verifyUrl,
+      }),
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(502).json({ error: getSendgridErrorDetail(error) });
+  }
+});
+
+app.post("/api/email/password-reset-notice", async (req, res) => {
+  const email = normalizeEmail(req.body?.email || "");
+  const resetUrl = String(req.body?.resetUrl || `${EMAIL_APP_URL}/reset.html`).trim();
+
+  if (!email) {
+    res.status(400).json({ error: "Missing email" });
+    return;
+  }
+
+  if (!process.env.SENDGRID_API_KEY) {
+    res.json({ ok: true, skipped: true, reason: "SendGrid is not configured" });
+    return;
+  }
+
+  try {
+    await sgMail.send({
+      to: email,
+      from: getSendgridFrom(),
+      subject: `${EMAIL_BRAND_NAME}: Password Reset Requested`,
+      text:
+        "We detected a password reset request for your SlidePlay account.\n" +
+        `Reset page: ${resetUrl}\n` +
+        "If this was not you, you can ignore this email.",
+      html: renderEmailTemplate({
+        title: "Password Reset Request",
+        intro: "A reset request was received for your SlidePlay account.",
+        bodyHtml:
+          "<p>Use the secure reset flow to update your password.</p>" +
+          `<p><a href=\"${escapeHtml(resetUrl)}\" style=\"color:#06b6d4\">${escapeHtml(resetUrl)}</a></p>` +
+          "<p>If you did not request this, you can safely ignore this message.</p>",
+        ctaLabel: "Open Reset Page",
+        ctaUrl: resetUrl,
+      }),
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(502).json({ error: getSendgridErrorDetail(error) });
   }
 });
 
@@ -2800,13 +2954,13 @@ app.post("/api/notify-session", async (req, res) => {
   }
 
   const emailHtml = renderEmailTemplate({
-    title: "Session Code Invitation",
+    title: "Mission Invite: Session Code",
     intro: `${hostName} invited you to join ${sessionName}.`,
     bodyHtml:
       `<p><strong>Session code:</strong> ${escapeHtml(code)}</p>` +
-      `<p>Open the student dashboard and enter this code to join.</p>` +
+      `<p>Open the student dashboard and enter this code to join the live mission.</p>` +
       `<p><a href="${escapeHtml(joinUrl)}" style="color:#0ea5e9">${escapeHtml(joinUrl)}</a></p>`,
-    ctaLabel: "Join Session",
+    ctaLabel: "Join Mission",
     ctaUrl: joinUrl,
   });
 
@@ -2824,7 +2978,7 @@ app.post("/api/notify-session", async (req, res) => {
       await sgMail.send({
         to: email,
         from: getSendgridFrom(),
-        subject: `Session Code: ${code}`,
+        subject: `SlidePlay Mission Code: ${code}`,
         text: emailText,
         html: emailHtml,
       });

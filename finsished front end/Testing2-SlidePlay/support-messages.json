@@ -17,9 +17,9 @@
     "Subject": "Help Center Request",
     "MessageText": "This is a support test from the Help page submission flow.",
     "SourcePage": "help.html",
-    "Status": "open",
+    "Status": "resolved",
     "CreatedAt": "2026-05-30T19:56:07.017Z",
-    "UpdatedAt": null
+    "UpdatedAt": "2026-06-04T07:50:11.048Z"
   },
   {
     "MessageID": 1,
@@ -28,8 +28,8 @@
     "Subject": "Login issue on mobile",
     "MessageText": "I cannot complete signup on Android after selecting a plan.",
     "SourcePage": "help.html",
-    "Status": "resolved",
+    "Status": "in_progress",
     "CreatedAt": "2026-05-30T19:54:36.905Z",
-    "UpdatedAt": "2026-05-30T19:55:34.154Z"
+    "UpdatedAt": "2026-06-04T07:49:39.392Z"
   }
 ]

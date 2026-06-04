@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🎯 Knowledge Quest 3D – Game Show</title>
+    <title>ðŸŽ¯ Knowledge Quest 3D â€“ Game Show</title>
 
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1062,10 +1062,10 @@
     <div id="paid-overlay">
       <audio id="paid-bgm" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b8b6b7.mp3" loop autoplay></audio>
       <audio id="paid-sfx" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b7b7b.mp3"></audio>
-      <button id="paid-mute">🔈</button>
+      <button id="paid-mute">ðŸ”ˆ</button>
       <div id="paid-objects"></div>
       <div id="paid-modal">
-        <span class="lock">🔒</span>
+        <span class="lock">ðŸ”’</span>
         <div class="title">Paid Feature</div>
         <div class="desc">The 3D Quiz Game Show is a premium experience.<br><br><span class="highlight">Upgrade to unlock full access.</span></div>
         <button disabled>Upgrade Required</button>
@@ -1109,11 +1109,11 @@
     <script>
     // Animated, gamified, educational objects
     const icons = [
-      { html: '📚', class: 'book' },
-      { html: '🧊', class: 'cube' },
-      { html: '⚛️', class: 'atom' },
-      { html: '➗', class: 'math' },
-      { html: '✏️', class: 'pencil' }
+      { html: 'ðŸ“š', class: 'book' },
+      { html: 'ðŸ§Š', class: 'cube' },
+      { html: 'âš›ï¸', class: 'atom' },
+      { html: 'âž—', class: 'math' },
+      { html: 'âœï¸', class: 'pencil' }
     ];
     const objCount = 7;
     const paidObjects = document.getElementById('paid-objects');
@@ -1151,7 +1151,7 @@
     muteBtn.onclick = function() {
       muted = !muted;
       bgm.muted = muted;
-      muteBtn.textContent = muted ? '🔇' : '🔈';
+      muteBtn.textContent = muted ? 'ðŸ”‡' : 'ðŸ”ˆ';
     };
     </script>
     <canvas id="three-canvas"></canvas>
@@ -1159,17 +1159,17 @@
     <div id="ui-overlay">
       <!-- Mode Chooser Screen -->
       <div id="mode-chooser-screen">
-        <h1>🎮 Choose Your Game</h1>
+        <h1>ðŸŽ® Choose Your Game</h1>
         <p class="subtitle">Select a game mode to get started</p>
         <div class="mode-options"></div>
       </div>
 
       <!-- Upload Panel -->
       <div id="upload-panel" class="hidden">
-        <h1>🎯 Knowledge Quest</h1>
+        <h1>ðŸŽ¯ Knowledge Quest</h1>
         <p class="subtitle">Upload your learning material</p>
         <div id="file-drop-zone">
-          <div class="icon">📁</div>
+          <div class="icon">ðŸ“</div>
           <p><strong>Drop your learning material here</strong></p>
           <p class="drop-browse">or click to browse</p>
           <p class="drop-support">
@@ -1182,7 +1182,7 @@
           accept=".txt,.pdf,.docx,.md,.csv,.json"
         />
         <div id="api-key-section">
-          <label>🔑 Optional: Gemini API key for AI questions</label><br />
+          <label>ðŸ”‘ Optional: Gemini API key for AI questions</label><br />
           <input
             type="text"
             id="api-key-input"
@@ -1195,19 +1195,19 @@
           <div id="question-count-help">Choose between 5 and 40 questions for this round.</div>
         </div>
         <div id="upload-status"></div>
-        <button id="btn-upload-proceed" class="proceed-btn" disabled>Proceed to Game Selection ➡️</button>
+        <button id="btn-upload-proceed" class="proceed-btn" disabled>Proceed to Game Selection âž¡ï¸</button>
       </div>
 
       <!-- Game Selector Screen -->
       <div id="game-selector-screen" class="hidden">
-        <h1>🎮 Select Your Game</h1>
+        <h1>ðŸŽ® Select Your Game</h1>
         <p class="subtitle">Choose which game to play with your content</p>
         <div class="game-options"></div>
       </div>
 
       <!-- Play Style Screen -->
       <div id="play-style-screen" class="hidden">
-        <h1>⚙️ Game Mode</h1>
+        <h1>âš™ï¸ Game Mode</h1>
         <p class="subtitle">Choose how you want to play</p>
         <div class="play-style-options"></div>
       </div>
@@ -1217,11 +1217,11 @@
         <!-- Game HUD -->
         <div id="game-hud">
           <div class="hud-item">
-            📋 Q <span id="hud-qnum">1</span>/<span id="hud-qtotal">20</span>
+            ðŸ“‹ Q <span id="hud-qnum">1</span>/<span id="hud-qtotal">20</span>
           </div>
-          <div class="hud-item">⏱️ <span id="hud-timer">30</span>s</div>
+          <div class="hud-item">â±ï¸ <span id="hud-timer">30</span>s</div>
           <div class="hud-item">
-            💰 $<span class="hud-score" id="hud-winnings">0</span>
+            ðŸ’° $<span class="hud-score" id="hud-winnings">0</span>
           </div>
         </div>
 
@@ -1252,10 +1252,10 @@
         </div>
         <div id="actions-row">
           <button id="btn-lock" class="action-btn" disabled>
-            🔒 Lock Answer
+            ðŸ”’ Lock Answer
           </button>
           <button id="btn-next" class="action-btn" disabled>
-            ➡️ Next Question
+            âž¡ï¸ Next Question
           </button>
         </div>
         <div id="adaptive-row" class="control-subrow">
@@ -1274,11 +1274,11 @@
 
       <!-- Results Panel -->
       <div id="results-panel">
-        <h2>🏆 Complete!</h2>
+        <h2>ðŸ† Complete!</h2>
         <div class="final-score" id="final-score">0</div>
         <p id="results-detail"></p>
         <div id="results-insights">AI insights will appear here after the round.</div>
-        <button id="btn-restart">🔄 Play Again</button>
+        <button id="btn-restart">ðŸ”„ Play Again</button>
       </div>
       </div>
       <!-- End Game Engine Screen -->
@@ -2395,11 +2395,11 @@ ${text.substring(0, 8000)}`;
           const geminiQuestions = await generateWithGemini(text, count);
           if (geminiQuestions && geminiQuestions.length >= 3) {
             allQuestions = geminiQuestions;
-            console.log("✅ Using AI-generated questions");
+            console.log("âœ… Using AI-generated questions");
           } else {
             // Fallback
             allQuestions = generateFallback(text, count);
-            console.log("ℹ️ Using built‑in question generator");
+            console.log("â„¹ï¸ Using builtâ€‘in question generator");
           }
 
           if (allQuestions.length < 3) {
@@ -2508,7 +2508,7 @@ ${text.substring(0, 8000)}`;
     <script src="millionaire-app.js"></script>
 
     <script>
-    // ── Subscription gate check ──────────────────────────────────────────
+    // â”€â”€ Subscription gate check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Hide the paid-overlay if the user has an active paid student or teacher plan.
     (function checkSubscriptionAccess() {
       function hasPaidPlan() {
@@ -2535,5 +2535,7 @@ ${text.substring(0, 8000)}`;
       }
     })();
     </script>
-  </body>
+    <script src="/back-nav.js"></script>
+</body>
 </html>
+

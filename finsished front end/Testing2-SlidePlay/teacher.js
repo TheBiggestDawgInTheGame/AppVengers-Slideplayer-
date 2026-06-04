@@ -192,20 +192,74 @@ function sessSubActive(sub) {
 
 function sessCurrentPlan() {
   const teacherSub = sessReadSub("sp_teacher_subscription");
-  if (sessSubActive(teacherSub) && teacherSub.plan) return String(teacherSub.plan);
+  if (sessSubActive(teacherSub) && teacherSub.plan) {
+    return String(teacherSub.plan).toLowerCase();
+  }
 
   const studentSub = sessReadSub("sp_student_subscription");
-  if (sessSubActive(studentSub) && studentSub.plan) return String(studentSub.plan);
+  if (sessSubActive(studentSub) && studentSub.plan) {
+    return String(studentSub.plan).toLowerCase();
+  }
 
   return "free";
 }
 
 function sessHasPaidAccess() {
   const plan = sessCurrentPlan();
-  return plan === "student_elite" ||
-    plan === "student_premium" ||
-    plan === "pro" ||
-    plan === "school";
+  return [
+    "student_elite",
+    "student_premium",
+    "pro",
+    "school",
+    "teacher_pro",
+    "teacher_enterprise",
+    "teacher_premium",
+    "school_premium",
+  ].includes(plan);
+}
+
+function sessUnlockTeacherDashboardUI() {
+  if (!sessHasPaidAccess()) return;
+
+  const navTargetByFeature = {
+    "performance analytics": "AnalyticsPage.html",
+    "student access grid": "AcessControl.html",
+    "admin controls": "settings.html",
+  };
+
+  document.querySelectorAll(".paid-badge, .lock-icon").forEach((el) => el.remove());
+
+  document.querySelectorAll(".locked-link-wrap").forEach((wrap) => {
+    const link = wrap.querySelector(".locked-link");
+    if (!link) return;
+
+    const label = (link.textContent || "").toLowerCase().replace(/\s+/g, " ").trim();
+    Object.keys(navTargetByFeature).forEach((key) => {
+      if (label.includes(key)) link.setAttribute("href", navTargetByFeature[key]);
+    });
+
+    link.classList.remove("locked-link");
+    link.removeAttribute("aria-disabled");
+    link.removeAttribute("tabindex");
+    link.removeAttribute("title");
+    wrap.removeAttribute("title");
+    wrap.classList.remove("locked-link-wrap");
+  });
+
+  document.querySelectorAll(".modules-card button[disabled]").forEach((btn) => {
+    btn.disabled = false;
+    btn.removeAttribute("title");
+  });
+
+  const accessBtn = document.querySelector(".access-open-btn");
+  if (accessBtn) {
+    accessBtn.setAttribute("href", "AcessControl.html");
+    accessBtn.removeAttribute("aria-disabled");
+    accessBtn.removeAttribute("tabindex");
+    accessBtn.removeAttribute("title");
+    accessBtn.style.pointerEvents = "";
+    accessBtn.style.opacity = "";
+  }
 }
 
 function sessPaidUpgradePrompt(featureName) {
@@ -460,6 +514,19 @@ function sessApplyModeAccess() {
       card.setAttribute("onclick", "sessShowPaidGate(this)");
     }
   });
+
+  const addonWrap = document.querySelector(".sad-toggle-wrap");
+  const addonToggle = document.getElementById("sessDelegateToggle");
+  const addonLockHint = document.querySelector(".sad-lock-hint");
+
+  if (paid) {
+    if (addonWrap) addonWrap.removeAttribute("onclick");
+    if (addonToggle) addonToggle.disabled = false;
+    if (addonLockHint) addonLockHint.remove();
+  } else {
+    if (addonWrap) addonWrap.setAttribute("onclick", "sessShowAddonGate(this)");
+    if (addonToggle) addonToggle.disabled = true;
+  }
 }
 
 async function sessPersistClassRecord() {
@@ -564,6 +631,8 @@ function renderRoster() {
 
 // ── Event wiring ──────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
+  sessUnlockTeacherDashboardUI();
+
   document.getElementById("openSessBtn")?.addEventListener("click", sessOpen);
   document.getElementById("sessClose")?.addEventListener("click", sessClose);
 
@@ -668,6 +737,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Delegated moderation add-on gate (shows upgrade shake) ───
   // sessShowAddonGate is called from onclick in HTML
+
+  document.getElementById("sessDelegateToggle")?.addEventListener("change", function () {
+    sess.delegated = Boolean(this.checked);
+  });
 });
 
 // ── Addon gate for delegated moderation toggle ────────────────

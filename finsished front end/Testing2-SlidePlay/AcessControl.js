@@ -26,6 +26,7 @@
   const penaltyCountEl = document.getElementById("penaltyCount");
   const suspendCountEl = document.getElementById("suspendCount");
   const toastEl = document.getElementById("toast");
+  let toastTimer = null;
 
   const session = readJson(sessionKey, null);
 
@@ -561,7 +562,6 @@
       .replace(/'/g, "&#39;");
   }
 
-  let toastTimer = null;
   function toast(message) {
     if (!toastEl) {
       return;

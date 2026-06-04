@@ -306,9 +306,47 @@ function animateObj(el, idx) {
   <div style="background:rgba(30,30,60,0.98);border-radius:18px;padding:38px 32px 30px;box-shadow:0 8px 40px #000a;text-align:center;max-width:90vw;">
     <div style="font-size:2.2rem;margin-bottom:10px;">🔒 Paid Feature</div>
     <div style="font-size:1.1rem;margin-bottom:18px;max-width:340px;">The 3D Escape Room is a premium experience.<br><br><span style='color:#ffd86b;'>Upgrade to unlock full access.</span></div>
-    <button style="margin-top:10px;padding:10px 32px;font-size:1.1rem;background:#222a44;color:#ffd86b;border:none;border-radius:8px;opacity:0.7;cursor:not-allowed;" disabled>Upgrade Required</button>
+    <button type="button" style="margin-top:10px;padding:10px 32px;font-size:1.1rem;background:#222a44;color:#ffd86b;border:none;border-radius:8px;opacity:0.7;cursor:not-allowed;" disabled>Upgrade Required</button>
   </div>
 </div>
+<script>
+(function () {
+  function getStudentPlan() {
+    try {
+      var sub = JSON.parse(localStorage.getItem('sp_student_subscription') || 'null');
+      if (sub && sub.status !== 'cancelled' && sub.plan) return sub.plan;
+    } catch (_) {}
+    return 'free';
+  }
+
+  function isPaidPlan() {
+    var plan = getStudentPlan();
+    return plan === 'student_elite' || plan === 'student_premium';
+  }
+
+  function getUpgradeUrl() {
+    var returnTo = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+    return '/studentpayment.html?source=escape3d&return=' + returnTo;
+  }
+
+  var overlays = document.querySelectorAll('#paid-overlay');
+  var upgradeButtons = document.querySelectorAll('#paid-overlay button:not(#paid-mute)');
+
+  if (isPaidPlan()) {
+    overlays.forEach(function (overlay) { overlay.remove(); });
+    return;
+  }
+
+  upgradeButtons.forEach(function (button) {
+    button.disabled = false;
+    button.textContent = 'Upgrade Now';
+    button.style.cursor = 'pointer';
+    button.addEventListener('click', function () {
+      window.location.href = getUpgradeUrl();
+    });
+  });
+})();
+</script>
 <div id="hud">
   <div id="hud-title">🇿🇦 Mzansi Escape [3D] — Level 1: Klas 14B</div>
   <div id="progress">

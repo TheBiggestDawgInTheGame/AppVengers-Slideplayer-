@@ -186,11 +186,18 @@ function resetAllGoogleButtons() {
   resetGoogleButton(document.getElementById("googleBtn"), "googleBtn");
 }
 
+function isEmbeddedAuthBrowser() {
+  const ua = String(navigator.userAgent || "");
+  return /Electron|\bCode\//i.test(ua);
+}
+
 function shouldPreferRedirectFlow() {
-  // Redirect flow is more reliable than popups across browsers and webviews.
+  // Embedded browsers often block popup auth flows; start with redirect there.
   const params = new URLSearchParams(window.location.search || "");
   if (params.get("googlePopup") === "1") return false;
-  return true;
+  if (params.get("googleRedirect") === "1") return true;
+  if (isEmbeddedAuthBrowser()) return true;
+  return false;
 }
 
 function shouldFallbackToRedirect(errCode) {
@@ -238,6 +245,18 @@ async function sendVerificationEmailSafely(user, timeoutMs = 4500) {
       new Promise((resolve) => setTimeout(resolve, timeoutMs)),
     ]);
     localStorage.setItem(EMAIL_VERIFIED_SENT_AT_KEY, String(Date.now()));
+
+    // Best-effort branded verification notice from backend.
+    fetch(API_BASE + "/api/email/verification-notice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: user.email || "",
+        name: user.displayName || "",
+        verifyUrl: window.location.origin + "/login.html?verify=1",
+      }),
+    }).catch(() => {});
+
     return true;
   } catch (error) {
     console.warn("Failed to send verification email:", error?.code || error?.message || error);
@@ -447,6 +466,17 @@ function resetGoogleButton(btn, btnId) {
   btn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" style="width:18px;height:18px;"> ${label}`;
 }
 
+function getGoogleAuthErrorMessage(err, fallbackMessage = "Google sign-in failed. Please try again.") {
+  const code = String(err?.code || "").trim();
+  if (code === "auth/unauthorized-domain") {
+    return `Google sign-in is not enabled for ${window.location.hostname} yet. Please add this domain in Firebase Auth > Authorized domains.`;
+  }
+  if (code === "auth/operation-not-allowed") {
+    return "Google sign-in is not enabled in Firebase Authentication yet. Please enable the Google provider and try again.";
+  }
+  return fallbackMessage;
+}
+
 async function finalizeGoogleSignIn(user) {
   const normalizedUserEmail = normalizeEmail(user.email);
   const isAllowlistedAdmin = isAllowlistedAdminEmail(normalizedUserEmail);
@@ -556,7 +586,7 @@ function setupGoogle(btnId) {
         resetGoogleButton(btn, btnId);
         clearGoogleAuthIntent();
         googleSignInStartInFlight = false;
-        _showGoogleError(btn, "Unable to start Google sign-in redirect. Please try again.");
+        _showGoogleError(btn, getGoogleAuthErrorMessage(err, "Unable to start Google sign-in redirect. Please try again."));
       }
       return;
     }
@@ -574,19 +604,18 @@ function setupGoogle(btnId) {
             "Google redirect did not open. Please allow popups/cookies and try again."
           );
         } catch (_) {
+          const redirectError = _;
           resetGoogleButton(btn, btnId);
           clearGoogleAuthIntent();
           googleSignInStartInFlight = false;
-          _showGoogleError(btn, "Popup was blocked and redirect could not start. Please try again.");
+          _showGoogleError(btn, getGoogleAuthErrorMessage(redirectError, "Popup was blocked and redirect could not start. Please try again."));
         }
         return;
       }
       resetGoogleButton(btn, btnId);
       clearGoogleAuthIntent();
       googleSignInStartInFlight = false;
-      _showGoogleError(btn, err?.code === "auth/unauthorized-domain"
-        ? `Google sign-in is not enabled for ${window.location.hostname} yet. Please add this domain in Firebase Auth > Authorized domains.`
-        : "Google sign-in failed. Please try again.");
+      _showGoogleError(btn, getGoogleAuthErrorMessage(err));
     }
   });
 }
@@ -612,9 +641,7 @@ async function handleGoogleRedirect() {
     clearGoogleAuthIntent();
     googleSignInStartInFlight = false;
     if (btn) {
-      _showGoogleError(btn, err?.code === "auth/unauthorized-domain"
-        ? `Google sign-in is not enabled for ${window.location.hostname} yet. Please add this domain in Firebase Auth > Authorized domains.`
-        : "Google sign-in failed. Please try again.");
+      _showGoogleError(btn, getGoogleAuthErrorMessage(err));
     }
   } finally {
     googleSignInStartInFlight = false;

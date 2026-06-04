@@ -26,8 +26,8 @@
     #accessDenied a{color:var(--purple);text-decoration:none;margin-top:.5rem;}
 
     /* sidebar */
-    .sidebar{width:var(--sidebar);height:100vh;position:fixed;top:0;left:0;background:rgba(8,10,22,.97);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 1.25rem;z-index:100;backdrop-filter:blur(20px);}
-    .logo{font-family:"Orbitron",sans-serif;font-size:1.4rem;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.25rem;}
+    .sidebar{width:var(--sidebar);height:100vh;position:fixed;top:0;left:0;background:rgba(8,10,22,.97);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 1.25rem;z-index:100;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);}
+    .logo{font-family:"Orbitron",sans-serif;font-size:1.4rem;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.25rem;}
     .logo-sub{font-size:.65rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:2rem;}
     .nav-section{font-size:.63rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin:1.2rem 0 .4rem .5rem;}
     .nav a{display:flex;align-items:center;gap:.75rem;color:#94a3b8;text-decoration:none;padding:.7rem 1rem;border-radius:10px;font-size:.84rem;transition:.2s;cursor:pointer;margin-bottom:.15rem;}
@@ -43,8 +43,8 @@
     .admin-user .info .role-lbl{font-size:.68rem;color:var(--purple);text-transform:uppercase;letter-spacing:.05em;display:block;}
 
     /* main */
-    .main{margin-left:var(--sidebar);flex:1;height:100vh;overflow-y:auto;padding:2rem 2.5rem;}
-    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.75rem;}
+    .main{margin-left:var(--sidebar);flex:1;height:100vh;overflow-y:auto;padding:2rem clamp(1rem,2vw,2.5rem);max-width:1680px;width:100%;}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.9rem;gap:1rem;}
     .topbar-left h1{font-family:"Orbitron",sans-serif;font-size:1.55rem;}
     .topbar-left .breadcrumb{font-size:.76rem;color:var(--muted);margin-top:.25rem;}
     .topbar-right{display:flex;align-items:center;gap:.75rem;}
@@ -53,7 +53,7 @@
     .refresh-btn:hover{background:rgba(139,92,246,.2);color:var(--text);}
 
     /* status bar */
-    .status-bar{display:flex;gap:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.65rem 1.25rem;margin-bottom:1.75rem;font-size:.78rem;flex-wrap:wrap;}
+    .status-bar{display:flex;gap:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:.75rem 1.25rem;margin-bottom:1.9rem;font-size:.78rem;flex-wrap:wrap;box-shadow:0 10px 28px rgba(2,6,23,.28);}
     .si{display:flex;align-items:center;gap:.4rem;color:#94a3b8;}
     .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
     .dot.g{background:var(--green);box-shadow:0 0 5px var(--green);}
@@ -61,35 +61,33 @@
     .dot.r{background:var(--red);}
 
     /* stat cards */
-    .cards{display:grid;grid-template-columns:repeat(6,1fr);gap:1.1rem;margin-bottom:1.75rem;}
-    @media(max-width:1400px){.cards{grid-template-columns:repeat(3,1fr);}}
-    @media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr);}}
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.25rem 1.35rem;position:relative;overflow:hidden;transition:.25s;backdrop-filter:blur(10px);}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.1rem;margin-bottom:1.75rem;}
+    @media(max-width:900px){.cards{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.25rem 1.35rem;position:relative;overflow:hidden;transition:.25s;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(2,6,23,.32);}
     .card::after{content:'';position:absolute;top:-40px;right:-40px;width:100px;height:100px;border-radius:50%;background:var(--card-glow,rgba(139,92,246,.06));filter:blur(20px);pointer-events:none;}
     .card:hover{transform:translateY(-3px);border-color:rgba(139,92,246,.35);box-shadow:0 8px 30px rgba(139,92,246,.1);}
     .card .card-icon{font-size:1.3rem;margin-bottom:.7rem;}
     .card .card-val{font-family:"Orbitron",sans-serif;font-size:1.65rem;font-weight:700;line-height:1;}
     .card .card-label{font-size:.73rem;color:var(--muted);margin-top:.35rem;}
     /* coloured text via gradient */
-    .c-purple .card-icon,.c-purple .card-val{background:linear-gradient(135deg,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-    .c-cyan   .card-icon,.c-cyan   .card-val{background:linear-gradient(135deg,#06b6d4,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-    .c-green  .card-icon,.c-green  .card-val{background:linear-gradient(135deg,#22c55e,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-    .c-yellow .card-icon,.c-yellow .card-val{background:linear-gradient(135deg,#f59e0b,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-    .c-red    .card-icon,.c-red    .card-val{background:linear-gradient(135deg,#ef4444,#f87171);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-    .c-blue   .card-icon,.c-blue   .card-val{background:linear-gradient(135deg,#3b82f6,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .c-purple .card-icon,.c-purple .card-val{background:linear-gradient(135deg,#8b5cf6,#a78bfa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+    .c-cyan   .card-icon,.c-cyan   .card-val{background:linear-gradient(135deg,#06b6d4,#22d3ee);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+    .c-green  .card-icon,.c-green  .card-val{background:linear-gradient(135deg,#22c55e,#4ade80);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+    .c-yellow .card-icon,.c-yellow .card-val{background:linear-gradient(135deg,#f59e0b,#fbbf24);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+    .c-red    .card-icon,.c-red    .card-val{background:linear-gradient(135deg,#ef4444,#f87171);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+    .c-blue   .card-icon,.c-blue   .card-val{background:linear-gradient(135deg,#3b82f6,#60a5fa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 
     /* charts */
-    .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:1.2rem;margin-bottom:1.75rem;}
+    .charts-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.2rem;margin-bottom:1.75rem;}
     @media(max-width:1100px){.charts-row{grid-template-columns:1fr;}}
-    .panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.4rem;backdrop-filter:blur(10px);}
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.4rem;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(2,6,23,.32);}
     .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;}
     .panel-title{font-family:"Orbitron",sans-serif;font-size:.88rem;display:flex;align-items:center;gap:.5rem;}
     .panel-title i{color:var(--purple);}
     .panel-sub{font-size:.72rem;color:var(--muted);}
 
     /* bottom row */
-    .bottom-row{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:1.2rem;margin-bottom:2rem;}
-    @media(max-width:1200px){.bottom-row{grid-template-columns:1fr 1fr;}}
+    .bottom-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem;margin-bottom:2rem;}
     @media(max-width:800px){.bottom-row{grid-template-columns:1fr;}}
 
     .data-row{display:flex;justify-content:space-between;align-items:center;padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.82rem;gap:.5rem;}
@@ -197,7 +195,7 @@
     .user-row-clickable:hover td{background:rgba(139,92,246,.07)!important;}
 
     /* profile modal */
-    #profileModal{display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+    #profileModal{display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.65);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
     #profileModal.open{display:flex;}
     .profile-drawer{background:#0d1026;border:1px solid rgba(139,92,246,.25);border-radius:20px;width:min(700px,96vw);max-height:88vh;overflow-y:auto;padding:2rem 2.25rem;position:relative;}
     .profile-drawer::-webkit-scrollbar{width:4px;}
@@ -216,6 +214,53 @@
     .pf-item .pf-lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem;}
     .pf-item .pf-val{font-size:.88rem;color:var(--text);font-weight:500;}
     .modal-loading{text-align:center;padding:2.5rem;color:var(--muted);font-size:.88rem;}
+
+    @media(max-width:1366px) and (min-width:921px){
+      :root{--sidebar:226px;}
+      .sidebar{padding:1.15rem .95rem;}
+      .main{padding:1.25rem .95rem;}
+      .topbar-left h1{font-size:1.32rem;}
+      .cards{gap:.9rem;}
+      .panel{padding:1.1rem;}
+    }
+
+    @media(max-width:1024px) and (min-width:921px){
+      :root{--sidebar:210px;}
+      .nav a{padding:.58rem .72rem;font-size:.78rem;gap:.55rem;}
+      .nav a i{width:15px;font-size:.8rem;}
+      .topbar{flex-wrap:wrap;}
+      .topbar-right{width:100%;justify-content:flex-start;}
+      .status-bar{gap:1rem;padding:.65rem .9rem;}
+      .cards .card{min-height:158px;}
+      .bottom-row .panel{min-height:255px;}
+    }
+
+    @media(max-width:1280px) and (min-width:1025px){
+      :root{--sidebar:216px;}
+      .sidebar{padding:1.05rem .85rem;}
+      .main{padding:1.1rem .8rem;}
+      .nav a{padding:.6rem .72rem;font-size:.8rem;gap:.58rem;}
+      .cards .card{min-height:150px;}
+      .charts-row .panel,
+      .bottom-row .panel{min-height:245px;}
+    }
+
+    @media(max-width:920px){
+      body{display:block;overflow-y:auto;}
+      .sidebar{position:relative;width:100%;height:auto;border-right:none;border-bottom:1px solid var(--border);padding:1rem;}
+      .nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.35rem;}
+      .sidebar-footer{margin-top:1rem;}
+      .main{margin-left:0;height:auto;padding:1rem;}
+      .topbar{flex-wrap:wrap;gap:.75rem;}
+      .topbar-right{width:100%;justify-content:flex-start;flex-wrap:wrap;}
+    }
+
+    @media(max-width:760px){
+      .cards{grid-template-columns:1fr;}
+      .pay-summary{gap:.75rem;}
+      .pay-stat{flex:1 1 100%;}
+      .profile-grid{grid-template-columns:1fr;}
+    }
   </style>
 </head>
 <body>
@@ -681,38 +726,57 @@
   }
 
   auth.onAuthStateChanged(async(user)=>{
-    if(!user){showDenied();return;}
-    const snap=await db.ref('users/'+user.uid+'/role').get();
-    const role=String(snap.val()||'').toLowerCase();
-    const allowlistedAdmin=isAllowlistedAdminEmail(user.email);
-    if(role!=='admin' && !allowlistedAdmin){showDenied();return;}
-    if(allowlistedAdmin && role!=='admin'){
+    try{
+      if(!user){showDenied();return;}
+      let role='student';
+      const allowlistedAdmin=isAllowlistedAdminEmail(user.email);
       try{
-        await db.ref('users/'+user.uid).update({ role:'admin', updatedAt:new Date().toISOString() });
-      }catch(_e){}
-      localStorage.setItem('sp_user_role','admin');
-    }
-    document.getElementById('authOverlay').style.display='none';
-    document.getElementById('sidebar').style.display='flex';
-    document.getElementById('mainContent').style.display='block';
-    const name=user.displayName||user.email||'Admin';
-    document.getElementById('adminName').textContent=name;
-    document.getElementById('adminAvatar').textContent=name.charAt(0).toUpperCase();
-    refreshSupportBadge();
-    setInterval(refreshSupportBadge, 30000);
-    loadStats();
-    if(!securityPollTimer){
-      securityPollTimer=setInterval(()=>{
-        if(document.getElementById('dashboardView').style.display!=='none'){
-          loadSecurityAlerts(true);
+        const snap=await db.ref('users/'+user.uid+'/role').get();
+        role=String(snap.val()||'student').toLowerCase();
+      }catch(roleErr){
+        console.warn('Role lookup failed:', roleErr && roleErr.message ? roleErr.message : roleErr);
+        if(!allowlistedAdmin){
+          showDenied('Unable to verify admin role right now. Please check your internet and try again.');
+          return;
         }
-      }, 30000);
+      }
+
+      if(role!=='admin' && !allowlistedAdmin){showDenied();return;}
+      if(allowlistedAdmin && role!=='admin'){
+        try{
+          await db.ref('users/'+user.uid).update({ role:'admin', updatedAt:new Date().toISOString() });
+        }catch(_e){}
+        localStorage.setItem('sp_user_role','admin');
+      }
+      document.getElementById('authOverlay').style.display='none';
+      document.getElementById('sidebar').style.display='flex';
+      document.getElementById('mainContent').style.display='block';
+      const name=user.displayName||user.email||'Admin';
+      document.getElementById('adminName').textContent=name;
+      document.getElementById('adminAvatar').textContent=name.charAt(0).toUpperCase();
+      refreshSupportBadge();
+      setInterval(refreshSupportBadge, 30000);
+      loadStats();
+      if(!securityPollTimer){
+        securityPollTimer=setInterval(()=>{
+          if(document.getElementById('dashboardView').style.display!=='none'){
+            loadSecurityAlerts(true);
+          }
+        }, 30000);
+      }
+    }catch(err){
+      console.error('Admin auth flow error:', err && err.message ? err.message : err);
+      showDenied('Admin verification failed. Please sign in again.');
     }
   });
 
-  function showDenied(){
+  function showDenied(reason){
     document.getElementById('authOverlay').style.display='none';
     document.getElementById('accessDenied').style.display='flex';
+    if(reason){
+      const msg=document.querySelector('#accessDenied p');
+      if(msg) msg.textContent=reason;
+    }
   }
 
   async function loadStats(){
@@ -1306,5 +1370,6 @@
   }
 </script>
   <script src="i18n-sa.js"></script>
+  <script src="/back-nav.js"></script>
 </body>
 </html>

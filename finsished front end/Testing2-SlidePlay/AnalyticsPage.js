@@ -133,7 +133,7 @@ function hydrateAnalyticsFromLocalData() {
         const date = String(s.date || "");
         const duration = formatDuration(Number(s.durationMs || 0));
         const score = Number(s.score || 0);
-        return `<div class="intel-item"><strong>${game}</strong><span>${date} • ${duration} • ${score} pts</span></div>`;
+        return `<div class="intel-item"><strong>${game}</strong><span>${date} | ${duration} | ${score} pts</span></div>`;
       })
       .join("");
     recentActivitiesList.innerHTML = items;
@@ -219,7 +219,7 @@ function toggleEntryDetails(entry) {
 
   // Show a tooltip-like feedback
   const originalText = currentScore;
-  scoreElement.textContent = "Selected ✓";
+  scoreElement.textContent = "Selected";
   scoreElement.style.color = "#00f7ff";
 
   setTimeout(() => {
@@ -303,7 +303,7 @@ function animateBadgeClick(badge) {
 
   // Show notification
   showNotification(
-    badge.querySelector("p").textContent + " Badge Unlocked! 🎉",
+    badge.querySelector("p").textContent + " Badge Unlocked!",
   );
 }
 
@@ -345,7 +345,7 @@ function handleMilestoneClick(milestone) {
 
   if (isCompleted) {
     const title = milestone.querySelector("h4").textContent;
-    showNotification("✓ " + title + " - Great job! 🏆");
+    showNotification(title + " - Great job!");
   } else {
     const progress = milestone.querySelector("p").textContent;
     showNotification("In progress: " + progress);
@@ -531,7 +531,7 @@ function exportAnalyticsData() {
   link.download = "analytics_data.json";
   link.click();
 
-  showNotification("📊 Analytics data exported successfully!");
+  showNotification("Analytics data exported successfully.");
 }
 
 // Print report functionality

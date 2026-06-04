@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -357,10 +357,14 @@
         const plan = String(sub.plan).toLowerCase();
         const status = String(sub.status || "active").toLowerCase();
         if (["cancelled", "expired", "locked"].includes(status)) return false;
-        return plan === "school" || plan === "teacher_premium";
+        return ["pro", "school", "teacher_pro", "teacher_enterprise", "teacher_premium", "school_premium"].includes(plan);
       } catch (_err) {
         return false;
       }
+    }
+
+    function applyPaidVisualState() {
+      document.querySelectorAll(".badge-paid").forEach((el) => el.remove());
     }
 
     function setStatus(msg, bad) {
@@ -606,7 +610,10 @@
     }
 
     async function boot() {
-      if (!hasHighestTeacherPlan()) {
+      const hasPlan = hasHighestTeacherPlan();
+      if (hasPlan) applyPaidVisualState();
+
+      if (!hasPlan) {
         const go = confirm("Student Reports is a highest paid teacher feature. Upgrade to Teacher Premium/School now?");
         if (go) window.location.href = "payment.html";
         else window.location.href = "teacher.html";
@@ -645,5 +652,7 @@
 
     boot();
   </script>
+  <script src="/back-nav.js"></script>
 </body>
 </html>
+

@@ -232,6 +232,11 @@
 
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
+      const API_BASE = (
+        window.SLIDEPLAY_API_BASE ||
+        localStorage.getItem("sp_api_base") ||
+        (window.location.port === "3000" ? "" : "http://127.0.0.1:3000")
+      ).replace(/\/$/, "");
 
       const form = document.getElementById("resetForm");
       const email = document.getElementById("email");
@@ -253,6 +258,16 @@
 
           await sendPasswordResetEmail(auth, normalizedEmail);
 
+          // Best-effort branded reset notice from backend.
+          fetch(API_BASE + "/api/email/password-reset-notice", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: normalizedEmail,
+              resetUrl: window.location.origin + "/reset.html",
+            }),
+          }).catch(() => {});
+
           message.textContent = "Reset email sent! Check your inbox.";
           message.classList.add("success");
         } catch (error) {
@@ -268,5 +283,7 @@
       });
     </script>
     <script src="i18n-sa.js"></script>
+  <script src="/back-nav.js"></script>
 </body>
 </html>
+

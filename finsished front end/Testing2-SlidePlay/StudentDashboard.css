@@ -517,10 +517,13 @@ body::before {
 .content-area {
   flex: 1;
   display: flex;
-  gap: 24px;
-  padding: 28px 24px;
+  gap: 28px;
+  padding: 30px 26px;
   overflow-y: auto;
   align-items: flex-start;
+  max-width: 1680px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .main-content {
@@ -536,6 +539,7 @@ body::before {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: 0 12px 38px rgba(2, 6, 23, 0.36);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
@@ -641,7 +645,7 @@ h1 {
   background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(6,182,212,0.08));
   border: 1px solid rgba(139,92,246,0.3);
   border-radius: var(--radius);
-  padding: 26px;
+  padding: 28px;
   position: relative;
   overflow: hidden;
   box-shadow: 0 0 30px rgba(139,92,246,0.12);
@@ -857,7 +861,7 @@ h1 {
 /* ── Charts Section ─────────────────────────────────────── */
 .charts-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
 }
 
@@ -970,7 +974,7 @@ h1 {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 24px;
+  padding: 26px;
   animation: slideInUp 0.5s ease-out 0.2s both;
 }
 
@@ -1083,7 +1087,7 @@ h2 {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 22px;
+  padding: 24px;
   animation: slideInUp 0.5s ease-out 0.15s both;
 }
 
@@ -1171,7 +1175,7 @@ h2 {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 22px;
+  padding: 24px;
   animation: slideInUp 0.5s ease-out 0.3s both;
 }
 
@@ -1310,39 +1314,180 @@ footer {
 
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 1450px) {
-  .content-area { flex-direction: column; }
-  .right-sidebar {
-    flex: none;
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
+  .navigation { width: 240px; }
+  .right-sidebar { flex: 0 0 300px; }
+  .content-area { gap: 22px; padding: 24px 18px; }
+}
+
+@media (max-width: 1366px) and (min-width: 1101px) {
+  .navigation { width: 228px; }
+  .right-sidebar { flex: 0 0 280px; }
+  .content-area { gap: 20px; padding: 20px 14px; }
+  h1 { font-size: 1.8rem; }
+}
+
+@media (max-width: 1100px) and (min-width: 901px) {
+  .page-shell { flex-direction: row; }
+  .navigation {
+    width: 210px;
+    height: calc(100vh - 68px);
+    position: sticky;
+    top: 68px;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    padding: 16px 10px;
+    overflow-y: auto;
   }
+
+  .nav-links {
+    display: flex;
+    grid-template-columns: none;
+  }
+
+  .nav-links a {
+    padding: 10px 11px;
+    font-size: 0.74rem;
+    gap: 8px;
+  }
+
+  .logo-name { font-size: 0.92rem; }
+  .logo-sub { font-size: 0.52rem; letter-spacing: 1.5px; }
+
+  .content-area {
+    flex-direction: row;
+    gap: 14px;
+    padding: 16px 10px;
+  }
+
+  .right-sidebar {
+    flex: 0 0 248px;
+    width: auto;
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
   .leaderboard,
   .system-comms {
-    flex: 1;
-    min-width: 320px;
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 1280px) and (min-width: 1101px) {
+  .navigation { width: 220px; }
+  .nav-links a {
+    font-size: 0.78rem;
+    padding: 10px 12px;
+  }
+  .right-sidebar { flex: 0 0 268px; }
+  .content-area { gap: 16px; padding: 18px 10px; }
+  .locked-features-card,
+  .level-card,
+  .daily-quest-card,
+  .invite-section,
+  .time-card,
+  .leaderboard,
+  .system-comms {
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 1024px) and (min-width: 901px) {
+  .navigation { width: 204px; }
+  .nav-links a {
+    font-size: 0.72rem;
+    padding: 9px 9px;
+    gap: 7px;
+  }
+  .right-sidebar { flex: 0 0 236px; }
+  .content-area { gap: 12px; padding: 14px 8px; }
+  .main-content { gap: 16px; }
+  .locked-features-card,
+  .level-card,
+  .daily-quest-card,
+  .invite-section,
+  .time-card {
+    padding: 18px;
   }
 }
 
 @media (max-width: 1100px) {
+  .navigation { width: 220px; }
+  .right-sidebar { flex: 0 0 280px; }
+
+  .top-search-bar {
+    height: auto;
+    padding: 10px 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .search-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .right-items {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
   .content-area { padding: 22px 16px; }
 }
 
 @media (max-width: 900px) {
-  .navigation { width: 220px; }
+  .page-shell { flex-direction: column; }
+
+  .navigation {
+    width: 100%;
+    height: auto;
+    position: relative;
+    top: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+    overflow: visible;
+  }
+
+  .nav-header { margin-bottom: 14px; }
+
+  .nav-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px;
+  }
+
+  .nav-footer { margin-top: 14px; }
+
+  .content-area { gap: 16px; }
   .content-area { flex-direction: column; }
   .right-sidebar { flex: none; width: 100%; flex-direction: row; flex-wrap: wrap; }
   .leaderboard, .system-comms { flex: 1; min-width: 260px; }
 }
 
 @media (max-width: 700px) {
-  .navigation { width: 68px; padding: 16px 10px; }
-  .logo-text-wrapper, .nav-links a span, .user-meta { display: none; }
-  .nav-links a { justify-content: center; padding: 12px; }
-  .logo-square { margin: 0 auto; }
-  .nav-header { justify-content: center; }
-  .nav-footer .user-pill { justify-content: center; }
+  .navigation {
+    width: 100%;
+    padding: 12px;
+  }
+  .logo-text-wrapper,
+  .user-meta {
+    display: block;
+  }
+  .nav-links {
+    grid-template-columns: 1fr;
+  }
+  .nav-links a {
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+  .logo-square { margin: 0; }
+  .nav-header { justify-content: flex-start; }
+  .nav-footer .user-pill { justify-content: space-between; }
   .content-area { padding: 16px 12px; }
+  .right-items { justify-content: flex-start; }
+  .right-sidebar { flex-direction: column; }
   .plans-grid { grid-template-columns: 1fr; }
   .invite-content { grid-template-columns: 1fr; }
   .charts-section { grid-template-columns: 1fr; }
