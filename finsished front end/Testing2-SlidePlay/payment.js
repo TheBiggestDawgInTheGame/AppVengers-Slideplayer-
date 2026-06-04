@@ -140,6 +140,65 @@ let selectedPlan = null;
 let isYearly = false;
 let appliedDiscount = 0;
 
+function getSafeStudentReturnPath(rawPath) {
+  if (!rawPath || typeof rawPath !== "string") return "";
+  // Only allow same-origin relative paths to avoid open redirects.
+  if (!rawPath.startsWith("/")) return "";
+  if (/^\/\//.test(rawPath)) return "";
+  if (/studentpayment\.html|payment\.html/i.test(rawPath)) return "";
+  return rawPath;
+}
+
+function getStudentReturnPathFromQuery() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    return getSafeStudentReturnPath(p.get("return") || "");
+  } catch (_e) {
+    return "";
+  }
+}
+
+function getPostPaymentRedirectPath() {
+  const studentDashboard = "Studentdashboard.html";
+  const teacherDashboard = "teacher.html";
+
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const source = (p.get("source") || "").toLowerCase();
+    const fromSignupFlow = /signup|register|onboard|new[_-]?account/.test(source);
+
+    if (IS_STUDENT) {
+      if (fromSignupFlow) return studentDashboard;
+      const returnPath = getSafeStudentReturnPath(p.get("return") || "");
+      if (returnPath) return returnPath;
+      return studentDashboard;
+    }
+
+    return teacherDashboard;
+  } catch (_e) {
+    return IS_STUDENT ? studentDashboard : teacherDashboard;
+  }
+}
+
+function schedulePostPaymentRedirect() {
+  const redirectPath = getPostPaymentRedirectPath();
+  if (!redirectPath) return;
+
+  const goBtn = document.querySelector("#successModal .success-actions .pay-btn");
+  if (goBtn) {
+    goBtn.setAttribute("href", redirectPath);
+    if (IS_STUDENT && redirectPath.startsWith("/")) {
+      goBtn.textContent = "Return to Previous Page";
+    } else {
+      goBtn.textContent = "Go to Dashboard";
+    }
+  }
+
+  setTimeout(function () {
+    window.location.href = redirectPath;
+  }, 1400);
+}
+
 // ── Init ──────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -662,6 +721,7 @@ function showSuccessModal(plan, receiptId) {
   if (planMsg)
     planMsg.textContent = "Your " + PLAN_LABELS[plan] + " plan is now active.";
   showModalById("successModal");
+  schedulePostPaymentRedirect();
 
   const viewInvoicesBtn = document.getElementById("successViewInvoices");
   if (viewInvoicesBtn) {
@@ -901,7 +961,16 @@ window.spStudentRequirePlan = function (requiredPlan, featureName) {
         STUDENT_PLAN_LABELS[requiredPlan] +
         " plan.\n\nUpgrade now?",
     );
-    if (go) window.location.href = "studentpayment.html";
+    if (go) {
+      const returnPath =
+        window.location.pathname + window.location.search + window.location.hash;
+      const qs = new URLSearchParams({
+        plan: requiredPlan,
+        source: "gate",
+        return: returnPath,
+      });
+      window.location.href = "studentpayment.html?" + qs.toString();
+    }
     return false;
   }
   return true;
