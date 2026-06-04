@@ -810,9 +810,11 @@
             const params = new URLSearchParams({
               plan: mappedPlan,
               return: returnTo,
-              role: userRole
+              role: userRole,
+              source: 'signup'
             });
-            window.location.href = 'payment.html?' + params.toString();
+            const paymentPage = userRole === 'teacher' ? 'payment.html' : 'studentpayment.html';
+            window.location.href = paymentPage + '?' + params.toString();
             return;
           }
 
